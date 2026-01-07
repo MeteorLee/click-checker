@@ -228,3 +228,6 @@ application-dev.yml
 
 # docker
 .env
+
+# test용 http 파일
+*.http
