@@ -24,6 +24,11 @@ public class EventQueryService {
 
     @Transactional(readOnly = true)
     public List<PathCountDto> countByPathBetween(LocalDateTime from, LocalDateTime to, int top) {
-        return eventQueryRepository.countByPathBetween(from, to, top);
+        return countByPathBetween(from, to, null, top);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PathCountDto> countByPathBetween(LocalDateTime from, LocalDateTime to, String eventType, int top) {
+        return eventQueryRepository.countByPathBetween(from, to, eventType, top);
     }
 }

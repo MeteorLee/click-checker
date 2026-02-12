@@ -31,6 +31,7 @@ public class EventQueryController {
     public PathAggregateResponse aggregatePaths(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
         if (!from.isBefore(to)) {
@@ -40,10 +41,16 @@ public class EventQueryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
         }
 
-        List<PathCountDto> pathCounts = eventQueryService.countByPathBetween(from, to, top);
-        return new PathAggregateResponse(from, to, top, pathCounts);
+        List<PathCountDto> pathCounts = eventQueryService.countByPathBetween(from, to, eventType, top);
+        return new PathAggregateResponse(from, to, eventType, top, pathCounts);
     }
 
     public record CountResponse(String eventType, Long count) {}
-    public record PathAggregateResponse(LocalDateTime from, LocalDateTime to, int top, List<PathCountDto> items) {}
+    public record PathAggregateResponse(
+            LocalDateTime from,
+            LocalDateTime to,
+            String eventType,
+            int top,
+            List<PathCountDto> items
+    ) {}
 }

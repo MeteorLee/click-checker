@@ -32,6 +32,10 @@ public class EventQueryRepository {
     }
 
     public List<PathCountDto> countByPathBetween(LocalDateTime from, LocalDateTime to, int top) {
+        return countByPathBetween(from, to, null, top);
+    }
+
+    public List<PathCountDto> countByPathBetween(LocalDateTime from, LocalDateTime to, String eventType, int top) {
         QEvent event = QEvent.event;
 
         return queryFactory
@@ -39,6 +43,7 @@ public class EventQueryRepository {
                 .from(event)
                 .where(
                         occurredAtBetween(from, to),
+                        eventTypeEq(eventType),
                         event.path.isNotNull(),
                         event.path.isNotEmpty()
                 )
@@ -52,5 +57,10 @@ public class EventQueryRepository {
         QEvent event = QEvent.event;
         return event.occurredAt.goe(from)
                 .and(event.occurredAt.lt(to));
+    }
+
+    private BooleanExpression eventTypeEq(String eventType) {
+        QEvent event = QEvent.event;
+        return eventType == null || eventType.isBlank() ? null : event.eventType.eq(eventType);
     }
 }
