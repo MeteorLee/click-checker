@@ -1,6 +1,6 @@
 package com.clickchecker.event.controller;
 
-import com.clickchecker.event.service.EventService;
+import com.clickchecker.event.service.EventQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/events")
 public class EventQueryController {
 
-    private final EventService eventService;
+    private final EventQueryService eventQueryService;
 
     @GetMapping("/count")
     public CountResponse count(@RequestParam String eventType) {
-        Long count = eventService.countByEventType(eventType);
+        Long count = eventQueryService.countByEventType(eventType);
         return new CountResponse(eventType, count);
     }
 

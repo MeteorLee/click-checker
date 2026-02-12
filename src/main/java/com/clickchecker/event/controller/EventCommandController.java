@@ -1,7 +1,7 @@
 package com.clickchecker.event.controller;
 
 import com.clickchecker.event.dto.EventCreateRequest;
-import com.clickchecker.event.service.EventService;
+import com.clickchecker.event.service.EventCommandService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/events")
 public class EventCommandController {
 
-    private final EventService eventService;
+    private final EventCommandService eventCommandService;
 
     @PostMapping
     public ResponseEntity<CreateResponse> create(@RequestBody @Valid EventCreateRequest req) {
-        Long id = eventService.create(req);
+        Long id = eventCommandService.create(req);
         return ResponseEntity.ok(new CreateResponse(id));
     }
 

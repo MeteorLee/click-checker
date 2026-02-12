@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
-public class EventService {
+public class EventCommandService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
@@ -20,10 +20,5 @@ public class EventService {
         Event event = eventMapper.toEntity(req);
 
         return eventRepository.save(event).getId();
-    }
-
-    @Transactional(readOnly = true)
-    public long countByEventType(String eventType) {
-        return eventRepository.countByEventType(eventType);
     }
 }
