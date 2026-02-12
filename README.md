@@ -9,7 +9,10 @@
 - 트래픽 증가 상황을 고려한 서버 설계 연습
 
 ## Tech Stack
-- Java 17
+- Java 21
 - Spring Boot
 - JPA (Hibernate)
 - PostgreSQL
+- Swagger
+- Querydsl
+- MapStruct
