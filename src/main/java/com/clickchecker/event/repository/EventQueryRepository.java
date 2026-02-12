@@ -31,11 +31,13 @@ public class EventQueryRepository {
         return result != null ? result : 0L;
     }
 
-    public List<PathCountDto> countByPathBetween(LocalDateTime from, LocalDateTime to, int top) {
-        return countByPathBetween(from, to, null, top);
-    }
-
-    public List<PathCountDto> countByPathBetween(LocalDateTime from, LocalDateTime to, String eventType, int top) {
+    public List<PathCountDto> countByPathBetween(
+            LocalDateTime from,
+            LocalDateTime to,
+            Long organizationId,
+            String eventType,
+            int top
+    ) {
         QEvent event = QEvent.event;
 
         return queryFactory
@@ -44,8 +46,8 @@ public class EventQueryRepository {
                 .where(
                         occurredAtBetween(from, to),
                         eventTypeEq(eventType),
-                        event.path.isNotNull(),
-                        event.path.isNotEmpty()
+                        organizationIdEq(organizationId),
+                        pathExists()
                 )
                 .groupBy(event.path)
                 .orderBy(event.id.count().desc(), event.path.asc())
@@ -62,5 +64,15 @@ public class EventQueryRepository {
     private BooleanExpression eventTypeEq(String eventType) {
         QEvent event = QEvent.event;
         return eventType == null || eventType.isBlank() ? null : event.eventType.eq(eventType);
+    }
+
+    private BooleanExpression organizationIdEq(Long organizationId) {
+        QEvent event = QEvent.event;
+        return event.organization.id.eq(organizationId);
+    }
+
+    private BooleanExpression pathExists() {
+        QEvent event = QEvent.event;
+        return event.path.isNotNull().and(event.path.isNotEmpty());
     }
 }

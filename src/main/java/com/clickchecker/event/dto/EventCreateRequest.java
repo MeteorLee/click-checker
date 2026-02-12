@@ -6,6 +6,10 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 public record EventCreateRequest(
+        @NotNull
+        Long organizationId,
+
+        @NotBlank
         String eventType,
 
         @NotBlank

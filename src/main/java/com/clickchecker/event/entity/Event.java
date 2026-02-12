@@ -1,5 +1,6 @@
 package com.clickchecker.event.entity;
 
+import com.clickchecker.organization.entity.Organization;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -24,6 +25,10 @@ public class Event {
     @Column(length = 512)
     private String path;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
     @Column(nullable = false)
     private LocalDateTime occurredAt;
 
@@ -31,9 +36,10 @@ public class Event {
     private String payload;
 
     @Builder
-    public Event(String eventType, String path, LocalDateTime occurredAt, String payload) {
+    public Event(String eventType, String path, Organization organization, LocalDateTime occurredAt, String payload) {
         this.eventType = eventType;
         this.path = path;
+        this.organization = organization;
         this.occurredAt = occurredAt != null ? occurredAt : LocalDateTime.now();
         this.payload = payload;
     }
