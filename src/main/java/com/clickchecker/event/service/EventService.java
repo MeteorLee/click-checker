@@ -1,30 +1,24 @@
 package com.clickchecker.event.service;
 
+import com.clickchecker.event.dto.EventCreateRequest;
 import com.clickchecker.event.entity.Event;
 import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.mapper.EventMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @RequiredArgsConstructor
 @Service
 public class EventService {
 
     private final EventRepository eventRepository;
+    private final EventMapper eventMapper;
 
     @Transactional
-    public Long create(String eventType, LocalDateTime occurredAt, String payload) {
-        // 최소 방어
-        if (eventType == null || eventType.isBlank()) {
-            throw new IllegalArgumentException("eventType is required");
-        }
-        if (occurredAt == null) {
-            occurredAt = LocalDateTime.now(); // 임시로 서버시간
-        }
+    public Long create(EventCreateRequest req) {
+        Event event = eventMapper.toEntity(req);
 
-        Event event = new Event(eventType, occurredAt, payload);
         return eventRepository.save(event).getId();
     }
 

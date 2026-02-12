@@ -17,8 +17,8 @@ public class EventCommandController {
     private final EventService eventService;
 
     @PostMapping
-    public ResponseEntity<CreateResponse> create(@RequestBody EventCreateRequest request) {
-        Long id = eventService.create(request.eventType(), request.occurredAt(), request.payload());
+    public ResponseEntity<CreateResponse> create(@RequestBody EventCreateRequest req) {
+        Long id = eventService.create(req);
         return ResponseEntity.ok(new CreateResponse(id));
     }
 
