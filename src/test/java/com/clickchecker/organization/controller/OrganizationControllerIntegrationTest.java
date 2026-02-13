@@ -1,5 +1,7 @@
 package com.clickchecker.organization.controller;
 
+import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +27,15 @@ class OrganizationControllerIntegrationTest {
     @Autowired
     private OrganizationRepository organizationRepository;
 
+    @Autowired
+    private EventUserRepository eventUserRepository;
+
+    @Autowired
+    private EventRepository eventRepository;
+
     @Test
     void create_returnsId_whenRequestIsValid() throws Exception {
-        organizationRepository.deleteAll();
+        cleanup();
 
         mockMvc.perform(
                         post("/api/organizations")
@@ -47,6 +55,8 @@ class OrganizationControllerIntegrationTest {
 
     @Test
     void create_returnsBadRequest_whenNameIsBlank() throws Exception {
+        cleanup();
+
         mockMvc.perform(
                         post("/api/organizations")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -57,5 +67,11 @@ class OrganizationControllerIntegrationTest {
                                         """)
                 )
                 .andExpect(status().isBadRequest());
+    }
+
+    private void cleanup() {
+        eventRepository.deleteAll();
+        eventUserRepository.deleteAll();
+        organizationRepository.deleteAll();
     }
 }

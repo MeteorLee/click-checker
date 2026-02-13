@@ -1,5 +1,6 @@
 package com.clickchecker.eventuser.controller;
 
+import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
@@ -30,10 +31,12 @@ class EventUserControllerIntegrationTest {
     @Autowired
     private OrganizationRepository organizationRepository;
 
+    @Autowired
+    private EventRepository eventRepository;
+
     @Test
     void create_returnsId_whenRequestIsValid() throws Exception {
-        eventUserRepository.deleteAll();
-        organizationRepository.deleteAll();
+        cleanup();
         Organization organization = saveOrganization("acme");
 
         mockMvc.perform(
@@ -55,8 +58,7 @@ class EventUserControllerIntegrationTest {
 
     @Test
     void create_returnsConflict_whenExternalUserIdIsDuplicatedInSameOrganization() throws Exception {
-        eventUserRepository.deleteAll();
-        organizationRepository.deleteAll();
+        cleanup();
         Organization organization = saveOrganization("acme");
 
         mockMvc.perform(
@@ -86,8 +88,7 @@ class EventUserControllerIntegrationTest {
 
     @Test
     void create_allowsSameExternalUserId_whenOrganizationIsDifferent() throws Exception {
-        eventUserRepository.deleteAll();
-        organizationRepository.deleteAll();
+        cleanup();
         Organization organizationA = saveOrganization("acme");
         Organization organizationB = saveOrganization("globex");
 
@@ -120,6 +121,8 @@ class EventUserControllerIntegrationTest {
 
     @Test
     void create_returnsBadRequest_whenOrganizationIsInvalid() throws Exception {
+        cleanup();
+
         mockMvc.perform(
                         post("/api/event-users")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -135,6 +138,7 @@ class EventUserControllerIntegrationTest {
 
     @Test
     void create_returnsBadRequest_whenExternalUserIdIsBlank() throws Exception {
+        cleanup();
         Organization organization = saveOrganization("acme");
 
         mockMvc.perform(
@@ -148,6 +152,12 @@ class EventUserControllerIntegrationTest {
                                         """.formatted(organization.getId()))
                 )
                 .andExpect(status().isBadRequest());
+    }
+
+    private void cleanup() {
+        eventRepository.deleteAll();
+        eventUserRepository.deleteAll();
+        organizationRepository.deleteAll();
     }
 
     private Organization saveOrganization(String name) {
