@@ -35,6 +35,7 @@ public class EventQueryRepository {
             LocalDateTime from,
             LocalDateTime to,
             Long organizationId,
+            Long eventUserId,
             String eventType,
             int top
     ) {
@@ -47,6 +48,7 @@ public class EventQueryRepository {
                         occurredAtBetween(from, to),
                         eventTypeEq(eventType),
                         organizationIdEq(organizationId),
+                        eventUserIdEq(eventUserId),
                         pathExists()
                 )
                 .groupBy(event.path)
@@ -69,6 +71,11 @@ public class EventQueryRepository {
     private BooleanExpression organizationIdEq(Long organizationId) {
         QEvent event = QEvent.event;
         return event.organization.id.eq(organizationId);
+    }
+
+    private BooleanExpression eventUserIdEq(Long eventUserId) {
+        QEvent event = QEvent.event;
+        return eventUserId == null ? null : event.eventUser.id.eq(eventUserId);
     }
 
     private BooleanExpression pathExists() {
