@@ -98,6 +98,41 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
+    void aggregatePaths_excludesOtherOrganizationData() throws Exception {
+        eventRepository.deleteAll();
+        organizationRepository.deleteAll();
+
+        Organization organizationA = saveOrganization("acme");
+        Organization organizationB = saveOrganization("globex");
+
+        LocalDateTime base = LocalDateTime.of(2026, 2, 13, 12, 0);
+
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organizationA).occurredAt(base.plusMinutes(1)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organizationA).occurredAt(base.plusMinutes(2)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organizationA).occurredAt(base.plusMinutes(3)).build());
+
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(base.plusMinutes(4)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(base.plusMinutes(5)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(base.plusMinutes(6)).build());
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organizationA.getId().toString())
+                                .param("from", "2026-02-13T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("eventType", "click")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organizationA.getId()))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].path").value("/home"))
+                .andExpect(jsonPath("$.items[0].count").value(2))
+                .andExpect(jsonPath("$.items[1].path").value("/post/1"))
+                .andExpect(jsonPath("$.items[1].count").value(1));
+    }
+
+    @Test
     void aggregatePaths_returnsBadRequest_whenFromIsNotBeforeTo() throws Exception {
         Organization organization = saveOrganization();
 
@@ -135,9 +170,13 @@ class EventQueryControllerIntegrationTest {
     }
 
     private Organization saveOrganization() {
+        return saveOrganization("acme");
+    }
+
+    private Organization saveOrganization(String name) {
         return organizationRepository.save(
                 Organization.builder()
-                        .name("acme")
+                        .name(name)
                         .build()
         );
     }
