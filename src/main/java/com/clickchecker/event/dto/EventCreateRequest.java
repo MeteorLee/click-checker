@@ -9,6 +9,8 @@ public record EventCreateRequest(
         @NotNull
         Long organizationId,
 
+        Long eventUserId,
+
         @NotBlank
         String eventType,
 
