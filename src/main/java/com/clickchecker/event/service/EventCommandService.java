@@ -3,6 +3,8 @@ package com.clickchecker.event.service;
 import com.clickchecker.event.dto.EventCreateRequest;
 import com.clickchecker.event.entity.Event;
 import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.eventuser.entity.EventUser;
+import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,16 +19,28 @@ public class EventCommandService {
 
     private final EventRepository eventRepository;
     private final OrganizationRepository organizationRepository;
+    private final EventUserRepository eventUserRepository;
 
     @Transactional
     public Long create(EventCreateRequest req) {
         Organization organization = organizationRepository.findById(req.organizationId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organizationId."));
 
+        EventUser eventUser = null;
+        if (req.eventUserId() != null) {
+            eventUser = eventUserRepository.findById(req.eventUserId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid eventUserId."));
+
+            if (!eventUser.getOrganization().getId().equals(req.organizationId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "eventUser does not belong to organization.");
+            }
+        }
+
         Event event = Event.builder()
                 .eventType(req.eventType())
                 .path(req.path())
                 .organization(organization)
+                .eventUser(eventUser)
                 .occurredAt(req.occurredAt())
                 .payload(req.payload())
                 .build();
