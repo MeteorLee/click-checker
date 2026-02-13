@@ -2,6 +2,8 @@ package com.clickchecker.event.controller;
 
 import com.clickchecker.event.entity.Event;
 import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.eventuser.entity.EventUser;
+import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import org.junit.jupiter.api.Test;
@@ -31,10 +33,12 @@ class EventQueryControllerIntegrationTest {
     @Autowired
     private OrganizationRepository organizationRepository;
 
+    @Autowired
+    private EventUserRepository eventUserRepository;
+
     @Test
     void aggregatePaths_returnsTopNPaths_withoutEventTypeFilter() throws Exception {
-        eventRepository.deleteAll();
-        organizationRepository.deleteAll();
+        cleanup();
 
         Organization organization = saveOrganization();
 
@@ -66,8 +70,7 @@ class EventQueryControllerIntegrationTest {
 
     @Test
     void aggregatePaths_filtersByEventType_whenEventTypeIsProvided() throws Exception {
-        eventRepository.deleteAll();
-        organizationRepository.deleteAll();
+        cleanup();
 
         Organization organization = saveOrganization();
 
@@ -99,8 +102,7 @@ class EventQueryControllerIntegrationTest {
 
     @Test
     void aggregatePaths_excludesOtherOrganizationData() throws Exception {
-        eventRepository.deleteAll();
-        organizationRepository.deleteAll();
+        cleanup();
 
         Organization organizationA = saveOrganization("acme");
         Organization organizationB = saveOrganization("globex");
@@ -133,7 +135,42 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
+    void aggregatePaths_filtersByEventUserId_whenEventUserIdIsProvided() throws Exception {
+        cleanup();
+
+        Organization organization = saveOrganization("acme");
+        EventUser eventUserA = saveEventUser(organization, "u-1001");
+        EventUser eventUserB = saveEventUser(organization, "u-1002");
+
+        LocalDateTime base = LocalDateTime.of(2026, 2, 13, 12, 0);
+
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(1)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(2)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(3)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organization).eventUser(eventUserB).occurredAt(base.plusMinutes(4)).build());
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organization.getId().toString())
+                                .param("eventUserId", eventUserA.getId().toString())
+                                .param("from", "2026-02-13T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("eventType", "click")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.eventUserId").value(eventUserA.getId()))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].path").value("/home"))
+                .andExpect(jsonPath("$.items[0].count").value(2))
+                .andExpect(jsonPath("$.items[1].path").value("/post/1"))
+                .andExpect(jsonPath("$.items[1].count").value(1));
+    }
+
+    @Test
     void aggregatePaths_returnsBadRequest_whenFromIsNotBeforeTo() throws Exception {
+        cleanup();
         Organization organization = saveOrganization();
 
         mockMvc.perform(
@@ -148,6 +185,7 @@ class EventQueryControllerIntegrationTest {
 
     @Test
     void aggregatePaths_returnsBadRequest_whenTopIsOutOfRange() throws Exception {
+        cleanup();
         Organization organization = saveOrganization();
 
         mockMvc.perform(
@@ -169,6 +207,28 @@ class EventQueryControllerIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void aggregatePaths_returnsBadRequest_whenEventUserIdIsNotPositive() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization();
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organization.getId().toString())
+                                .param("eventUserId", "0")
+                                .param("from", "2026-02-13T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "5")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    private void cleanup() {
+        eventRepository.deleteAll();
+        eventUserRepository.deleteAll();
+        organizationRepository.deleteAll();
+    }
+
     private Organization saveOrganization() {
         return saveOrganization("acme");
     }
@@ -177,6 +237,15 @@ class EventQueryControllerIntegrationTest {
         return organizationRepository.save(
                 Organization.builder()
                         .name(name)
+                        .build()
+        );
+    }
+
+    private EventUser saveEventUser(Organization organization, String externalUserId) {
+        return eventUserRepository.save(
+                EventUser.builder()
+                        .organization(organization)
+                        .externalUserId(externalUserId)
                         .build()
         );
     }
