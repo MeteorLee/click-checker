@@ -1,0 +1,9 @@
+### Organization API
+
+### Create Organization
+POST http://localhost:8080/api/organizations
+Content-Type: application/json
+
+{
+  "name": "acme"
+}
