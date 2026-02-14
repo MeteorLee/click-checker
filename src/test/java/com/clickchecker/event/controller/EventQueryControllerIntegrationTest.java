@@ -135,7 +135,7 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
-    void aggregatePaths_filtersByEventUserId_whenEventUserIdIsProvided() throws Exception {
+    void aggregatePaths_filtersByExternalUserId_whenExternalUserIdIsProvided() throws Exception {
         cleanup();
 
         Organization organization = saveOrganization("acme");
@@ -152,7 +152,7 @@ class EventQueryControllerIntegrationTest {
         mockMvc.perform(
                         get("/api/events/aggregates/paths")
                                 .param("organizationId", organization.getId().toString())
-                                .param("eventUserId", eventUserA.getId().toString())
+                                .param("externalUserId", eventUserA.getExternalUserId())
                                 .param("from", "2026-02-13T00:00:00")
                                 .param("to", "2026-02-14T00:00:00")
                                 .param("eventType", "click")
@@ -160,7 +160,7 @@ class EventQueryControllerIntegrationTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
-                .andExpect(jsonPath("$.eventUserId").value(eventUserA.getId()))
+                .andExpect(jsonPath("$.externalUserId").value(eventUserA.getExternalUserId()))
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].path").value("/home"))
                 .andExpect(jsonPath("$.items[0].count").value(2))
@@ -208,19 +208,19 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
-    void aggregatePaths_returnsBadRequest_whenEventUserIdIsNotPositive() throws Exception {
+    void aggregatePaths_ignoresBlankExternalUserIdFilter() throws Exception {
         cleanup();
         Organization organization = saveOrganization();
 
         mockMvc.perform(
                         get("/api/events/aggregates/paths")
                                 .param("organizationId", organization.getId().toString())
-                                .param("eventUserId", "0")
+                                .param("externalUserId", " ")
                                 .param("from", "2026-02-13T00:00:00")
                                 .param("to", "2026-02-14T00:00:00")
                                 .param("top", "5")
                 )
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
     }
 
     private void cleanup() {

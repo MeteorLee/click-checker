@@ -36,7 +36,7 @@ class EventCommandControllerIntegrationTest {
     private OrganizationRepository organizationRepository;
 
     @Test
-    void create_succeeds_whenEventUserBelongsToOrganization() throws Exception {
+    void create_succeeds_whenExternalUserIdBelongsToOrganization() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
         EventUser eventUser = saveEventUser(organization, "u-1001");
@@ -47,13 +47,13 @@ class EventCommandControllerIntegrationTest {
                                 .content("""
                                         {
                                           "organizationId": %d,
-                                          "eventUserId": %d,
+                                          "externalUserId": "%s",
                                           "eventType": "click",
                                           "path": "/home",
                                           "occurredAt": "2026-02-13T15:03:00",
                                           "payload": "buttonId=signup"
                                         }
-                                        """.formatted(organization.getId(), eventUser.getId()))
+                                        """.formatted(organization.getId(), eventUser.getExternalUserId()))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber());
@@ -62,7 +62,7 @@ class EventCommandControllerIntegrationTest {
     }
 
     @Test
-    void create_returnsBadRequest_whenEventUserBelongsToAnotherOrganization() throws Exception {
+    void create_returnsBadRequest_whenExternalUserIdBelongsToAnotherOrganization() throws Exception {
         cleanup();
         Organization organizationA = saveOrganization("acme");
         Organization organizationB = saveOrganization("globex");
@@ -74,19 +74,19 @@ class EventCommandControllerIntegrationTest {
                                 .content("""
                                         {
                                           "organizationId": %d,
-                                          "eventUserId": %d,
+                                          "externalUserId": "%s",
                                           "eventType": "click",
                                           "path": "/home",
                                           "occurredAt": "2026-02-13T15:03:00",
                                           "payload": "buttonId=signup"
                                         }
-                                        """.formatted(organizationA.getId(), eventUserInB.getId()))
+                                        """.formatted(organizationA.getId(), eventUserInB.getExternalUserId()))
                 )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void create_returnsBadRequest_whenEventUserIdIsInvalid() throws Exception {
+    void create_returnsBadRequest_whenExternalUserIdIsInvalid() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
 
@@ -96,7 +96,7 @@ class EventCommandControllerIntegrationTest {
                                 .content("""
                                         {
                                           "organizationId": %d,
-                                          "eventUserId": 9999,
+                                          "externalUserId": "u-9999",
                                           "eventType": "click",
                                           "path": "/home",
                                           "occurredAt": "2026-02-13T15:03:00",
