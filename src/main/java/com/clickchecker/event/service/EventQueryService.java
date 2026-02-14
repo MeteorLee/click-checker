@@ -27,10 +27,10 @@ public class EventQueryService {
             LocalDateTime from,
             LocalDateTime to,
             Long organizationId,
-            Long eventUserId,
+            String externalUserId,
             String eventType,
             int top
     ) {
-        return eventQueryRepository.countByPathBetween(from, to, organizationId, eventUserId, eventType, top);
+        return eventQueryRepository.countByPathBetween(from, to, organizationId, externalUserId, eventType, top);
     }
 }

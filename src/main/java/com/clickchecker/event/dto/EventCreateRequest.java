@@ -9,7 +9,7 @@ public record EventCreateRequest(
         @NotNull
         Long organizationId,
 
-        Long eventUserId,
+        String externalUserId,
 
         @NotBlank
         String eventType,

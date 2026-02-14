@@ -27,13 +27,9 @@ public class EventCommandService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organizationId."));
 
         EventUser eventUser = null;
-        if (req.eventUserId() != null) {
-            eventUser = eventUserRepository.findById(req.eventUserId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid eventUserId."));
-
-            if (!eventUser.getOrganization().getId().equals(req.organizationId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "eventUser does not belong to organization.");
-            }
+        if (req.externalUserId() != null && !req.externalUserId().isBlank()) {
+            eventUser = eventUserRepository.findByOrganizationIdAndExternalUserId(req.organizationId(), req.externalUserId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid externalUserId."));
         }
 
         Event event = Event.builder()

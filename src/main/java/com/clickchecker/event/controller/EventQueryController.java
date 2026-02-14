@@ -31,7 +31,7 @@ public class EventQueryController {
     @GetMapping("/aggregates/paths")
     public PathAggregateResponse aggregatePaths(
             @RequestParam Long organizationId,
-            @RequestParam(required = false) Long eventUserId,
+            @RequestParam(required = false) String externalUserId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(required = false) String eventType,
@@ -40,9 +40,6 @@ public class EventQueryController {
         if (organizationId < 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`organizationId` must be positive.");
         }
-        if (eventUserId != null && eventUserId < 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`eventUserId` must be positive.");
-        }
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
         }
@@ -50,14 +47,14 @@ public class EventQueryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
         }
 
-        List<PathCountDto> pathCounts = eventQueryService.countByPathBetween(from, to, organizationId, eventUserId, eventType, top);
-        return new PathAggregateResponse(organizationId, eventUserId, from, to, eventType, top, pathCounts);
+        List<PathCountDto> pathCounts = eventQueryService.countByPathBetween(from, to, organizationId, externalUserId, eventType, top);
+        return new PathAggregateResponse(organizationId, externalUserId, from, to, eventType, top, pathCounts);
     }
 
     public record CountResponse(String eventType, Long count) {}
     public record PathAggregateResponse(
             Long organizationId,
-            Long eventUserId,
+            String externalUserId,
             LocalDateTime from,
             LocalDateTime to,
             String eventType,
