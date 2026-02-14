@@ -1,6 +1,8 @@
 package com.clickchecker.event.controller;
 
 import com.clickchecker.event.repository.dto.PathCountDto;
+import com.clickchecker.event.repository.dto.TimeBucket;
+import com.clickchecker.event.repository.dto.TimeBucketCountDto;
 import com.clickchecker.event.service.EventQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -51,6 +53,42 @@ public class EventQueryController {
         return new PathAggregateResponse(organizationId, externalUserId, from, to, eventType, top, pathCounts);
     }
 
+    @GetMapping("/aggregates/time-buckets")
+    public TimeBucketAggregateResponse aggregateTimeBuckets(
+            @RequestParam Long organizationId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String eventType,
+            @RequestParam TimeBucket bucket
+    ) {
+        if (organizationId < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`organizationId` must be positive.");
+        }
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+
+        List<TimeBucketCountDto> items = eventQueryService.countByTimeBucketBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType,
+                bucket
+        );
+
+        return new TimeBucketAggregateResponse(
+                organizationId,
+                externalUserId,
+                from,
+                to,
+                eventType,
+                bucket,
+                items
+        );
+    }
+
     public record CountResponse(String eventType, Long count) {}
     public record PathAggregateResponse(
             Long organizationId,
@@ -60,5 +98,15 @@ public class EventQueryController {
             String eventType,
             int top,
             List<PathCountDto> items
+    ) {}
+
+    public record TimeBucketAggregateResponse(
+            Long organizationId,
+            String externalUserId,
+            LocalDateTime from,
+            LocalDateTime to,
+            String eventType,
+            TimeBucket bucket,
+            List<TimeBucketCountDto> items
     ) {}
 }

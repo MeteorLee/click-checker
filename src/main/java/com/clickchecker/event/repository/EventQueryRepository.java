@@ -2,7 +2,11 @@ package com.clickchecker.event.repository;
 
 import com.clickchecker.event.entity.QEvent;
 import com.clickchecker.event.repository.dto.PathCountDto;
+import com.clickchecker.event.repository.dto.TimeBucket;
+import com.clickchecker.event.repository.dto.TimeBucketCountDto;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.DateTimeExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +61,31 @@ public class EventQueryRepository {
                 .fetch();
     }
 
+    public List<TimeBucketCountDto> countByTimeBucketBetween(
+            LocalDateTime from,
+            LocalDateTime to,
+            Long organizationId,
+            String externalUserId,
+            String eventType,
+            TimeBucket bucket
+    ) {
+        QEvent event = QEvent.event;
+        DateTimeExpression<LocalDateTime> bucketStart = timeBucketStartExpr(bucket);
+
+        return queryFactory
+                .select(Projections.constructor(TimeBucketCountDto.class, bucketStart, event.id.count()))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        eventTypeEq(eventType),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId)
+                )
+                .groupBy(bucketStart)
+                .orderBy(bucketStart.asc())
+                .fetch();
+    }
+
     private BooleanExpression occurredAtBetween(LocalDateTime from, LocalDateTime to) {
         QEvent event = QEvent.event;
         return event.occurredAt.goe(from)
@@ -81,5 +110,21 @@ public class EventQueryRepository {
     private BooleanExpression pathExists() {
         QEvent event = QEvent.event;
         return event.path.isNotNull().and(event.path.isNotEmpty());
+    }
+
+    private DateTimeExpression<LocalDateTime> timeBucketStartExpr(TimeBucket bucket) {
+        QEvent event = QEvent.event;
+        return switch (bucket) {
+            case HOUR -> Expressions.dateTimeTemplate(
+                    LocalDateTime.class,
+                    "date_trunc('hour', {0})",
+                    event.occurredAt
+            );
+            case DAY -> Expressions.dateTimeTemplate(
+                    LocalDateTime.class,
+                    "date_trunc('day', {0})",
+                    event.occurredAt
+            );
+        };
     }
 }

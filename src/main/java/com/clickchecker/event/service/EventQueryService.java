@@ -3,6 +3,8 @@ package com.clickchecker.event.service;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.dto.PathCountDto;
+import com.clickchecker.event.repository.dto.TimeBucket;
+import com.clickchecker.event.repository.dto.TimeBucketCountDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,5 +34,24 @@ public class EventQueryService {
             int top
     ) {
         return eventQueryRepository.countByPathBetween(from, to, organizationId, externalUserId, eventType, top);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TimeBucketCountDto> countByTimeBucketBetween(
+            LocalDateTime from,
+            LocalDateTime to,
+            Long organizationId,
+            String externalUserId,
+            String eventType,
+            TimeBucket bucket
+    ) {
+        return eventQueryRepository.countByTimeBucketBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType,
+                bucket
+        );
     }
 }
