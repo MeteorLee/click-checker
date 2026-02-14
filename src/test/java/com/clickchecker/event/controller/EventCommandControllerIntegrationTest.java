@@ -62,7 +62,7 @@ class EventCommandControllerIntegrationTest {
     }
 
     @Test
-    void create_returnsBadRequest_whenExternalUserIdBelongsToAnotherOrganization() throws Exception {
+    void create_createsEventUserInRequestedOrganization_whenExternalUserIdExistsInAnotherOrganization() throws Exception {
         cleanup();
         Organization organizationA = saveOrganization("acme");
         Organization organizationB = saveOrganization("globex");
@@ -82,11 +82,15 @@ class EventCommandControllerIntegrationTest {
                                         }
                                         """.formatted(organizationA.getId(), eventUserInB.getExternalUserId()))
                 )
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNumber());
+
+        assertThat(eventRepository.count()).isEqualTo(1);
+        assertThat(eventUserRepository.count()).isEqualTo(2);
     }
 
     @Test
-    void create_returnsBadRequest_whenExternalUserIdIsInvalid() throws Exception {
+    void create_createsEventUser_whenExternalUserIdDoesNotExist() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
 
@@ -104,7 +108,12 @@ class EventCommandControllerIntegrationTest {
                                         }
                                         """.formatted(organization.getId()))
                 )
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNumber());
+
+        assertThat(eventRepository.count()).isEqualTo(1);
+        assertThat(eventUserRepository.count()).isEqualTo(1);
+        assertThat(eventUserRepository.findAll().getFirst().getExternalUserId()).isEqualTo("u-9999");
     }
 
     private void cleanup() {
