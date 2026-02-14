@@ -230,4 +230,4 @@ application-dev.yml
 .env
 
 # test용 http 파일
-*.http
+# *.http
