@@ -29,7 +29,12 @@ public class EventCommandService {
         EventUser eventUser = null;
         if (req.externalUserId() != null && !req.externalUserId().isBlank()) {
             eventUser = eventUserRepository.findByOrganizationIdAndExternalUserId(req.organizationId(), req.externalUserId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid externalUserId."));
+                    .orElseGet(() -> eventUserRepository.save(
+                            EventUser.builder()
+                                    .organization(organization)
+                                    .externalUserId(req.externalUserId())
+                                    .build()
+                    ));
         }
 
         Event event = Event.builder()
