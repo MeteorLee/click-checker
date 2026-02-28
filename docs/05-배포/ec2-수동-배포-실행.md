@@ -64,7 +64,7 @@ git pull
 
 ### 2.4 Deploy
 ```bash
-docker compose up -d --build app postgres prometheus grafana
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
 ```
 
 ## 3. 배포 검증
@@ -103,13 +103,13 @@ curl -sS "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG
 ## 4. 실패 시 점검
 ### 4.1 컨테이너 상태
 ```bash
-docker compose ps
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 ```
 
 ### 4.2 로그 확인
 ```bash
-docker compose logs --tail=200 app
-docker compose logs --tail=200 postgres
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 postgres
 ```
 
 ### 4.3 대표 장애 대응
@@ -122,9 +122,17 @@ docker compose logs --tail=200 postgres
 ```bash
 git log --oneline -n 5
 git checkout <LAST_GOOD_COMMIT>
-docker compose up -d --build app postgres prometheus grafana
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
 ```
 - 롤백 후 health 재확인
+
+## 5.1 Grafana 확인(운영 점검용)
+- prod 설정에서 Grafana는 `127.0.0.1:3000`으로만 바인딩된다.
+- EC2 외부에서 직접 접근하지 않고 SSH 터널로 접속한다.
+```bash
+ssh -i <KEY.pem> -L 3000:localhost:3000 ubuntu@<EC2_PUBLIC_IP>
+```
+- 로컬 브라우저에서 `http://localhost:3000` 접속
 
 ## 6. 완료 기준
 - build/test/deploy 순서 완주
