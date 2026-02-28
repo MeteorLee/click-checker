@@ -1,31 +1,24 @@
 package com.clickchecker.event.dto;
 
-import com.clickchecker.event.entity.ActionType;
-import com.clickchecker.event.entity.TargetType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
-@NoArgsConstructor
-@Getter
-public class EventCreateRequest {
+public record EventCreateRequest(
+        @NotNull
+        Long organizationId,
 
-    @NotBlank
-    private String serviceId;
+        String externalUserId,
 
-    @NotNull
-    private TargetType targetType;
+        @NotBlank
+        String eventType,
 
-    @NotBlank
-    private String targetId;
+        @NotBlank
+        String path,
 
-    @NotNull
-    private ActionType actionType;
+        @NotNull
+        LocalDateTime occurredAt,
 
-    @NotNull
-    private Instant occurredAt;
-
-}
+        String payload
+) {}

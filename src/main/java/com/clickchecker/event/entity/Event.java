@@ -1,66 +1,68 @@
 package com.clickchecker.event.entity;
 
-import jakarta.persistence.*;
+import com.clickchecker.eventuser.entity.EventUser;
+import com.clickchecker.organization.entity.Organization;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(
-        name = "events",
-        indexes = {
-                @Index(name = "idx_events_service_received", columnList = "service_id, received_at"),
-                @Index(name = "idx_events_service_target", columnList = "service_id, target_type, target_id"),
-                @Index(name = "idx_events_service_action", columnList = "service_id, action_type")
-        }
-)
+@Table(name = "events")
 public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 어느 고객 서비스에서 온 이벤트인지 (멀티테넌트의 씨앗)
-    @Column(name = "service_id", nullable = false, length = 50)
-    private String serviceId;
+    @Column(nullable = false)
+    private String eventType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", nullable = false, length = 20)
-    private TargetType targetType;
+    @Column(length = 512)
+    private String path;
 
-    @Column(name = "target_id", nullable = false, length = 100)
-    private String targetId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "action_type", nullable = false, length = 20)
-    private ActionType actionType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_user_id")
+    private EventUser eventUser;
 
-    @Column(name = "occurred_at", nullable = false)
-    private Instant occurredAt;
+    @Column(nullable = false)
+    private LocalDateTime occurredAt;
 
-    @Column(name = "received_at", nullable = false)
-    private Instant receivedAt;
+    @Lob
+    private String payload;
 
-    protected Event() {}
-
-    public Event(String serviceId,
-                 TargetType targetType,
-                 String targetId,
-                 ActionType actionType,
-                 Instant occurredAt,
-                 Instant receivedAt) {
-        this.serviceId = serviceId;
-        this.targetType = targetType;
-        this.targetId = targetId;
-        this.actionType = actionType;
-        this.occurredAt = occurredAt;
-        this.receivedAt = receivedAt;
+    @Builder
+    public Event(
+            String eventType,
+            String path,
+            Organization organization,
+            EventUser eventUser,
+            LocalDateTime occurredAt,
+            String payload
+    ) {
+        this.eventType = eventType;
+        this.path = path;
+        this.organization = organization;
+        this.eventUser = eventUser;
+        this.occurredAt = occurredAt != null ? occurredAt : LocalDateTime.now();
+        this.payload = payload;
     }
-
-    public Long getId() { return id; }
-    public String getServiceId() { return serviceId; }
-    public TargetType getTargetType() { return targetType; }
-    public String getTargetId() { return targetId; }
-    public ActionType getActionType() { return actionType; }
-    public Instant getOccurredAt() { return occurredAt; }
-    public Instant getReceivedAt() { return receivedAt; }
 }

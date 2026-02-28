@@ -1,0 +1,66 @@
+### GET request to example server
+GET http://localhost:8080/api/events/aggregates/count?eventType=click
+
+###
+GET http://localhost:8080/api/events/aggregates/paths?organizationId=1&from=2026-02-13T00:00:00&to=2026-02-14T00:00:00&top=5
+
+###
+GET http://localhost:8080/api/events/aggregates/paths?organizationId=1&from=2026-02-13T00:00:00&to=2026-02-14T00:00:00&eventType=click&top=5
+
+###
+GET http://localhost:8080/api/events/aggregates/paths?organizationId=1&externalUserId=u-1001&from=2026-02-13T00:00:00&to=2026-02-14T00:00:00&eventType=click&top=5
+
+###
+GET http://localhost:8080/api/events/aggregates/time-buckets?organizationId=1&from=2026-02-13T00:00:00&to=2026-02-14T00:00:00&bucket=HOUR
+
+###
+GET http://localhost:8080/api/events/aggregates/time-buckets?organizationId=1&externalUserId=u-1001&from=2026-02-13T00:00:00&to=2026-02-15T00:00:00&eventType=click&bucket=DAY
+
+###
+POST http://localhost:8080/api/events
+Content-Type: application/json
+
+{
+    "organizationId": 1,
+    "eventType": "click",
+    "path": "/post/3",
+    "occurredAt": "2026-02-13T15:03:00",
+    "payload": "{\"contentId\":\"home\",\"buttonId\":\"signup\"}"
+}
+
+###
+POST http://localhost:8080/api/events
+Content-Type: application/json
+
+{
+  "organizationId": 1,
+  "eventType": "view",
+  "path": "/post/3",
+  "occurredAt": "2026-02-13T15:03:00",
+  "payload": "{\"contentId\":\"home\",\"buttonId\":\"signup\"}"
+}
+
+###
+POST http://localhost:8080/api/events
+Content-Type: application/json
+
+{
+  "organizationId": 1,
+  "externalUserId": "u-1001",
+  "eventType": "click",
+  "path": "/post/3",
+  "occurredAt": "2026-02-13T15:03:00",
+  "payload": "{\"contentId\":\"home\",\"buttonId\":\"signup\"}"
+}
+
+###
+POST http://localhost:8080/api/events
+Content-Type: application/json
+
+{
+  "organizationId": 1,
+  "eventType": "click",
+  "path": "",
+  "occurredAt": "2026-02-13T15:03:00",
+  "payload": "{\"contentId\":\"home\",\"buttonId\":\"signup\"}"
+}

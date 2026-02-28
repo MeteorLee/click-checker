@@ -3,3 +3,18 @@ spring:
     name: click-checker
   profiles:
     active: local
+  mvc:
+    log-request-details: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: info

@@ -9,7 +9,11 @@
 - 트래픽 증가 상황을 고려한 서버 설계 연습
 
 ## Tech Stack
-- Java 17
-- Spring Boot
-- JPA (Hibernate)
-- PostgreSQL
+- Language: Java 21
+- Framework: Spring Boot 3
+- DB: PostgreSQL (Docker)
+- Build/CI: Gradle, GitHub Actions (JDK 21)
+- CI에서는 ci 프로필로 H2를 사용해 contextLoads가 통과하는 상태
+- ORM/Query: Spring Data JPA + Querydsl
+- Mapper: MapStruct
+- Dev env: WSL (Ubuntu)

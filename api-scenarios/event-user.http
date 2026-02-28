@@ -1,0 +1,30 @@
+### EventUser API
+
+### Create EventUser
+POST http://localhost:8080/api/event-users
+Content-Type: application/json
+
+{
+  "organizationId": 1,
+  "externalUserId": "u-1001"
+}
+
+###
+### Create EventUser - duplicate externalUserId in same organization (409)
+POST http://localhost:8080/api/event-users
+Content-Type: application/json
+
+{
+  "organizationId": 1,
+  "externalUserId": "u-1001"
+}
+
+###
+### Create EventUser - invalid organizationId (400)
+POST http://localhost:8080/api/event-users
+Content-Type: application/json
+
+{
+  "organizationId": 9999,
+  "externalUserId": "u-2001"
+}
