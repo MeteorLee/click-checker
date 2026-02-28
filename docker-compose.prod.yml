@@ -1,0 +1,18 @@
+services:
+  app:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+
+  postgres:
+    ports: []
+
+  prometheus:
+    ports: []
+
+  grafana:
+    ports:
+      - "127.0.0.1:3000:3000"

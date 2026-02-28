@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    root: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles:
+        http.server.requests: 0.95,0.99
+      percentiles-histogram:
+        http.server.requests: true
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: prod
+  send-default-pii: false
+  traces-sample-rate: 0.0
