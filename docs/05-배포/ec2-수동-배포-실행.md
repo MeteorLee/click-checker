@@ -10,13 +10,14 @@
 - 접속: SSH 키 준비
 - 보안그룹:
   - `22` (SSH)
-  - `8080` (앱 직접 확인용, 필요 시)
+  - `8080` (앱 직접 확인용, 내 IP)
+  - `3030` (Grafana 확인용, 내 IP)
   - 운영에서는 리버스 프록시(80/443) 사용 권장
 
 ### 1.2 필수 설치
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git
+sudo apt-get install -y ca-certificates curl git openjdk-21-jdk
 ```
 
 #### Docker 설치
@@ -66,6 +67,7 @@ git pull
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
 ```
+- 초기 1회 배포에서 `ddl-auto=validate`로 기동 실패하면 임시로 `SPRING_JPA_HIBERNATE_DDL_AUTO=update`를 `docker-compose.prod.yml`의 `app.environment`에 추가 후 재시도한다.
 
 ## 3. 배포 검증
 ### 3.1 health
@@ -127,12 +129,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - 롤백 후 health 재확인
 
 ## 5.1 Grafana 확인(운영 점검용)
-- prod 설정에서 Grafana는 `127.0.0.1:3000`으로만 바인딩된다.
-- EC2 외부에서 직접 접근하지 않고 SSH 터널로 접속한다.
-```bash
-ssh -i <KEY.pem> -L 3000:localhost:3000 ubuntu@<EC2_PUBLIC_IP>
-```
-- 로컬 브라우저에서 `http://localhost:3000` 접속
+- prod 설정에서 Grafana는 `3030:3000`으로 바인딩된다.
+- 보안그룹에서 `3030`은 반드시 내 IP만 허용한다.
+- 브라우저에서 `http://<EC2_PUBLIC_IP>:3030` 접속
 
 ## 6. 완료 기준
 - build/test/deploy 순서 완주
