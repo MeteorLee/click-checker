@@ -7,86 +7,125 @@
 ## 1. 사전 준비
 ### 1.1 EC2 기본
 - OS: Ubuntu 22.04 이상 권장
-- 접속: SSH 키 준비
+- 접속: SSH 키(.pem) 준비
 - 보안그룹:
-  - `22` (SSH)
-  - `8080` (앱 직접 확인용, 내 IP)
-  - `3030` (Grafana 확인용, 내 IP)
-  - 운영에서는 리버스 프록시(80/443) 사용 권장
+    - `22` (SSH)
+    - `8080` (앱 직접 확인용, 내 IP)
+    - `3000` (Grafana 확인용, 내 IP)
+    - 운영에서는 리버스 프록시(80/443) 사용 권장
+
+### 1.1.1 PEM 키 권한 설정 (로컬 PC)
+- PEM 키 권한이 넓으면 SSH 접속이 거부된다.
+```bash  
+chmod 400 ~/click-checker.pem
+```  
+- 접속 예시:
+```bash  
+ssh -i ~/click-checker.pem ubuntu@<EC2_PUBLIC_IP>
+```  
 
 ### 1.2 필수 설치
-```bash
+- ca-certificates : https 통신을 위한 인증서 묶음
+- curl
+- git
+- java : openjdk-21-jdk
+- zip
+- unzip
+
+```bash  
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git openjdk-21-jdk
+sudo apt-get install -y ca-certificates curl git openjdk-21-jdk zip unzip
+```  
+
+
+#### SDKMAN 설치
+
+```bash
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk version
+sdk install gradle
 ```
 
+
 #### Docker 설치
-```bash
-curl -fsSL https://get.docker.com | sh
+```bash  
+curl -fsSL https://get.docker.com | sh  
 sudo usermod -aG docker $USER
 newgrp docker
 docker --version
 docker compose version
-```
-
-### 1.3 애플리케이션 환경 변수
-- 프로젝트 루트에 `.env` 파일 생성
-```env
-POSTGRES_DB=click_checker
-POSTGRES_USER=app
-POSTGRES_PASSWORD=apppw
-SENTRY_DSN=YOUR_SENTRY_DSN
-```
+```  
 
 ## 2. 배포 절차 (수동 1회)
 ### 2.1 코드 준비
-```bash
-# 최초
-cd ~
-git clone <YOUR_REPO_URL> click-checker
-cd click-checker
+```bash  
+# 최초  
+cd ~  
+git clone <YOUR_REPO_URL> click-checker  
+cd click-checker  
+  
+# 재배포  
+cd ~/click-checker  
+git pull  
+```  
 
-# 재배포
-cd ~/click-checker
-git pull
+
+### 2.1.1 애플리케이션 환경 변수
+- 프로젝트 루트에 `.env` 파일 생성
+```bash
+nano .env
 ```
+
+```env  
+POSTGRES_DB=click_checker  
+POSTGRES_USER=app  
+POSTGRES_PASSWORD=apppw  
+SENTRY_DSN=YOUR_SENTRY_DSN=<실제 주소>
+```  
+
+저장
+- Ctrl + O
+- Enter
+- Ctrl + X
 
 ### 2.2 Build
-```bash
+```bash  
 ./gradlew clean bootJar --no-daemon
-```
+```  
 - 실패 시: 즉시 중단
 
 ### 2.3 Test
-```bash
+```bash  
 ./gradlew test --no-daemon
-```
+```  
 - 실패 시: 즉시 중단
 
 ### 2.4 Deploy
-```bash
+```bash  
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
-```
-- 초기 1회 배포에서 `ddl-auto=validate`로 기동 실패하면 임시로 `SPRING_JPA_HIBERNATE_DDL_AUTO=update`를 `docker-compose.prod.yml`의 `app.environment`에 추가 후 재시도한다.
+```  
+- 초기 1회 배포에서 DB 스키마가 생성되지 않으면 아래 방법으로 진행
+- 임시로 `SPRING_JPA_HIBERNATE_DDL_AUTO=create`를 `docker-compose.prod.yml`의 `app.environment`에 추가 후 재시도한다.
 
 ## 3. 배포 검증
 ### 3.1 health
-```bash
+```bash  
 curl -f http://localhost:8080/actuator/health
-```
+```  
 - 성공 기준: HTTP 200 + status=UP
 
 ### 3.2 기능 스모크
 1. Organization 생성
-```bash
+```bash  
 ORG_ID=$(curl -sS -X POST http://localhost:8080/api/organizations \
   -H 'Content-Type: application/json' \
   -d '{"name":"ec2-deploy-check-org"}' | sed -E 's/.*"id":([0-9]+).*/\1/')
-echo "ORG_ID=${ORG_ID}"
-```
+echo "ORG_ID=${ORG_ID}" 
+```  
 
 2. 이벤트 저장
-```bash
+```bash  
 curl -sS -X POST http://localhost:8080/api/events \
   -H 'Content-Type: application/json' \
   -d '{
@@ -95,24 +134,24 @@ curl -sS -X POST http://localhost:8080/api/events \
     "path": "/__test/ec2-deploy-check",
     "occurredAt": "2026-02-28T00:00:00"
   }'
-```
+```  
 
 3. 집계 조회
-```bash
+```bash  
 curl -sS "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00&to=2030-01-01T00:00:00&top=5"
-```
+```  
 
 ## 4. 실패 시 점검
 ### 4.1 컨테이너 상태
-```bash
+```bash  
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
-```
+```  
 
 ### 4.2 로그 확인
-```bash
+```bash  
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 postgres
-```
+```  
 
 ### 4.3 대표 장애 대응
 - 앱 기동 실패: 환경변수/DB 연결 정보 점검
@@ -121,17 +160,16 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 
 
 ## 5. 최소 롤백
 - 직전 정상 커밋으로 복귀 후 재배포
-```bash
+```bash  
 git log --oneline -n 5
 git checkout <LAST_GOOD_COMMIT>
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
-```
+```  
 - 롤백 후 health 재확인
 
 ## 5.1 Grafana 확인(운영 점검용)
-- prod 설정에서 Grafana는 `3030:3000`으로 바인딩된다.
-- 보안그룹에서 `3030`은 반드시 내 IP만 허용한다.
-- 브라우저에서 `http://<EC2_PUBLIC_IP>:3030` 접속
+- 보안그룹에서 `3000`은 반드시 내 IP만 허용한다.
+- 브라우저에서 `http://<EC2_PUBLIC_IP>:3000` 접속
 
 ## 6. 완료 기준
 - build/test/deploy 순서 완주
