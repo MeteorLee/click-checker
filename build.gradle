@@ -74,6 +74,19 @@ tasks.withType(JavaCompile).configureEach {
     options.generatedSourceOutputDirectory = file(querydslDir)
 }
 
+def POSTGRES_TAG = 'postgres'
+
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags POSTGRES_TAG
+    }
+}
+
+tasks.register('postgresTest', Test) {
+    description = 'Runs tests tagged with postgres.'
+    group = 'verification'
+    useJUnitPlatform {
+        includeTags POSTGRES_TAG
+    }
+    shouldRunAfter tasks.named('test')
 }
