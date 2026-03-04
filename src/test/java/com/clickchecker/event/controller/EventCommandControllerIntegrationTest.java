@@ -116,6 +116,60 @@ class EventCommandControllerIntegrationTest {
         assertThat(eventUserRepository.findAll().getFirst().getExternalUserId()).isEqualTo("u-9999");
     }
 
+    @Test
+    void create_returnsBadRequest_whenRequestBodyIsMalformedJson() throws Exception {
+        cleanup();
+
+        mockMvc.perform(
+                        post("/api/events")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"organizationId\":1,\"eventType\":\"click\"")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Malformed JSON request"));
+    }
+
+    @Test
+    void create_returnsBadRequest_whenOccurredAtIsMissing() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        post("/api/events")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "organizationId": %d,
+                                          "eventType": "click",
+                                          "path": "/home"
+                                        }
+                                        """.formatted(organization.getId()))
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+    }
+
+    @Test
+    void create_returnsBadRequest_whenOccurredAtFormatIsInvalid() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        post("/api/events")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "organizationId": %d,
+                                          "eventType": "click",
+                                          "path": "/home",
+                                          "occurredAt": "not-a-date"
+                                        }
+                                        """.formatted(organization.getId()))
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Malformed JSON request"));
+    }
+
     private void cleanup() {
         eventRepository.deleteAll();
         eventUserRepository.deleteAll();

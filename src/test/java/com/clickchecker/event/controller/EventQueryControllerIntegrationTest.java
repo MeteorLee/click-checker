@@ -224,6 +224,21 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
+    void aggregatePaths_returnsBadRequest_whenDateTimeFormatIsInvalid() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organization.getId().toString())
+                                .param("from", "invalid-date")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "5")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void aggregateTimeBuckets_groupsByHour() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");

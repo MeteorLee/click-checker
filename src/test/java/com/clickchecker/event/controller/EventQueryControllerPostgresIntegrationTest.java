@@ -82,6 +82,60 @@ class EventQueryControllerPostgresIntegrationTest {
                 .andExpect(jsonPath("$.items[1].count").value(1));
     }
 
+    @Test
+    void aggregatePaths_returnsBadRequest_whenFromIsNotBeforeTo_inPostgreSQL() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organization.getId().toString())
+                                .param("from", "2026-02-14T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "5")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aggregatePaths_returnsBadRequest_whenTopIsOutOfRange_inPostgreSQL() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organization.getId().toString())
+                                .param("from", "2026-02-13T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "0")
+                )
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organization.getId().toString())
+                                .param("from", "2026-02-13T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "101")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aggregatePaths_returnsBadRequest_whenDateTimeFormatIsInvalid_inPostgreSQL() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("organizationId", organization.getId().toString())
+                                .param("from", "invalid-date")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "5")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
     private void cleanup() {
         eventRepository.deleteAll();
         organizationRepository.deleteAll();
