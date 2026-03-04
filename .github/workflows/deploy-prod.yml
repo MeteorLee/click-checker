@@ -22,19 +22,52 @@ jobs:
             set -e
             cd ~/click-checker
             git fetch origin
+            
             git checkout prod
+            PREV_SHA=$(git rev-parse HEAD)
+            echo "PREV_SHA=${PREV_SHA}"
+            
             git pull origin prod
+            
             docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
+            
+            HEALTH_OK=0
             for i in {1..12}; do
               if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
                 echo "Health check passed"
-                exit 0
+                HEALTH_OK=1
+                break
               fi
               echo "Health check retry ${i}/12"
               sleep 5
             done
-            echo "Health check failed after retries"
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
-            exit 1
+            
+            if [ "${HEALTH_OK}" -ne 1 ]; then
+              echo "Health check failed after retries"
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
+            
+              echo "Start rollback to ${PREV_SHA}"
+              git checkout -f "${PREV_SHA}"
+            
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
+            
+              for i in {1..12}; do
+                if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
+                  echo "Rollback health check passed"
+                  echo "Rollback completed. Marking workflow as failed to surface deployment issue."
+                  exit 1
+                fi
+                echo "Rollback health retry ${i}/12"
+                sleep 5
+              done
+            
+              echo "Rollback failed after retries"
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
+              exit 1
+            fi
+            
+            echo "Deploy completed successfully"
