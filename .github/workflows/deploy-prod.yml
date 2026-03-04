@@ -26,4 +26,15 @@ jobs:
             git pull origin prod
             docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
-            curl -fsS http://localhost:8080/actuator/health | grep -q UP
+            for i in {1..12}; do
+              if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
+                echo "Health check passed"
+                exit 0
+              fi
+              echo "Health check retry ${i}/12"
+              sleep 5
+            done
+            echo "Health check failed after retries"
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
+            exit 1
