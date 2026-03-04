@@ -3,8 +3,7 @@ name: CI Develop (Fast)
 on:
   push:
     branches: [ "develop" ]
-  pull_request:
-    branches: [ "develop" ]
+  workflow_dispatch:
 
 jobs:
   test-fast:
