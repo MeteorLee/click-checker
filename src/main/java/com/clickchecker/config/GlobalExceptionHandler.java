@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -59,6 +61,26 @@ public class GlobalExceptionHandler {
         String message = ex.getName() + ": invalid value";
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), message, request.getRequestURI(), List.of())
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex,
+                                                                               HttpServletRequest request) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Malformed JSON request", request.getRequestURI(), List.of())
+        );
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ErrorResponse> handleBindException(BindException ex, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        List<String> details = ex.getBindingResult().getFieldErrors().stream()
+                .map(this::formatFieldError)
+                .toList();
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Validation failed", request.getRequestURI(), details)
         );
     }
 
