@@ -22,16 +22,16 @@ jobs:
             set -e
             cd ~/click-checker
             git fetch origin
-            
+
             git checkout prod
             PREV_SHA=$(git rev-parse HEAD)
             echo "PREV_SHA=${PREV_SHA}"
-            
+
             git pull origin prod
-            
+
             docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
-            
+
             HEALTH_OK=0
             for i in {1..12}; do
               if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
@@ -48,34 +48,74 @@ jobs:
               TS=$(date +"%Y%m%d%H%M%S")
               NOW=$(date +"%Y-%m-%dT%H:%M:%S")
 
-              if ORG_JSON=$(curl -fsS -X POST http://localhost:8080/api/organizations \
-                -H "Content-Type: application/json" \
-                -d "{\"name\":\"__smoke-org-${TS}\"}"); then
+              # ---- Smoke helpers (never hard-fail) ----
+              smoke_post_json () {
+                local url="$1"
+                local data="$2"
+                local out="$3"
+                curl -sS -o "$out" -w "%{http_code}" \
+                  -H "Content-Type: application/json" \
+                  -X POST "$url" \
+                  -d "$data" || true
+              }
 
-                ORG_ID=$(echo "${ORG_JSON}" | jq -r '.id')
+              smoke_get () {
+                local url="$1"
+                local out="$2"
+                curl -sS -o "$out" -w "%{http_code}" "$url" || true
+              }
+              # ----------------------------------------
 
-                if [ -n "${ORG_ID}" ] && [ "${ORG_ID}" != "null" ]; then
-                  if curl -fsS -X POST http://localhost:8080/api/events \
-                    -H "Content-Type: application/json" \
-                    -d "{
+              echo "Smoke: create organization"
+              ORG_CODE=$(smoke_post_json "http://localhost:8080/api/organizations" \
+                "{\"name\":\"__smoke-org-${TS}\"}" \
+                "/tmp/smoke_org.json")
+
+              echo "ORG_CODE=${ORG_CODE}"
+              if [ "${ORG_CODE}" = "200" ] || [ "${ORG_CODE}" = "201" ]; then
+                ORG_ID=$(jq -r '.id // empty' /tmp/smoke_org.json 2>/dev/null || true)
+
+                if [ -n "${ORG_ID}" ]; then
+                  echo "Smoke: post event (ORG_ID=${ORG_ID})"
+                  EVENT_CODE=$(smoke_post_json "http://localhost:8080/api/events" \
+                    "{
                       \"organizationId\": ${ORG_ID},
                       \"externalUserId\": \"deploy-smoke-user\",
                       \"eventType\": \"__smoke\",
                       \"path\": \"/__smoke/deploy\",
                       \"occurredAt\": \"${NOW}\",
                       \"payload\": \"{}\"
-                    }" >/dev/null \
-                    && curl -fsS "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00&to=2030-01-01T00:00:00&top=5" >/dev/null; then
+                    }" \
+                    "/tmp/smoke_event.json")
+
+                  echo "EVENT_CODE=${EVENT_CODE}"
+
+                  echo "Smoke: query aggregates"
+                  AGG_CODE=$(smoke_get \
+                    "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00&to=2030-01-01T00:00:00&top=5" \
+                    "/tmp/smoke_agg.json")
+
+                  echo "AGG_CODE=${AGG_CODE}"
+
+                  if { [ "${EVENT_CODE}" = "200" ] || [ "${EVENT_CODE}" = "201" ]; } && [ "${AGG_CODE}" = "200" ]; then
                     SMOKE_OK=1
                     echo "Smoke check passed"
                   else
-                    echo "Smoke API request failed"
+                    echo "Smoke API failed"
+                    echo "---- /tmp/smoke_event.json ----"
+                    cat /tmp/smoke_event.json || true
+                    echo "---- /tmp/smoke_agg.json ----"
+                    cat /tmp/smoke_agg.json || true
                   fi
                 else
-                  echo "ORG_ID parse failed: ${ORG_ID}"
+                  echo "ORG_ID parse failed"
+                  echo "---- /tmp/smoke_org.json ----"
+                  cat /tmp/smoke_org.json || true
                 fi
               else
                 echo "Organization create failed"
+                echo "---- /tmp/smoke_org.json ----"
+                cat /tmp/smoke_org.json || true
               fi
 
               if [ "${SMOKE_OK}" -ne 1 ]; then
@@ -85,18 +125,18 @@ jobs:
                 HEALTH_OK=0
               fi
             fi
-            
+
             if [ "${HEALTH_OK}" -ne 1 ]; then
               echo "Deploy verification failed (health or smoke)"
               docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
               docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
-            
+
               echo "Start rollback to ${PREV_SHA}"
               git checkout -f "${PREV_SHA}"
-            
+
               docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
               docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
-            
+
               for i in {1..12}; do
                 if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
                   echo "Rollback health check passed"
@@ -106,11 +146,11 @@ jobs:
                 echo "Rollback health retry ${i}/12"
                 sleep 5
               done
-            
+
               echo "Rollback failed after retries"
               docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
               docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
               exit 1
             fi
-            
+
             echo "Deploy completed successfully"
