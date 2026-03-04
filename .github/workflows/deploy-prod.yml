@@ -22,8 +22,95 @@ jobs:
             set -e
             cd ~/click-checker
             git fetch origin
+            
             git checkout prod
+            PREV_SHA=$(git rev-parse HEAD)
+            echo "PREV_SHA=${PREV_SHA}"
+            
             git pull origin prod
+            
             docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
-            curl -fsS http://localhost:8080/actuator/health | grep -q UP
+            
+            HEALTH_OK=0
+            for i in {1..12}; do
+              if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
+                echo "Health check passed"
+                HEALTH_OK=1
+                break
+              fi
+              echo "Health check retry ${i}/12"
+              sleep 5
+            done
+
+            if [ "${HEALTH_OK}" -eq 1 ]; then
+              SMOKE_OK=0
+              TS=$(date +"%Y%m%d%H%M%S")
+              NOW=$(date +"%Y-%m-%dT%H:%M:%S")
+
+              if ORG_JSON=$(curl -fsS -X POST http://localhost:8080/api/organizations \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"__smoke-org-${TS}\"}"); then
+
+                ORG_ID=$(echo "${ORG_JSON}" | jq -r '.id')
+
+                if [ -n "${ORG_ID}" ] && [ "${ORG_ID}" != "null" ]; then
+                  if curl -fsS -X POST http://localhost:8080/api/events \
+                    -H "Content-Type: application/json" \
+                    -d "{
+                      \"organizationId\": ${ORG_ID},
+                      \"externalUserId\": \"deploy-smoke-user\",
+                      \"eventType\": \"__smoke\",
+                      \"path\": \"/__smoke/deploy\",
+                      \"occurredAt\": \"${NOW}\",
+                      \"payload\": \"{}\"
+                    }" >/dev/null \
+                    && curl -fsS "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00&to=2030-01-01T00:00:00&top=5" >/dev/null; then
+                    SMOKE_OK=1
+                    echo "Smoke check passed"
+                  else
+                    echo "Smoke API request failed"
+                  fi
+                else
+                  echo "ORG_ID parse failed: ${ORG_ID}"
+                fi
+              else
+                echo "Organization create failed"
+              fi
+
+              if [ "${SMOKE_OK}" -ne 1 ]; then
+                echo "Smoke check failed"
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
+                HEALTH_OK=0
+              fi
+            fi
+            
+            if [ "${HEALTH_OK}" -ne 1 ]; then
+              echo "Deploy verification failed (health or smoke)"
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
+            
+              echo "Start rollback to ${PREV_SHA}"
+              git checkout -f "${PREV_SHA}"
+            
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app postgres prometheus grafana
+            
+              for i in {1..12}; do
+                if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
+                  echo "Rollback health check passed"
+                  echo "Rollback completed. Marking workflow as failed to surface deployment issue."
+                  exit 1
+                fi
+                echo "Rollback health retry ${i}/12"
+                sleep 5
+              done
+            
+              echo "Rollback failed after retries"
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
+              exit 1
+            fi
+            
+            echo "Deploy completed successfully"
