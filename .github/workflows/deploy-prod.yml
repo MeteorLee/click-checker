@@ -42,9 +42,52 @@ jobs:
               echo "Health check retry ${i}/12"
               sleep 5
             done
+
+            if [ "${HEALTH_OK}" -eq 1 ]; then
+              SMOKE_OK=0
+              TS=$(date +"%Y%m%d%H%M%S")
+              NOW=$(date +"%Y-%m-%dT%H:%M:%S")
+
+              if ORG_JSON=$(curl -fsS -X POST http://localhost:8080/api/organizations \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"__smoke-org-${TS}\"}"); then
+
+                ORG_ID=$(echo "${ORG_JSON}" | jq -r '.id')
+
+                if [ -n "${ORG_ID}" ] && [ "${ORG_ID}" != "null" ]; then
+                  if curl -fsS -X POST http://localhost:8080/api/events \
+                    -H "Content-Type: application/json" \
+                    -d "{
+                      \"organizationId\": ${ORG_ID},
+                      \"externalUserId\": \"deploy-smoke-user\",
+                      \"eventType\": \"__smoke\",
+                      \"path\": \"/__smoke/deploy\",
+                      \"occurredAt\": \"${NOW}\",
+                      \"payload\": \"{}\"
+                    }" >/dev/null \
+                    && curl -fsS "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00&to=2030-01-01T00:00:00&top=5" >/dev/null; then
+                    SMOKE_OK=1
+                    echo "Smoke check passed"
+                  else
+                    echo "Smoke API request failed"
+                  fi
+                else
+                  echo "ORG_ID parse failed: ${ORG_ID}"
+                fi
+              else
+                echo "Organization create failed"
+              fi
+
+              if [ "${SMOKE_OK}" -ne 1 ]; then
+                echo "Smoke check failed"
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
+                HEALTH_OK=0
+              fi
+            fi
             
             if [ "${HEALTH_OK}" -ne 1 ]; then
-              echo "Health check failed after retries"
+              echo "Deploy verification failed (health or smoke)"
               docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=200 app || true
               docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 postgres || true
             
