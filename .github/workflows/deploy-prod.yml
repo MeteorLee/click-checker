@@ -119,21 +119,7 @@ jobs:
 
               if [ -n "${ORG_ID}" ]; then
                 echo "Smoke: post event (ORG_ID=${ORG_ID})"
-                EVENT_BODY=$(jq -n \
-                  --argjson organizationId "${ORG_ID}" \
-                  --arg externalUserId "deploy-smoke-user" \
-                  --arg eventType "__smoke" \
-                  --arg path "/__smoke/deploy" \
-                  --arg occurredAt "${NOW}" \
-                  --arg payload "{}" \
-                  '{
-                    organizationId: $organizationId,
-                    externalUserId: $externalUserId,
-                    eventType: $eventType,
-                    path: $path,
-                    occurredAt: $occurredAt,
-                    payload: $payload
-                  }')
+                EVENT_BODY=$(jq -nc --argjson organizationId "${ORG_ID}" --arg externalUserId "deploy-smoke-user" --arg eventType "__smoke" --arg path "/__smoke/deploy" --arg occurredAt "${NOW}" --arg payload "{}" '{organizationId:$organizationId,externalUserId:$externalUserId,eventType:$eventType,path:$path,occurredAt:$occurredAt,payload:$payload}')
 
                 echo "---- EVENT_BODY ----"
                 echo "${EVENT_BODY}"
