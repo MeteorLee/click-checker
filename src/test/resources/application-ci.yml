@@ -7,3 +7,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+
+app:
+  api-key:
+    env: test
+    pepper: ci-test-pepper
