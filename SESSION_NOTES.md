@@ -88,6 +88,24 @@
    - `/api/event-users`도 인증 org 기반 전환 여부 결정
 5. `/api/events/aggregates/count` 운영 노출 여부 확정(유지/차단)
 
+## 최근 업데이트 (추가)
+- 2단계 마무리 후 CI/CD 정리 진행:
+  - `deploy-prod.yml` 스모크 테스트를 API Key 인증 경로에 맞게 수정
+  - Organization 생성 응답에서 `apiKey` 추출 후 `X-API-Key` 헤더로 이벤트 저장/조회 호출
+  - 스모크 시간 파라미터를 `Instant` 기준으로 `Z`(UTC) 포맷으로 통일
+- 운영 배포 이슈 확인:
+  - 배포 후 health는 통과했지만 `POST /api/organizations`에서 `500` 발생
+  - Sentry/컨테이너 로그로 원인 확정:
+    - `users`, `organizations`의 auditing 컬럼(`created_at`, `updated_at`) 스키마 불일치
+    - `ddl-auto=update`가 기존 데이터 + NOT NULL 제약 상황에서 완전 반영 실패
+- 환경변수 정리 이슈:
+  - 앱 설정 키는 `API_KEY_PEPPER` 기준
+  - compose에는 `APP_API_KEY_PEPPER` 전달이 남아 있어 3단계에서 키 이름 통일 필요
+- 3단계 계획 문서 확정:
+  - `3단계 계획 문서.md` v1.1 작성/수정 완료
+  - 핵심 원칙: Flyway 체계 전환, V1 기준선 우선, 위험 변경 분할(추가 -> 백필 -> 제약)
+  - baseline 전략 환경 분기(기존 DB baseline, 신규 DB V1부터 migrate) 명시
+
 ## 3분 데모 스크립트
 1. 조직 생성:
    - `{ "name": "acme" }`로 `POST /api/organizations` 호출
