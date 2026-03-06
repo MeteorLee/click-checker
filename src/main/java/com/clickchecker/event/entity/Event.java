@@ -4,6 +4,7 @@ import com.clickchecker.eventuser.entity.EventUser;
 import com.clickchecker.organization.entity.Organization;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,16 +13,19 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "events")
 public class Event {
 
@@ -44,10 +48,18 @@ public class Event {
     private EventUser eventUser;
 
     @Column(nullable = false)
-    private LocalDateTime occurredAt;
+    private Instant occurredAt;
 
     @Lob
     private String payload;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     @Builder
     public Event(
@@ -55,14 +67,14 @@ public class Event {
             String path,
             Organization organization,
             EventUser eventUser,
-            LocalDateTime occurredAt,
+            Instant occurredAt,
             String payload
     ) {
         this.eventType = eventType;
         this.path = path;
         this.organization = organization;
         this.eventUser = eventUser;
-        this.occurredAt = occurredAt != null ? occurredAt : LocalDateTime.now();
+        this.occurredAt = occurredAt != null ? occurredAt : Instant.now();
         this.payload = payload;
     }
 }

@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -26,8 +26,8 @@ public class EventQueryService {
 
     @Transactional(readOnly = true)
     public List<PathCountDto> countByPathBetween(
-            LocalDateTime from,
-            LocalDateTime to,
+            Instant from,
+            Instant to,
             Long organizationId,
             String externalUserId,
             String eventType,
@@ -38,8 +38,8 @@ public class EventQueryService {
 
     @Transactional(readOnly = true)
     public List<TimeBucketCountDto> countByTimeBucketBetween(
-            LocalDateTime from,
-            LocalDateTime to,
+            Instant from,
+            Instant to,
             Long organizationId,
             String externalUserId,
             String eventType,

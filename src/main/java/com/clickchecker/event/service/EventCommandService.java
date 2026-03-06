@@ -22,13 +22,13 @@ public class EventCommandService {
     private final EventUserRepository eventUserRepository;
 
     @Transactional
-    public Long create(EventCreateRequest req) {
-        Organization organization = organizationRepository.findById(req.organizationId())
+    public Long create(Long authOrgId, EventCreateRequest req) {
+        Organization organization = organizationRepository.findById(authOrgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organizationId."));
 
         EventUser eventUser = null;
         if (req.externalUserId() != null && !req.externalUserId().isBlank()) {
-            eventUser = eventUserRepository.findByOrganizationIdAndExternalUserId(req.organizationId(), req.externalUserId())
+            eventUser = eventUserRepository.findByOrganizationIdAndExternalUserId(authOrgId, req.externalUserId())
                     .orElseGet(() -> eventUserRepository.save(
                             EventUser.builder()
                                     .organization(organization)

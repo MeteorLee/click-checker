@@ -3,26 +3,26 @@
 ## 현재 상태
 - 목표: 멀티테넌트 B2B 이벤트 분석 백엔드.
 - 핵심 범위: `organization > eventUser > path > eventType`.
-- `Organization` 생성 API 구현 완료.
+- `Organization` 생성 시 API Key 발급/해시 저장 구현 완료.
 - `EventUser` 도메인 뼈대 구현 완료:
   - entity/repository/dto/mapper/service/controller
   - `POST /api/event-users`
 - `Event` 생성 흐름:
-  - 필수: `organizationId`
-  - 선택: `externalUserId`
+- 필수: `X-API-Key` (헤더 인증)
+- 선택: `externalUserId`
   - `externalUserId`가 있으면:
-    - `(organizationId, externalUserId)`로 조회
+    - `(authOrgId, externalUserId)`로 조회
     - 없으면 `EventUser` 자동 생성(upsert)
   - `externalUserId`가 null/blank면:
     - 익명 이벤트로 저장(`eventUser = null`)
 - Path 집계 API:
-  - 필수: `organizationId`
+  - 필수: `X-API-Key` (헤더 인증)
   - 선택: `externalUserId`
   - 선택: `eventType`
   - 시간 조건: `from <= occurredAt < to`
 - 시간 버킷 집계 API:
   - 엔드포인트: `GET /api/events/aggregates/time-buckets`
-  - 필수: `organizationId`, `from`, `to`, `bucket(HOUR|DAY)`
+  - 필수: `X-API-Key`, `from`, `to`, `bucket(HOUR|DAY)`
   - 선택: `externalUserId`, `eventType`
   - 시간 조건: `from <= occurredAt < to`
 - 시간 버킷 입력 처리 참고:
@@ -58,6 +58,7 @@
 - 추가/수정된 테스트:
   - `src/test/java/com/clickchecker/event/controller/EventCommandControllerIntegrationTest.java`
   - `src/test/java/com/clickchecker/event/controller/EventQueryControllerIntegrationTest.java`
+  - `src/test/java/com/clickchecker/event/controller/EventQueryControllerPostgresIntegrationTest.java`
   - `src/test/java/com/clickchecker/eventuser/controller/EventUserControllerIntegrationTest.java`
   - `src/test/java/com/clickchecker/organization/controller/OrganizationControllerIntegrationTest.java`
 - FK 안전 정리 순서 표준화:
@@ -72,33 +73,37 @@
   - unmapped target properties: `organization`, `eventUser`
   - 현재는 서비스 계층에서 관계를 주입하므로 허용
 - `/api/events/aggregates/count`는 개발/디버그 용도로 유지
+- `ApiKeyAuthFilter` 보호 범위는 현재 `/api/events/**`만 적용
+- `EventUser` API(`/api/event-users`)는 아직 `organizationId` 요청 방식 유지(후속 정리 대상)
 
 ## 다음 권장 작업
-1. API Key 1단계 도입:
-   - Organization 생성 시 API Key 발급(1회 반환)
-   - `POST /api/events`를 `X-API-Key`로 보호(없으면 401)
-   - 키로 organization 확정 후 이벤트 저장
-   - `organizationId`는 점진 제거(초기엔 일치 검증 병행 가능)
-2. API Key 적용 범위 확장:
-   - `GET /api/events/aggregates/*`도 `X-API-Key` 기반 조직 확정으로 전환
-3. API Key 운영 최소 기능:
-   - revoke/rotate(재발급 시 덮어쓰기 방식부터 시작)
-   - (선택) `lastUsedAt` 기록
-4. README/블로그 문서화 작업은 설날 기간에 별도로 진행(현재 보류).
-5. command 흐름에서 사용하지 않는 `EventMapper` 유지/제거 결정.
+1. 3단계(Flyway) 착수:
+   - `ddl-auto` 제거
+   - 현재 스키마 `V1` 고정
+2. `organizations` API Key 컬럼 제약 강화:
+   - 백필 후 `NOT NULL`/제약 적용
+3. API Key 로그 하드닝:
+   - 인증 로그 정책 정리(원문 키 미노출)
+4. `EventUser` API 테넌트 스코프 정합성 정리:
+   - `/api/event-users`도 인증 org 기반 전환 여부 결정
+5. `/api/events/aggregates/count` 운영 노출 여부 확정(유지/차단)
 
 ## 3분 데모 스크립트
 1. 조직 생성:
    - `{ "name": "acme" }`로 `POST /api/organizations` 호출
+   - 응답 `apiKey`를 안전하게 보관
 2. 이벤트 적재(같은 조직):
+   - 헤더 `X-API-Key: {apiKey}`
    - 사용자 포함: `externalUserId = "u-1001"`, `eventType = "click"`, `path = /home, /post/1`
    - 익명: `externalUserId` 없이 전송
 3. Path 집계 조회:
-   - `GET /api/events/aggregates/paths?organizationId={id}&from=...&to=...&top=5`
+   - 헤더 `X-API-Key: {apiKey}`
+   - `GET /api/events/aggregates/paths?from=...&to=...&top=5`
    - 필요 시 `externalUserId=u-1001` 필터 추가
    - 설명 포인트: 경로별 상위 N개 집계
 4. 시간 버킷 집계 조회:
-   - `GET /api/events/aggregates/time-buckets?organizationId={id}&from=...&to=...&bucket=HOUR`
+   - 헤더 `X-API-Key: {apiKey}`
+   - `GET /api/events/aggregates/time-buckets?from=...&to=...&bucket=HOUR`
    - 필요 시 `eventType=click` 또는 `externalUserId=u-1001` 필터 추가
    - 설명 포인트: 시간 추이(`bucketStart`, `count`)
 5. 멀티테넌트 격리 확인:

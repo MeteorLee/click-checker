@@ -6,14 +6,19 @@ import com.clickchecker.eventuser.entity.EventUser;
 import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
+import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -36,25 +41,28 @@ class EventQueryControllerIntegrationTest {
     @Autowired
     private EventUserRepository eventUserRepository;
 
+    @Autowired
+    private ApiKeyService apiKeyService;
+
     @Test
     void aggregatePaths_returnsTopNPaths_withoutEventTypeFilter() throws Exception {
         cleanup();
 
         Organization organization = saveOrganization();
+        String apiKey = issueApiKey(organization);
 
         LocalDateTime base = LocalDateTime.of(2026, 2, 13, 12, 0);
 
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(base.plusMinutes(1)).build());
-        eventRepository.save(Event.builder().eventType("view").path("/home").organization(organization).occurredAt(base.plusMinutes(2)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(base.plusMinutes(3)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(base.plusMinutes(4)).build());
-        eventRepository.save(Event.builder().eventType("view").path("/post/2").organization(organization).occurredAt(base.plusMinutes(5)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(toInstant(base.plusMinutes(1))).build());
+        eventRepository.save(Event.builder().eventType("view").path("/home").organization(organization).occurredAt(toInstant(base.plusMinutes(2))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(base.plusMinutes(3))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(base.plusMinutes(4))).build());
+        eventRepository.save(Event.builder().eventType("view").path("/post/2").organization(organization).occurredAt(toInstant(base.plusMinutes(5))).build());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "2")
                 )
                 .andExpect(status().isOk())
@@ -73,20 +81,20 @@ class EventQueryControllerIntegrationTest {
         cleanup();
 
         Organization organization = saveOrganization();
+        String apiKey = issueApiKey(organization);
 
         LocalDateTime base = LocalDateTime.of(2026, 2, 13, 12, 0);
 
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(base.plusMinutes(1)).build());
-        eventRepository.save(Event.builder().eventType("view").path("/home").organization(organization).occurredAt(base.plusMinutes(2)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(base.plusMinutes(3)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(base.plusMinutes(4)).build());
-        eventRepository.save(Event.builder().eventType("view").path("/post/2").organization(organization).occurredAt(base.plusMinutes(5)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(toInstant(base.plusMinutes(1))).build());
+        eventRepository.save(Event.builder().eventType("view").path("/home").organization(organization).occurredAt(toInstant(base.plusMinutes(2))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(base.plusMinutes(3))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(base.plusMinutes(4))).build());
+        eventRepository.save(Event.builder().eventType("view").path("/post/2").organization(organization).occurredAt(toInstant(base.plusMinutes(5))).build());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
                                 .param("top", "5")
                 )
@@ -106,22 +114,22 @@ class EventQueryControllerIntegrationTest {
 
         Organization organizationA = saveOrganization("acme");
         Organization organizationB = saveOrganization("globex");
+        String apiKey = issueApiKey(organizationA);
 
         LocalDateTime base = LocalDateTime.of(2026, 2, 13, 12, 0);
 
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organizationA).occurredAt(base.plusMinutes(1)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organizationA).occurredAt(base.plusMinutes(2)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organizationA).occurredAt(base.plusMinutes(3)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organizationA).occurredAt(toInstant(base.plusMinutes(1))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organizationA).occurredAt(toInstant(base.plusMinutes(2))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organizationA).occurredAt(toInstant(base.plusMinutes(3))).build());
 
-        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(base.plusMinutes(4)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(base.plusMinutes(5)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(base.plusMinutes(6)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(toInstant(base.plusMinutes(4))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(toInstant(base.plusMinutes(5))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(toInstant(base.plusMinutes(6))).build());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organizationA.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
                                 .param("top", "10")
                 )
@@ -139,22 +147,22 @@ class EventQueryControllerIntegrationTest {
         cleanup();
 
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
         EventUser eventUserA = saveEventUser(organization, "u-1001");
         EventUser eventUserB = saveEventUser(organization, "u-1002");
 
         LocalDateTime base = LocalDateTime.of(2026, 2, 13, 12, 0);
 
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(1)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(2)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(3)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organization).eventUser(eventUserB).occurredAt(base.plusMinutes(4)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(toInstant(base.plusMinutes(1))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(toInstant(base.plusMinutes(2))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).eventUser(eventUserA).occurredAt(toInstant(base.plusMinutes(3))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organization).eventUser(eventUserB).occurredAt(toInstant(base.plusMinutes(4))).build());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
                                 .param("externalUserId", eventUserA.getExternalUserId())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
                                 .param("top", "10")
                 )
@@ -172,12 +180,12 @@ class EventQueryControllerIntegrationTest {
     void aggregatePaths_returnsBadRequest_whenFromIsNotBeforeTo() throws Exception {
         cleanup();
         Organization organization = saveOrganization();
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-14T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                                .param("from", "2026-02-14T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
                 )
                 .andExpect(status().isBadRequest());
@@ -187,21 +195,20 @@ class EventQueryControllerIntegrationTest {
     void aggregatePaths_returnsBadRequest_whenTopIsOutOfRange() throws Exception {
         cleanup();
         Organization organization = saveOrganization();
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "0")
                 )
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "101")
                 )
                 .andExpect(status().isBadRequest());
@@ -211,42 +218,85 @@ class EventQueryControllerIntegrationTest {
     void aggregatePaths_ignoresBlankExternalUserIdFilter() throws Exception {
         cleanup();
         Organization organization = saveOrganization();
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
                                 .param("externalUserId", " ")
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
                 )
                 .andExpect(status().isOk());
     }
 
     @Test
-    void aggregateTimeBuckets_groupsByHour() throws Exception {
+    void aggregatePaths_returnsBadRequest_whenDateTimeFormatIsInvalid() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                                .param("from", "invalid-date")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("top", "5")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aggregatePaths_returnsUnauthorized_whenApiKeyIsMissing() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
 
-        LocalDateTime base = LocalDateTime.of(2026, 2, 13, 10, 0);
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(base.plusMinutes(1)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(base.plusMinutes(25)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(base.plusHours(1).plusMinutes(5)).build());
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("top", "5")
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aggregatePaths_returnsUnauthorized_whenApiKeyIsInvalid() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
 
         mockMvc.perform(
-                        get("/api/events/aggregates/time-buckets")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet("ck_test_v1_invalid_deadbeef", "/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("top", "5")
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aggregateTimeBuckets_groupsByHour() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        LocalDateTime base = LocalDateTime.of(2026, 2, 13, 10, 0);
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(toInstant(base.plusMinutes(1))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(toInstant(base.plusMinutes(25))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(base.plusHours(1).plusMinutes(5))).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("bucket", "HOUR")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
                 .andExpect(jsonPath("$.bucket").value("HOUR"))
                 .andExpect(jsonPath("$.items.length()").value(2))
-                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00"))
+                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
                 .andExpect(jsonPath("$.items[0].count").value(2))
-                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T11:00:00"))
+                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T11:00:00Z"))
                 .andExpect(jsonPath("$.items[1].count").value(1));
     }
 
@@ -254,24 +304,24 @@ class EventQueryControllerIntegrationTest {
     void aggregateTimeBuckets_groupsByDay() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(LocalDateTime.of(2026, 2, 13, 10, 5)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(LocalDateTime.of(2026, 2, 13, 13, 10)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(LocalDateTime.of(2026, 2, 14, 9, 15)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(toInstant(LocalDateTime.of(2026, 2, 13, 10, 5))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(toInstant(LocalDateTime.of(2026, 2, 13, 13, 10))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(LocalDateTime.of(2026, 2, 14, 9, 15))).build());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/time-buckets")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-15T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-15T00:00:00Z")
                                 .param("bucket", "DAY")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bucket").value("DAY"))
                 .andExpect(jsonPath("$.items.length()").value(2))
-                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T00:00:00"))
+                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T00:00:00Z"))
                 .andExpect(jsonPath("$.items[0].count").value(2))
-                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-14T00:00:00"))
+                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-14T00:00:00Z"))
                 .andExpect(jsonPath("$.items[1].count").value(1));
     }
 
@@ -279,26 +329,26 @@ class EventQueryControllerIntegrationTest {
     void aggregateTimeBuckets_filtersByExternalUserId() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
         EventUser eventUserA = saveEventUser(organization, "u-1001");
         EventUser eventUserB = saveEventUser(organization, "u-1002");
 
         LocalDateTime base = LocalDateTime.of(2026, 2, 13, 10, 0);
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(1)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(base.plusMinutes(5)).build());
-        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserB).occurredAt(base.plusMinutes(10)).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(toInstant(base.plusMinutes(1))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserA).occurredAt(toInstant(base.plusMinutes(5))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserB).occurredAt(toInstant(base.plusMinutes(10))).build());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/time-buckets")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
                                 .param("externalUserId", "u-1001")
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("bucket", "HOUR")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.externalUserId").value("u-1001"))
                 .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00"))
+                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
                 .andExpect(jsonPath("$.items[0].count").value(2));
     }
 
@@ -306,12 +356,12 @@ class EventQueryControllerIntegrationTest {
     void aggregateTimeBuckets_returnsBadRequest_whenBucketIsInvalid() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        get("/api/events/aggregates/time-buckets")
-                                .param("organizationId", organization.getId().toString())
-                                .param("from", "2026-02-13T00:00:00")
-                                .param("to", "2026-02-14T00:00:00")
+                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
                                 .param("bucket", "WEEK")
                 )
                 .andExpect(status().isBadRequest());
@@ -342,5 +392,17 @@ class EventQueryControllerIntegrationTest {
                         .externalUserId(externalUserId)
                         .build()
         );
+    }
+
+    private String issueApiKey(Organization organization) {
+        return apiKeyService.issueForOrganization(organization.getId()).apiKey();
+    }
+
+    private MockHttpServletRequestBuilder authorizedGet(String apiKey, String path) {
+        return get(path).header(ApiKeyAuthFilter.API_KEY_HEADER, apiKey);
+    }
+
+    private Instant toInstant(LocalDateTime value) {
+        return value.toInstant(ZoneOffset.UTC);
     }
 }
