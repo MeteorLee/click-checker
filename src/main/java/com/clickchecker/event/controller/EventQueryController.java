@@ -6,7 +6,6 @@ import com.clickchecker.event.repository.dto.TimeBucketCountDto;
 import com.clickchecker.event.service.EventQueryService;
 import com.clickchecker.web.resolver.CurrentOrganizationId;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -35,8 +34,8 @@ public class EventQueryController {
     public PathAggregateResponse aggregatePaths(
             @CurrentOrganizationId Long authOrgId,
             @RequestParam(required = false) String externalUserId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
@@ -55,8 +54,8 @@ public class EventQueryController {
     public TimeBucketAggregateResponse aggregateTimeBuckets(
             @CurrentOrganizationId Long authOrgId,
             @RequestParam(required = false) String externalUserId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
             @RequestParam TimeBucket bucket
     ) {
@@ -88,8 +87,8 @@ public class EventQueryController {
     public record PathAggregateResponse(
             Long organizationId,
             String externalUserId,
-            LocalDateTime from,
-            LocalDateTime to,
+            Instant from,
+            Instant to,
             String eventType,
             int top,
             List<PathCountDto> items
@@ -98,8 +97,8 @@ public class EventQueryController {
     public record TimeBucketAggregateResponse(
             Long organizationId,
             String externalUserId,
-            LocalDateTime from,
-            LocalDateTime to,
+            Instant from,
+            Instant to,
             String eventType,
             TimeBucket bucket,
             List<TimeBucketCountDto> items

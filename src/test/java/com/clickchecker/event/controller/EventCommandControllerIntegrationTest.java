@@ -56,7 +56,7 @@ class EventCommandControllerIntegrationTest {
                                           "externalUserId": "%s",
                                           "eventType": "click",
                                           "path": "/home",
-                                          "occurredAt": "2026-02-13T15:03:00",
+                                          "occurredAt": "2026-02-13T15:03:00Z",
                                           "payload": "buttonId=signup"
                                         }
                                         """.formatted(eventUser.getExternalUserId()))
@@ -83,7 +83,7 @@ class EventCommandControllerIntegrationTest {
                                           "externalUserId": "%s",
                                           "eventType": "click",
                                           "path": "/home",
-                                          "occurredAt": "2026-02-13T15:03:00",
+                                          "occurredAt": "2026-02-13T15:03:00Z",
                                           "payload": "buttonId=signup"
                                         }
                                         """.formatted(eventUserInB.getExternalUserId()))
@@ -109,7 +109,7 @@ class EventCommandControllerIntegrationTest {
                                           "externalUserId": "u-9999",
                                           "eventType": "click",
                                           "path": "/home",
-                                          "occurredAt": "2026-02-13T15:03:00",
+                                          "occurredAt": "2026-02-13T15:03:00Z",
                                           "payload": "buttonId=signup"
                                         }
                                         """)
@@ -149,7 +149,7 @@ class EventCommandControllerIntegrationTest {
                                         {
                                           "eventType": "click",
                                           "path": "/home",
-                                          "occurredAt": "2026-02-13T15:03:00"
+                                          "occurredAt": "2026-02-13T15:03:00Z"
                                         }
                                         """)
                 )
@@ -168,7 +168,7 @@ class EventCommandControllerIntegrationTest {
                                         {
                                           "eventType": "click",
                                           "path": "/home",
-                                          "occurredAt": "2026-02-13T15:03:00"
+                                          "occurredAt": "2026-02-13T15:03:00Z"
                                         }
                                         """)
                 )
