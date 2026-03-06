@@ -4,6 +4,8 @@ import com.clickchecker.event.entity.Event;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
+import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -54,11 +57,15 @@ class EventQueryControllerPostgresIntegrationTest {
     @Autowired
     private OrganizationRepository organizationRepository;
 
+    @Autowired
+    private ApiKeyService apiKeyService;
+
     @Test
     void aggregateTimeBuckets_groupsByHour_inPostgreSQL() throws Exception {
         cleanup();
 
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         LocalDateTime base = LocalDateTime.of(2026, 2, 13, 10, 0);
         eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).occurredAt(base.plusMinutes(1)).build());
@@ -66,8 +73,7 @@ class EventQueryControllerPostgresIntegrationTest {
         eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(base.plusHours(1).plusMinutes(5)).build());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/time-buckets")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
                                 .param("from", "2026-02-13T00:00:00")
                                 .param("to", "2026-02-14T00:00:00")
                                 .param("bucket", "HOUR")
@@ -86,10 +92,10 @@ class EventQueryControllerPostgresIntegrationTest {
     void aggregatePaths_returnsBadRequest_whenFromIsNotBeforeTo_inPostgreSQL() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
                                 .param("from", "2026-02-14T00:00:00")
                                 .param("to", "2026-02-14T00:00:00")
                                 .param("top", "5")
@@ -101,10 +107,10 @@ class EventQueryControllerPostgresIntegrationTest {
     void aggregatePaths_returnsBadRequest_whenTopIsOutOfRange_inPostgreSQL() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00")
                                 .param("to", "2026-02-14T00:00:00")
                                 .param("top", "0")
@@ -112,8 +118,7 @@ class EventQueryControllerPostgresIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00")
                                 .param("to", "2026-02-14T00:00:00")
                                 .param("top", "101")
@@ -125,15 +130,43 @@ class EventQueryControllerPostgresIntegrationTest {
     void aggregatePaths_returnsBadRequest_whenDateTimeFormatIsInvalid_inPostgreSQL() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
-                                .param("organizationId", organization.getId().toString())
+                        authorizedGet(apiKey, "/api/events/aggregates/paths")
                                 .param("from", "invalid-date")
                                 .param("to", "2026-02-14T00:00:00")
                                 .param("top", "5")
                 )
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aggregatePaths_returnsUnauthorized_whenApiKeyIsMissing_inPostgreSQL() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        get("/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "5")
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aggregatePaths_returnsUnauthorized_whenApiKeyIsInvalid_inPostgreSQL() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        authorizedGet("ck_test_v1_invalid_deadbeef", "/api/events/aggregates/paths")
+                                .param("from", "2026-02-13T00:00:00")
+                                .param("to", "2026-02-14T00:00:00")
+                                .param("top", "5")
+                )
+                .andExpect(status().isUnauthorized());
     }
 
     private void cleanup() {
@@ -147,5 +180,13 @@ class EventQueryControllerPostgresIntegrationTest {
                         .name(name)
                         .build()
         );
+    }
+
+    private String issueApiKey(Organization organization) {
+        return apiKeyService.issueForOrganization(organization.getId()).apiKey();
+    }
+
+    private MockHttpServletRequestBuilder authorizedGet(String apiKey, String path) {
+        return get(path).header(ApiKeyAuthFilter.API_KEY_HEADER, apiKey);
     }
 }

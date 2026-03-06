@@ -5,12 +5,15 @@ import com.clickchecker.eventuser.entity.EventUser;
 import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
+import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,25 +38,28 @@ class EventCommandControllerIntegrationTest {
     @Autowired
     private OrganizationRepository organizationRepository;
 
+    @Autowired
+    private ApiKeyService apiKeyService;
+
     @Test
     void create_succeeds_whenExternalUserIdBelongsToOrganization() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
         EventUser eventUser = saveEventUser(organization, "u-1001");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        post("/api/events")
+                        authorizedEventPost(apiKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "organizationId": %d,
                                           "externalUserId": "%s",
                                           "eventType": "click",
                                           "path": "/home",
                                           "occurredAt": "2026-02-13T15:03:00",
                                           "payload": "buttonId=signup"
                                         }
-                                        """.formatted(organization.getId(), eventUser.getExternalUserId()))
+                                        """.formatted(eventUser.getExternalUserId()))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber());
@@ -67,20 +73,20 @@ class EventCommandControllerIntegrationTest {
         Organization organizationA = saveOrganization("acme");
         Organization organizationB = saveOrganization("globex");
         EventUser eventUserInB = saveEventUser(organizationB, "u-2001");
+        String apiKey = issueApiKey(organizationA);
 
         mockMvc.perform(
-                        post("/api/events")
+                        authorizedEventPost(apiKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "organizationId": %d,
                                           "externalUserId": "%s",
                                           "eventType": "click",
                                           "path": "/home",
                                           "occurredAt": "2026-02-13T15:03:00",
                                           "payload": "buttonId=signup"
                                         }
-                                        """.formatted(organizationA.getId(), eventUserInB.getExternalUserId()))
+                                        """.formatted(eventUserInB.getExternalUserId()))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber());
@@ -93,20 +99,20 @@ class EventCommandControllerIntegrationTest {
     void create_createsEventUser_whenExternalUserIdDoesNotExist() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        post("/api/events")
+                        authorizedEventPost(apiKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "organizationId": %d,
                                           "externalUserId": "u-9999",
                                           "eventType": "click",
                                           "path": "/home",
                                           "occurredAt": "2026-02-13T15:03:00",
                                           "payload": "buttonId=signup"
                                         }
-                                        """.formatted(organization.getId()))
+                                        """)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber());
@@ -119,18 +125,20 @@ class EventCommandControllerIntegrationTest {
     @Test
     void create_returnsBadRequest_whenRequestBodyIsMalformedJson() throws Exception {
         cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        post("/api/events")
+                        authorizedEventPost(apiKey)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"organizationId\":1,\"eventType\":\"click\"")
+                                .content("{\"eventType\":\"click\"")
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Malformed JSON request"));
     }
 
     @Test
-    void create_returnsBadRequest_whenOccurredAtIsMissing() throws Exception {
+    void create_returnsUnauthorized_whenApiKeyIsMissing() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
 
@@ -139,11 +147,49 @@ class EventCommandControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "organizationId": %d,
+                                          "eventType": "click",
+                                          "path": "/home",
+                                          "occurredAt": "2026-02-13T15:03:00"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void create_returnsUnauthorized_whenApiKeyIsInvalid() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+
+        mockMvc.perform(
+                        authorizedEventPost("ck_test_v1_invalid_deadbeef")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "eventType": "click",
+                                          "path": "/home",
+                                          "occurredAt": "2026-02-13T15:03:00"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void create_returnsBadRequest_whenOccurredAtIsMissing() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        mockMvc.perform(
+                        authorizedEventPost(apiKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
                                           "eventType": "click",
                                           "path": "/home"
                                         }
-                                        """.formatted(organization.getId()))
+                                        """)
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"));
@@ -153,18 +199,18 @@ class EventCommandControllerIntegrationTest {
     void create_returnsBadRequest_whenOccurredAtFormatIsInvalid() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        post("/api/events")
+                        authorizedEventPost(apiKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "organizationId": %d,
                                           "eventType": "click",
                                           "path": "/home",
                                           "occurredAt": "not-a-date"
                                         }
-                                        """.formatted(organization.getId()))
+                                        """)
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Malformed JSON request"));
@@ -191,5 +237,13 @@ class EventCommandControllerIntegrationTest {
                         .externalUserId(externalUserId)
                         .build()
         );
+    }
+
+    private String issueApiKey(Organization organization) {
+        return apiKeyService.issueForOrganization(organization.getId()).apiKey();
+    }
+
+    private MockHttpServletRequestBuilder authorizedEventPost(String apiKey) {
+        return post("/api/events").header(ApiKeyAuthFilter.API_KEY_HEADER, apiKey);
     }
 }
