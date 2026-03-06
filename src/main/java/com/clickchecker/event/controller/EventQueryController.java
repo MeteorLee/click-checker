@@ -4,6 +4,7 @@ import com.clickchecker.event.repository.dto.PathCountDto;
 import com.clickchecker.event.repository.dto.TimeBucket;
 import com.clickchecker.event.repository.dto.TimeBucketCountDto;
 import com.clickchecker.event.service.EventQueryService;
+import com.clickchecker.web.resolver.CurrentOrganizationId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -32,16 +33,13 @@ public class EventQueryController {
 
     @GetMapping("/aggregates/paths")
     public PathAggregateResponse aggregatePaths(
-            @RequestParam Long organizationId,
+            @CurrentOrganizationId Long authOrgId,
             @RequestParam(required = false) String externalUserId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
-        if (organizationId < 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`organizationId` must be positive.");
-        }
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
         }
@@ -49,22 +47,19 @@ public class EventQueryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
         }
 
-        List<PathCountDto> pathCounts = eventQueryService.countByPathBetween(from, to, organizationId, externalUserId, eventType, top);
-        return new PathAggregateResponse(organizationId, externalUserId, from, to, eventType, top, pathCounts);
+        List<PathCountDto> pathCounts = eventQueryService.countByPathBetween(from, to, authOrgId, externalUserId, eventType, top);
+        return new PathAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, pathCounts);
     }
 
     @GetMapping("/aggregates/time-buckets")
     public TimeBucketAggregateResponse aggregateTimeBuckets(
-            @RequestParam Long organizationId,
+            @CurrentOrganizationId Long authOrgId,
             @RequestParam(required = false) String externalUserId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(required = false) String eventType,
             @RequestParam TimeBucket bucket
     ) {
-        if (organizationId < 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`organizationId` must be positive.");
-        }
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
         }
@@ -72,14 +67,14 @@ public class EventQueryController {
         List<TimeBucketCountDto> items = eventQueryService.countByTimeBucketBetween(
                 from,
                 to,
-                organizationId,
+                authOrgId,
                 externalUserId,
                 eventType,
                 bucket
         );
 
         return new TimeBucketAggregateResponse(
-                organizationId,
+                authOrgId,
                 externalUserId,
                 from,
                 to,
