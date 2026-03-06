@@ -2,6 +2,7 @@ package com.clickchecker.organization.controller;
 
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.eventuser.repository.EventUserRepository;
+import com.clickchecker.organization.entity.ApiKeyStatus;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,10 +48,18 @@ class OrganizationControllerIntegrationTest {
                                         """)
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").isNumber());
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.apiKey").isString())
+                .andExpect(jsonPath("$.apiKeyPrefix").isString());
 
         assertThat(organizationRepository.count()).isEqualTo(1);
-        assertThat(organizationRepository.findAll().getFirst().getName()).isEqualTo("acme");
+        var saved = organizationRepository.findAll().getFirst();
+        assertThat(saved.getName()).isEqualTo("acme");
+        assertThat(saved.getApiKeyKid()).isNotBlank();
+        assertThat(saved.getApiKeyHash()).hasSize(64);
+        assertThat(saved.getApiKeyPrefix()).isNotBlank();
+        assertThat(saved.getApiKeyStatus()).isEqualTo(ApiKeyStatus.ACTIVE);
+        assertThat(saved.getApiKeyCreatedAt()).isNotNull();
     }
 
     @Test

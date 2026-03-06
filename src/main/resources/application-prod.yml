@@ -33,3 +33,8 @@ sentry:
   environment: prod
   send-default-pii: false
   traces-sample-rate: 0.0
+
+app:
+  api-key:
+    env: live
+    pepper: ${API_KEY_PEPPER:}

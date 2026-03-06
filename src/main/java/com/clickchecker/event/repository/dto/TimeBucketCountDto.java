@@ -1,9 +1,9 @@
 package com.clickchecker.event.repository.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record TimeBucketCountDto(
-        LocalDateTime bucketStart,
+        Instant bucketStart,
         long count
 ) {
 }

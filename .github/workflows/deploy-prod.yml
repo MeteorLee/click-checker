@@ -106,7 +106,7 @@ jobs:
             # 2) smoke verification (never hard-fail)
             SMOKE_OK=0
             TS=$(date +"%Y%m%d%H%M%S")
-            NOW=$(date +"%Y-%m-%dT%H:%M:%S")
+            NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
             echo "Smoke: create organization"
             ORG_CODE=$(smoke_post_json "http://localhost:8080/api/organizations" \
@@ -116,24 +116,27 @@ jobs:
             echo "ORG_CODE=${ORG_CODE}"
             if [ "${ORG_CODE}" = "200" ] || [ "${ORG_CODE}" = "201" ]; then
               ORG_ID=$(jq -r '.id // empty' /tmp/smoke_org.json 2>/dev/null || true)
+              API_KEY=$(jq -r '.apiKey // empty' /tmp/smoke_org.json 2>/dev/null || true)
 
-              if [ -n "${ORG_ID}" ]; then
+              if [ -n "${ORG_ID}" ] && [ -n "${API_KEY}" ]; then
                 echo "Smoke: post event (ORG_ID=${ORG_ID})"
                 EVENT_BODY=$(jq -nc --argjson organizationId "${ORG_ID}" --arg externalUserId "deploy-smoke-user" --arg eventType "__smoke" --arg path "/__smoke/deploy" --arg occurredAt "${NOW}" --arg payload "{}" '{organizationId:$organizationId,externalUserId:$externalUserId,eventType:$eventType,path:$path,occurredAt:$occurredAt,payload:$payload}')
 
                 echo "---- EVENT_BODY ----"
                 echo "${EVENT_BODY}"
 
-                EVENT_CODE=$(smoke_post_json "http://localhost:8080/api/events" \
-                  "${EVENT_BODY}" \
-                  "/tmp/smoke_event.json")
+                EVENT_CODE=$(curl -sS -o "/tmp/smoke_event.json" -w "%{http_code}" \
+                  -H "Content-Type: application/json" \
+                  -H "X-API-Key: ${API_KEY}" \
+                  -X POST "http://localhost:8080/api/events" \
+                  -d "${EVENT_BODY}" || true)
 
                 echo "EVENT_CODE=${EVENT_CODE}"
 
                 echo "Smoke: query aggregates"
-                AGG_CODE=$(smoke_get \
-                  "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00&to=2030-01-01T00:00:00&top=5" \
-                  "/tmp/smoke_agg.json")
+                AGG_CODE=$(curl -sS -o "/tmp/smoke_agg.json" -w "%{http_code}" \
+                  -H "X-API-Key: ${API_KEY}" \
+                  "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
 
                 echo "AGG_CODE=${AGG_CODE}"
 
@@ -148,7 +151,7 @@ jobs:
                   cat /tmp/smoke_agg.json || true
                 fi
               else
-                echo "ORG_ID parse failed"
+                echo "ORG_ID/API_KEY parse failed"
                 echo "---- /tmp/smoke_org.json ----"
                 cat /tmp/smoke_org.json || true
               fi

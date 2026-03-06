@@ -12,7 +12,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class EventQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public Long countBetween(LocalDateTime from, LocalDateTime to) {
+    public Long countBetween(Instant from, Instant to) {
 
         QEvent event = QEvent.event;
 
@@ -36,8 +36,8 @@ public class EventQueryRepository {
     }
 
     public List<PathCountDto> countByPathBetween(
-            LocalDateTime from,
-            LocalDateTime to,
+            Instant from,
+            Instant to,
             Long organizationId,
             String externalUserId,
             String eventType,
@@ -62,15 +62,15 @@ public class EventQueryRepository {
     }
 
     public List<TimeBucketCountDto> countByTimeBucketBetween(
-            LocalDateTime from,
-            LocalDateTime to,
+            Instant from,
+            Instant to,
             Long organizationId,
             String externalUserId,
             String eventType,
             TimeBucket bucket
     ) {
         QEvent event = QEvent.event;
-        DateTimeExpression<LocalDateTime> bucketStart = timeBucketStartExpr(bucket);
+        DateTimeExpression<Instant> bucketStart = timeBucketStartExpr(bucket);
 
         return queryFactory
                 .select(Projections.constructor(TimeBucketCountDto.class, bucketStart, event.id.count()))
@@ -86,7 +86,7 @@ public class EventQueryRepository {
                 .fetch();
     }
 
-    private BooleanExpression occurredAtBetween(LocalDateTime from, LocalDateTime to) {
+    private BooleanExpression occurredAtBetween(Instant from, Instant to) {
         QEvent event = QEvent.event;
         return event.occurredAt.goe(from)
                 .and(event.occurredAt.lt(to));
@@ -112,16 +112,16 @@ public class EventQueryRepository {
         return event.path.isNotNull().and(event.path.isNotEmpty());
     }
 
-    private DateTimeExpression<LocalDateTime> timeBucketStartExpr(TimeBucket bucket) {
+    private DateTimeExpression<Instant> timeBucketStartExpr(TimeBucket bucket) {
         QEvent event = QEvent.event;
         return switch (bucket) {
             case HOUR -> Expressions.dateTimeTemplate(
-                    LocalDateTime.class,
+                    Instant.class,
                     "date_trunc('hour', {0})",
                     event.occurredAt
             );
             case DAY -> Expressions.dateTimeTemplate(
-                    LocalDateTime.class,
+                    Instant.class,
                     "date_trunc('day', {0})",
                     event.occurredAt
             );

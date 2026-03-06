@@ -3,12 +3,9 @@ package com.clickchecker.event.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record EventCreateRequest(
-        @NotNull
-        Long organizationId,
-
         String externalUserId,
 
         @NotBlank
@@ -18,7 +15,7 @@ public record EventCreateRequest(
         String path,
 
         @NotNull
-        LocalDateTime occurredAt,
+        Instant occurredAt,
 
         String payload
 ) {}
