@@ -13,8 +13,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      APP_API_KEY_PEPPER: ${APP_API_KEY_PEPPER}
-      APP_API_KEY_ENV: ${APP_API_KEY_ENV:-live}
+      API_KEY_PEPPER: ${API_KEY_PEPPER:-local-dev-pepper}
+      API_KEY_ENV: ${API_KEY_ENV:-live}
       SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "8080:8080"

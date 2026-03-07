@@ -3,6 +3,9 @@ spring:
     name: click-checker
   mvc:
     log-request-details: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 management:
   endpoints:

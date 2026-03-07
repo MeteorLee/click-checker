@@ -222,10 +222,6 @@ gradle-app.setting
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,java,intellij+all,gradle,visualstudiocode
 
-# application.yml 설정 관리
-application-local.yml
-application-dev.yml
-
 # docker
 .env
 
