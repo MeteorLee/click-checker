@@ -139,7 +139,7 @@ jobs:
 
               if [ -n "${ORG_ID}" ] && [ -n "${API_KEY}" ]; then
                 echo "Smoke: post event (ORG_ID=${ORG_ID})"
-                EVENT_BODY=$(jq -nc --argjson organizationId "${ORG_ID}" --arg externalUserId "deploy-smoke-user" --arg eventType "__smoke" --arg path "/__smoke/deploy" --arg occurredAt "${NOW}" --arg payload "{}" '{organizationId:$organizationId,externalUserId:$externalUserId,eventType:$eventType,path:$path,occurredAt:$occurredAt,payload:$payload}')
+                EVENT_BODY=$(jq -nc --arg externalUserId "deploy-smoke-user" --arg eventType "__smoke" --arg path "/__smoke/deploy" --arg occurredAt "${NOW}" --arg payload "{}" '{externalUserId:$externalUserId,eventType:$eventType,path:$path,occurredAt:$occurredAt,payload:$payload}')
 
                 echo "---- EVENT_BODY ----"
                 echo "${EVENT_BODY}"
@@ -155,7 +155,7 @@ jobs:
                 echo "Smoke: query aggregates"
                 AGG_CODE=$(curl -sS -o "/tmp/smoke_agg.json" -w "%{http_code}" \
                   -H "X-API-Key: ${API_KEY}" \
-                  "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
+                  "http://localhost:8080/api/events/aggregates/paths?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
 
                 echo "AGG_CODE=${AGG_CODE}"
 
