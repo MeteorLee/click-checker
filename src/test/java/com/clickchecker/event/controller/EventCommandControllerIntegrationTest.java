@@ -123,6 +123,33 @@ class EventCommandControllerIntegrationTest {
     }
 
     @Test
+    void create_updatesApiKeyLastUsedAt_whenApiKeyAuthSucceeds() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        Organization issuedOrganization = organizationRepository.findById(organization.getId()).orElseThrow();
+        assertThat(issuedOrganization.getApiKeyLastUsedAt()).isNull();
+
+        mockMvc.perform(
+                        authorizedEventPost(apiKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "eventType": "click",
+                                          "path": "/home",
+                                          "occurredAt": "2026-02-13T15:03:00Z"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNumber());
+
+        Organization usedOrganization = organizationRepository.findById(organization.getId()).orElseThrow();
+        assertThat(usedOrganization.getApiKeyLastUsedAt()).isNotNull();
+    }
+
+    @Test
     void create_returnsBadRequest_whenRequestBodyIsMalformedJson() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");

@@ -10,6 +10,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -87,6 +88,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        organization.markApiKeyUsed(Instant.now());
+        organizationRepository.save(organization);
         request.setAttribute(AUTH_ORG_ID, organization.getId());
         log.debug(
                 "api key auth success: method={}, path={}, orgId={}, kidMasked={}, requestId={}",
