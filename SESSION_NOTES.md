@@ -100,7 +100,7 @@
   - 앱 설정 키는 `API_KEY_PEPPER` 기준
   - compose에는 `APP_API_KEY_PEPPER` 전달이 남아 있어 3단계에서 키 이름 통일 필요
 - 3단계 계획 문서 확정:
-  - `docs/00-계획/3단계 계획 문서.md` v1.1 작성/수정 완료
+  - `docs/00-계획/03-Flyway-전환-계획.md` v1.1 작성/수정 완료
   - 핵심 원칙: Flyway 체계 전환, V1 기준선 우선, 위험 변경 분할(추가 -> 백필 -> 제약)
   - baseline 전략 환경 분기(기존 DB baseline, 신규 DB V1부터 migrate) 명시
 - 3단계(Flyway) 구현/검증 완료:
