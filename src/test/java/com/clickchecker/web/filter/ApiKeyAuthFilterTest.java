@@ -15,6 +15,7 @@ import org.slf4j.MDC;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ class ApiKeyAuthFilterTest {
     private static final String INVALID_FORMAT_API_KEY = "plain-secret-key";
     private static final String HASHED_API_KEY = "hashed-api-key";
     private static final String REQUEST_ID = "request-1234";
+    private static final long ORGANIZATION_ID = 101L;
 
     private final OrganizationRepository organizationRepository = mock(OrganizationRepository.class);
     private final ApiKeyIssuer apiKeyIssuer = mock(ApiKeyIssuer.class);
@@ -101,6 +103,7 @@ class ApiKeyAuthFilterTest {
                 .apiKeyKid("abcd1234")
                 .apiKeyHash("stored-hash")
                 .build();
+        ReflectionTestUtils.setField(organization, "id", ORGANIZATION_ID);
 
         when(apiKeyIssuer.extractKid(VALID_API_KEY)).thenReturn("abcd1234");
         when(organizationRepository.findByApiKeyKidAndApiKeyStatus("abcd1234", ApiKeyStatus.ACTIVE))
@@ -116,9 +119,10 @@ class ApiKeyAuthFilterTest {
 
         filter.doFilter(request, response, new MockFilterChain());
 
-        assertThat(request.getAttribute(ApiKeyAuthFilter.AUTH_ORG_ID)).isNull();
+        assertThat(request.getAttribute(ApiKeyAuthFilter.AUTH_ORG_ID)).isEqualTo(ORGANIZATION_ID);
         assertThat(joinedMessages(appender))
                 .contains("api key auth success")
+                .contains("orgId=" + ORGANIZATION_ID)
                 .contains("kidMasked=ab***34")
                 .doesNotContain(VALID_API_KEY)
                 .doesNotContain(HASHED_API_KEY)
