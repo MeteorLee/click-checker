@@ -77,16 +77,14 @@
 - `EventUser` API(`/api/event-users`)는 아직 `organizationId` 요청 방식 유지(후속 정리 대상)
 
 ## 다음 권장 작업
-1. 3단계(Flyway) 착수:
-   - `ddl-auto` 제거
-   - 현재 스키마 `V1` 고정
-2. `organizations` API Key 컬럼 제약 강화:
-   - 백필 후 `NOT NULL`/제약 적용
-3. API Key 로그 하드닝:
+1. 3단계 후속 문서/운영 정리:
+   - Flyway 운영 반영 절차(runbook) 고정
+   - baseline 1회 적용 원칙(운영에서는 상시 비활성) 명시
+2. API Key 로그 하드닝:
    - 인증 로그 정책 정리(원문 키 미노출)
-4. `EventUser` API 테넌트 스코프 정합성 정리:
+3. `EventUser` API 테넌트 스코프 정합성 정리:
    - `/api/event-users`도 인증 org 기반 전환 여부 결정
-5. `/api/events/aggregates/count` 운영 노출 여부 확정(유지/차단)
+4. `/api/events/aggregates/count` 운영 노출 여부 확정(유지/차단)
 
 ## 최근 업데이트 (추가)
 - 2단계 마무리 후 CI/CD 정리 진행:
@@ -105,6 +103,24 @@
   - `docs/00-계획/3단계 계획 문서.md` v1.1 작성/수정 완료
   - 핵심 원칙: Flyway 체계 전환, V1 기준선 우선, 위험 변경 분할(추가 -> 백필 -> 제약)
   - baseline 전략 환경 분기(기존 DB baseline, 신규 DB V1부터 migrate) 명시
+- 3단계(Flyway) 구현/검증 완료:
+  - 마이그레이션 추가:
+    - `V1__baseline.sql`
+    - `V2~V4`: auditing 컬럼 추가/백필/NOT NULL
+    - `V5~V7`: organizations 제약 강화(name/status/prefix/kid/hash)
+    - `V8`: `events.path` NOT NULL
+    - `V9`: `events.occurred_at` -> `TIMESTAMPTZ`
+  - 코드 정합성 반영:
+    - `Event.path`를 엔티티에서도 `nullable = false`로 정렬
+    - `application-local.yml`, `application-prod.yml`의 `ddl-auto`를 `validate`로 전환
+  - CI 안정화 반영:
+    - `application-ci.yml`에서 `spring.flyway.enabled=false`로 H2 fast lane 유지
+    - `build.gradle`에 `flyway-database-postgresql` 추가(PostgreSQL 16 지원)
+  - 운영 반영 결과:
+    - EC2 DB 백업 수행 완료
+    - Flyway baseline + V2~V9 적용 완료
+    - `flyway_schema_history` 기준 버전 1~9 성공 확인
+    - `/actuator/health` `UP` 확인
 
 ## 3분 데모 스크립트
 1. 조직 생성:
