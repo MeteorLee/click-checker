@@ -1,4 +1,4 @@
-# 2단계 실행 계획표 v1.3
+# 02. API Key 인증/조직 스코프 계획 (v1.3)
 
 ## 2단계 목표
 - `X-API-Key`로 **Organization을 식별**한다.
@@ -236,7 +236,7 @@
 
 ---
 
-# “한 파일씩” 실제 실행 순서 (Codex용)
+# “한 파일씩” 실제 실행 순서
 1. `Organization` + `ApiKeyStatus`
 2. `OrganizationRepository` 메서드
 3. `ApiKeyIssuer` (+ 단위 테스트)
@@ -246,10 +246,3 @@
 7. `@CurrentOrganizationId` + `CurrentOrganizationIdResolver` 등록
 8. `Event API` org 스코프 강제(+ 통합 테스트)
 9. 로그/응답 점검(필요시 마스킹 보강)
-
----
-
-## (선택) 2단계 보강 티켓 (MVP 끝나고)
-- `POST /api/organizations/api-key:rotate`
-- 키 단위 rate limit
-- `Idempotency-Key` for POST /api/events
