@@ -105,6 +105,9 @@ jobs:
             require_env POSTGRES_DB
             require_env POSTGRES_USER
             require_env POSTGRES_PASSWORD
+            require_env DB_URL
+            require_env DB_USERNAME
+            require_env DB_PASSWORD
             require_env API_KEY_PEPPER
             require_env API_KEY_ENV
 
