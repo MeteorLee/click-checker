@@ -36,7 +36,7 @@ public class Event {
     @Column(nullable = false)
     private String eventType;
 
-    @Column(length = 512)
+    @Column(nullable = false, length = 512)
     private String path;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

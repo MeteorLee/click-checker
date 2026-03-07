@@ -1,0 +1,3 @@
+ALTER TABLE events
+    ALTER COLUMN occurred_at TYPE TIMESTAMPTZ
+    USING occurred_at AT TIME ZONE 'UTC';
