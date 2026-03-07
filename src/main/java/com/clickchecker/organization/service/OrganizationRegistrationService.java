@@ -2,6 +2,7 @@ package com.clickchecker.organization.service;
 
 import com.clickchecker.organization.dto.OrganizationCreateRequest;
 import com.clickchecker.organization.entity.Organization;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,13 +12,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrganizationRegistrationService {
 
     private final OrganizationService organizationService;
-    private final ApiKeyService apiKeyService;
+    private final ApiKeyIssuer apiKeyIssuer;
 
     @Transactional
     public CreateResult register(OrganizationCreateRequest request) {
-        Organization organization = organizationService.create(request.name());
-        ApiKeyService.IssuedResult issued = apiKeyService.issueForOrganization(organization.getId());
-        return new CreateResult(issued.organizationId(), issued.apiKey(), issued.apiKeyPrefix());
+        ApiKeyIssuer.IssuedApiKey issued = apiKeyIssuer.issue();
+        Organization organization = organizationService.create(
+                request.name(),
+                issued.kid(),
+                issued.hash(),
+                issued.prefix(),
+                Instant.now()
+        );
+
+        return new CreateResult(organization.getId(), issued.plainKey(), issued.prefix());
     }
 
     public record CreateResult(
