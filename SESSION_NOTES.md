@@ -121,6 +121,11 @@
     - Flyway baseline + V2~V9 적용 완료
     - `flyway_schema_history` 기준 버전 1~9 성공 확인
     - `/actuator/health` `UP` 확인
+  - 배포 파이프라인 안정화(추가):
+    - `deploy-prod.yml`에서 `compose_up` 실패 시에도 `rollback()` 진입하도록 보강
+    - 배포 시작 전 `.env` 필수 키 사전검증 추가:
+      - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `API_KEY_PEPPER`, `API_KEY_ENV`
+    - 목적: `set -e` 조기 종료로 롤백 미실행되던 케이스 방지
 
 ## 3분 데모 스크립트
 1. 조직 생성:

@@ -82,3 +82,25 @@
 - baseline 1회 적용 후 옵션 제거
 - `/actuator/health` 확인
 - `flyway_schema_history` 버전/성공 여부 확인
+
+---
+
+## 7. 이슈 5 - compose 기동 실패 시 롤백 미실행
+
+### 증상
+- 배포 로그에서 `dependency failed to start: container click-checker-app is unhealthy` 후 즉시 종료
+- `git pull`은 반영되었지만 `Start rollback to ...` 로그가 없음
+
+### 원인
+- 배포 스크립트가 `set -e`로 동작하여 `compose_up` 실패 시 즉시 종료
+- 기존 롤백 호출 지점은 health/smoke 검증 블록에만 존재
+
+### 조치
+- `deploy-prod.yml`에 `compose_up` 실패 분기 추가:
+  - 실패 시 로그 덤프 후 `rollback()` 실행
+- 배포 시작 전 `.env` 필수 값 사전 검증 추가:
+  - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `API_KEY_PEPPER`, `API_KEY_ENV`
+
+### 결과
+- `compose_up` 단계 실패도 자동 롤백 경로로 진입
+- 환경변수 누락은 배포 초기에 빠르게 실패하여 원인 식별 가능
