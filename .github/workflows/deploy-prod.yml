@@ -43,12 +43,25 @@ jobs:
               echo "---- postgres logs (tail=100) ----"
               $COMPOSE logs --tail=100 postgres || true
             }
+            dump_smoke_org_response() {
+              if [ ! -f /tmp/smoke_org.json ]; then
+                echo "smoke_org.json not found"
+                return
+              fi
+
+              echo "---- /tmp/smoke_org.json (redacted) ----"
+              if jq -c '{id, apiKeyPrefix, apiKey:"[REDACTED]"}' /tmp/smoke_org.json >/tmp/smoke_org_redacted.json 2>/dev/null; then
+                cat /tmp/smoke_org_redacted.json
+              else
+                echo "Response body redacted because it may contain apiKey."
+              fi
+            }
 
             wait_health() {
               local tries="${1:-12}"
               local sleep_s="${2:-5}"
               for i in $(seq 1 "$tries"); do
-                if curl -fsS http://localhost:8080/actuator/health 2>/dev/null | grep -q UP; then
+                if curl --max-time 5 -fsS http://localhost:8080/actuator/health 2>/dev/null | jq -e '.status == "UP"' >/dev/null; then
                   echo "Health check passed"
                   return 0
                 fi
@@ -66,12 +79,6 @@ jobs:
                 -H "Content-Type: application/json" \
                 -X POST "$url" \
                 -d "$data" || true
-            }
-
-            smoke_get() {
-              local url="$1"
-              local out="$2"
-              curl -sS -o "$out" -w "%{http_code}" "$url" || true
             }
 
             rollback() {
@@ -106,7 +113,7 @@ jobs:
             PREV_SHA=$(git rev-parse HEAD)
             echo "PREV_SHA=${PREV_SHA}"
 
-            git pull origin prod
+            git pull --ff-only origin prod
 
             compose_down
             if ! compose_up; then
@@ -122,7 +129,7 @@ jobs:
               rollback
             fi
 
-            # 2) smoke verification (never hard-fail)
+            # 2) smoke verification
             SMOKE_OK=0
             TS=$(date +"%Y%m%d%H%M%S")
             NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -134,12 +141,11 @@ jobs:
 
             echo "ORG_CODE=${ORG_CODE}"
             if [ "${ORG_CODE}" = "200" ] || [ "${ORG_CODE}" = "201" ]; then
-              ORG_ID=$(jq -r '.id // empty' /tmp/smoke_org.json 2>/dev/null || true)
               API_KEY=$(jq -r '.apiKey // empty' /tmp/smoke_org.json 2>/dev/null || true)
 
-              if [ -n "${ORG_ID}" ] && [ -n "${API_KEY}" ]; then
-                echo "Smoke: post event (ORG_ID=${ORG_ID})"
-                EVENT_BODY=$(jq -nc --argjson organizationId "${ORG_ID}" --arg externalUserId "deploy-smoke-user" --arg eventType "__smoke" --arg path "/__smoke/deploy" --arg occurredAt "${NOW}" --arg payload "{}" '{organizationId:$organizationId,externalUserId:$externalUserId,eventType:$eventType,path:$path,occurredAt:$occurredAt,payload:$payload}')
+              if [ -n "${API_KEY}" ]; then
+                echo "Smoke: post event"
+                EVENT_BODY=$(jq -nc --arg externalUserId "deploy-smoke-user" --arg eventType "__smoke" --arg path "/__smoke/deploy" --arg occurredAt "${NOW}" --arg payload "{}" '{externalUserId:$externalUserId,eventType:$eventType,path:$path,occurredAt:$occurredAt,payload:$payload}')
 
                 echo "---- EVENT_BODY ----"
                 echo "${EVENT_BODY}"
@@ -155,7 +161,7 @@ jobs:
                 echo "Smoke: query aggregates"
                 AGG_CODE=$(curl -sS -o "/tmp/smoke_agg.json" -w "%{http_code}" \
                   -H "X-API-Key: ${API_KEY}" \
-                  "http://localhost:8080/api/events/aggregates/paths?organizationId=${ORG_ID}&from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
+                  "http://localhost:8080/api/events/aggregates/paths?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
 
                 echo "AGG_CODE=${AGG_CODE}"
 
@@ -170,14 +176,12 @@ jobs:
                   cat /tmp/smoke_agg.json || true
                 fi
               else
-                echo "ORG_ID/API_KEY parse failed"
-                echo "---- /tmp/smoke_org.json ----"
-                cat /tmp/smoke_org.json || true
+                echo "API_KEY parse failed"
+                dump_smoke_org_response
               fi
             else
               echo "Organization create failed"
-              echo "---- /tmp/smoke_org.json ----"
-              cat /tmp/smoke_org.json || true
+              dump_smoke_org_response
             fi
 
             if [ "${SMOKE_OK}" -ne 1 ]; then

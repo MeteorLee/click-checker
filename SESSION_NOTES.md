@@ -126,6 +126,10 @@
     - 배포 시작 전 `.env` 필수 키 사전검증 추가:
       - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `API_KEY_PEPPER`, `API_KEY_ENV`
     - 목적: `set -e` 조기 종료로 롤백 미실행되던 케이스 방지
+  - 3단계 최종 마무리(추가):
+    - `POST /api/organizations` 500(`api_key_hash` NOT NULL 위반) 원인 수정
+    - 조직 생성 시 API Key를 선발급해 `apiKeyKid/hash/prefix`를 insert 시점에 저장하도록 정렬
+    - `prod` 배포 스모크 통과로 3단계 종료 확인
 
 ## 3분 데모 스크립트
 1. 조직 생성:
