@@ -26,6 +26,15 @@ jobs:
             COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
             compose_down() { $COMPOSE down --remove-orphans; }
             compose_up()   { $COMPOSE up -d --build app postgres prometheus grafana; }
+            require_env() {
+              local key="$1"
+              local value
+              value=$(grep -E "^${key}=" .env | tail -n1 | cut -d'=' -f2- || true)
+              if [ -z "${value}" ]; then
+                echo "Missing required .env key: ${key}"
+                return 1
+              fi
+            }
             dump_logs() {
               echo "---- docker compose ps ----"
               $COMPOSE ps || true
@@ -85,6 +94,12 @@ jobs:
 
             # jq is required for smoke parsing (environment issue => fail fast)
             command -v jq >/dev/null 2>&1 || { echo "jq not installed on EC2"; exit 1; }
+            [ -f .env ] || { echo ".env not found"; exit 1; }
+            require_env POSTGRES_DB
+            require_env POSTGRES_USER
+            require_env POSTGRES_PASSWORD
+            require_env API_KEY_PEPPER
+            require_env API_KEY_ENV
 
             git fetch origin
             git checkout prod
@@ -94,7 +109,11 @@ jobs:
             git pull origin prod
 
             compose_down
-            compose_up
+            if ! compose_up; then
+              echo "Deploy failed during compose_up"
+              dump_logs
+              rollback
+            fi
 
             # 1) health verification
             if ! wait_health 12 5; then
