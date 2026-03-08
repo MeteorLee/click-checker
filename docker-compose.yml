@@ -5,14 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: click-checker-app
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: local
-      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
       API_KEY_PEPPER: ${API_KEY_PEPPER:-local-dev-pepper}
       API_KEY_ENV: ${API_KEY_ENV:-live}
       SENTRY_DSN: ${SENTRY_DSN:-}
