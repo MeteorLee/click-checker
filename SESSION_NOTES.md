@@ -3,6 +3,8 @@
 ## 현재 상태
 - 목표: 멀티테넌트 B2B 이벤트 분석 백엔드.
 - 핵심 범위: `organization > eventUser > path > eventType`.
+- 운영 prod 앱은 현재 Amazon RDS for PostgreSQL을 바라본다.
+- local postgres는 local 개발/검증용으로만 유지한다.
 - `Organization` 생성 시 API Key 발급/해시 저장 구현 완료.
 - `EventUser` 도메인 뼈대 구현 완료:
   - entity/repository/dto/mapper/service/controller
@@ -69,17 +71,15 @@
   - `EventUserControllerIntegrationTest`
 
 ## 참고 사항
-- `EventMapper` 경고 유지:
-  - unmapped target properties: `organization`, `eventUser`
-  - 현재는 서비스 계층에서 관계를 주입하므로 허용
 - `/api/events/aggregates/count`는 개발/디버그 용도로 유지
 - `ApiKeyAuthFilter` 보호 범위는 현재 `/api/events/**`만 적용
 - `EventUser` API(`/api/event-users`)는 아직 `organizationId` 요청 방식 유지(후속 정리 대상)
+- prod 배포는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` 기준으로 동작
+- `POSTGRES_*`는 local postgres 컨테이너 기동용으로만 본다
 
 ## 다음 권장 작업
-1. 3단계 후속 문서/운영 정리:
-   - Flyway 운영 반영 절차(runbook) 고정
-   - baseline 1회 적용 원칙(운영에서는 상시 비활성) 명시
+1. 웹 진입점/배포 고도화 범위/완료 기준 고정
+   - 후속 범위 정리
 2. API Key 로그 하드닝:
    - 인증 로그 정책 정리(원문 키 미노출)
 3. `EventUser` API 테넌트 스코프 정합성 정리:
@@ -87,7 +87,22 @@
 4. `/api/events/aggregates/count` 운영 노출 여부 확정(유지/차단)
 
 ## 최근 업데이트 (추가)
-- 2단계 마무리 후 CI/CD 정리 진행:
+- RDS 전환 완료:
+  - EC2 운영 DB -> RDS `pg_dump` / `pg_restore` 완료
+  - row count(`organizations=11`, `users=16`, `events=72`) 일치 확인
+  - Flyway `V1~V9` 및 `success=true` 일치 확인
+  - health / path 집계 / time-bucket 집계가 전환 전 기준과 동일함을 확인
+  - prod 앱 `DB_URL`이 RDS endpoint를 바라보는 것 확인
+- prod 배포 구조 정리:
+  - `docker-compose.yml` / `docker-compose.local.yml` / `docker-compose.prod.yml` 역할 재분리
+  - local만 postgres 의존, prod는 RDS-only 구조로 정리
+  - `deploy-prod.yml`에서 `postgres` 동시 기동 제거
+  - `deploy-prod.yml`의 필수값 검사를 `DB_*`, `API_KEY_*`, `SENTRY_DSN` 중심으로 정리
+- 운영 문서 정리:
+  - `docs/05-배포/11-RDS-전환-런북.md`, `12-RDS-전환-트러블슈팅.md`, `13-RDS-전환-종합.md` 추가
+  - `docs/05-배포/01-배포-개요.md`, `02-EC2-프로젝트-설정.md` 현재 구조 기준으로 정리
+  - `docs/04-운영-설계/배포-운영-체크리스트.md`, `K6-스모크-런북.md`, `ci-품질선.md` 갱신
+- API Key 인증 구조 마무리 후 CI/CD 정리 진행:
   - `deploy-prod.yml` 스모크 테스트를 API Key 인증 경로에 맞게 수정
   - Organization 생성 응답에서 `apiKey` 추출 후 `X-API-Key` 헤더로 이벤트 저장/조회 호출
   - 스모크 시간 파라미터를 `Instant` 기준으로 `Z`(UTC) 포맷으로 통일
@@ -98,12 +113,12 @@
     - `ddl-auto=update`가 기존 데이터 + NOT NULL 제약 상황에서 완전 반영 실패
 - 환경변수 정리 이슈:
   - 앱 설정 키는 `API_KEY_PEPPER` 기준
-  - compose에는 `APP_API_KEY_PEPPER` 전달이 남아 있어 3단계에서 키 이름 통일 필요
-- 3단계 계획 문서 확정:
+  - compose에는 `APP_API_KEY_PEPPER` 전달이 남아 있어 이후 키 이름 통일 필요
+- Flyway 전환 계획 문서 확정:
   - `docs/00-계획/03-Flyway-전환-계획.md` v1.1 작성/수정 완료
   - 핵심 원칙: Flyway 체계 전환, V1 기준선 우선, 위험 변경 분할(추가 -> 백필 -> 제약)
   - baseline 전략 환경 분기(기존 DB baseline, 신규 DB V1부터 migrate) 명시
-- 3단계(Flyway) 구현/검증 완료:
+- Flyway 구현/검증 완료:
   - 마이그레이션 추가:
     - `V1__baseline.sql`
     - `V2~V4`: auditing 컬럼 추가/백필/NOT NULL
@@ -126,10 +141,10 @@
     - 배포 시작 전 `.env` 필수 키 사전검증 추가:
       - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `API_KEY_PEPPER`, `API_KEY_ENV`
     - 목적: `set -e` 조기 종료로 롤백 미실행되던 케이스 방지
-  - 3단계 최종 마무리(추가):
+  - Flyway 최종 마무리(추가):
     - `POST /api/organizations` 500(`api_key_hash` NOT NULL 위반) 원인 수정
     - 조직 생성 시 API Key를 선발급해 `apiKeyKid/hash/prefix`를 insert 시점에 저장하도록 정렬
-    - `prod` 배포 스모크 통과로 3단계 종료 확인
+    - `prod` 배포 스모크 통과로 Flyway 전환 종료 확인
 
 ## 3분 데모 스크립트
 1. 조직 생성:
@@ -160,7 +175,8 @@
 - 데모 실행 문서는 `DEMO_RUNBOOK.md` 기준으로 유지.
 
 ## 이번 세션 합의 작업 규칙
-- 파일은 1개씩만 작업(배치 수정 금지).
+- 파일은 기본적으로 1개씩 작업한다.
+- 다만 한 주제 정리에 꼭 필요할 때만 여러 파일을 함께 수정한다.
 - 작업 전 2~3문장으로 변경 내용과 이유를 설명.
 - 아래 작업은 항상 명시 승인 후 실행:
   - 파일 수정
