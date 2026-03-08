@@ -5,9 +5,10 @@
 - CI 실패 시 배포는 진행하지 않는다.
 
 ## 1. 현재 품질선 (즉시 적용)
-- GitHub Actions `ci.yml`에서 `./gradlew test`를 실행한다.
-- CI 프로파일(`SPRING_PROFILES_ACTIVE=ci`)로 테스트를 수행한다.
-- 테스트 실패 시 워크플로우 실패로 처리한다.
+- GitHub Actions는 `ci-develop.yml`, `ci-main.yml` 2개 워크플로로 분리되어 있다.
+- `ci-develop.yml`은 `./gradlew test`를 실행한다.
+- `ci-main.yml`은 `./gradlew test` 이후 `./gradlew postgresTest`를 실행한다.
+- 테스트 실패 시 해당 워크플로우는 실패로 처리한다.
 - 로컬/수동 회귀 기준은 `./gradlew test` + `./gradlew postgresTest` 2개를 기본으로 한다.
 
 ## 2. 배포 차단 원칙
@@ -53,8 +54,8 @@
 
 ## 7. 현재 상태 요약
 - 적용됨:
-  - `build` job: `./gradlew test` (ci 프로파일)
-  - `postgres-compat` job: PostgreSQL 호환성 테스트 실행
+  - `ci-develop.yml`: `./gradlew test`
+  - `ci-main.yml`: `./gradlew test` + `./gradlew postgresTest`
   - 이벤트 수집/조회 통합테스트는 `X-API-Key` 기반 조직 스코프 기준으로 전환
   - `401` 경계(키 누락/무효) 테스트 추가
 - 남음:
