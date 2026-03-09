@@ -3,9 +3,14 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   jpa:
     hibernate:
       ddl-auto: validate
+
+server:
+  shutdown: graceful
 
 logging:
   level:

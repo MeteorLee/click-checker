@@ -1,5 +1,6 @@
 services:
   app:
+    stop_grace_period: 40s
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: ${DB_URL}
