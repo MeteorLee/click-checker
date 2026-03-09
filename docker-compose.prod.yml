@@ -1,13 +1,59 @@
+x-app-prod-env: &app-prod-env
+  SPRING_PROFILES_ACTIVE: prod
+  DB_URL: ${DB_URL}
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+  API_KEY_PEPPER: ${API_KEY_PEPPER}
+  API_KEY_ENV: ${API_KEY_ENV:-live}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+
+x-app-prod-common: &app-prod-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  stop_grace_period: 40s
+  environment: *app-prod-env
+
 services:
   app:
-    stop_grace_period: 40s
+    profiles: ["legacy"]
+
+  app-blue:
+    <<: *app-prod-common
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      SENTRY_DSN: ${SENTRY_DSN:-}
+      <<: *app-prod-env
+      SERVER_PORT: 8081
+      APP_COLOR: blue
+    ports:
+      - "127.0.0.1:8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  app-green:
+    <<: *app-prod-common
+    environment:
+      <<: *app-prod-env
+      SERVER_PORT: 8082
+      APP_COLOR: green
+    ports:
+      - "127.0.0.1:8082:8082"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
 
   grafana:
     ports:
       - "3000:3000"
+
+  prometheus:
+    depends_on:
+      app-blue:
+        condition: service_healthy
