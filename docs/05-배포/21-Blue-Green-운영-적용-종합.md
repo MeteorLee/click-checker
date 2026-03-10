@@ -38,6 +38,7 @@
 ### 2.4 배포 파이프라인 정리
 - GitHub Actions의 인라인 대형 스크립트 실행 방식을 분리형(`scripts/deploy-prod-blue-green.sh`)으로 바꿨다.
 - SSH 액션 내부 파싱 오류(`syntax error near unexpected token ';'`)를 제거했다.
+- 배포 검증이 전환 이후 단계에서 실패하면 이전 색상으로 자동 복구하도록 보강했다.
 
 ---
 
