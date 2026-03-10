@@ -24,6 +24,8 @@ NGINX_BG_CONTAINER="${NGINX_BG_CONTAINER:-click-checker-nginx-bg-test}"
 NGINX_BG_IMAGE="${NGINX_BG_IMAGE:-nginx:1.25-alpine}"
 NGINX_BG_NETWORK="${NGINX_BG_NETWORK:-click-checker_default}"
 NGINX_BG_PORT="${NGINX_BG_PORT:-18080}"
+PUBLIC_VERIFY_ATTEMPTS="${PUBLIC_VERIFY_ATTEMPTS:-5}"
+PUBLIC_VERIFY_DELAY_SECONDS="${PUBLIC_VERIFY_DELAY_SECONDS:-2}"
 TARGET_COLOR="${1:-}"
 
 load_local_defaults() {
@@ -163,6 +165,21 @@ reload_bg_nginx() {
     "${NGINX_BG_IMAGE}" >/dev/null
 }
 
+verify_bg_nginx_color() {
+  local color="$1"
+  local attempt
+
+  for attempt in $(seq 1 "${PUBLIC_VERIFY_ATTEMPTS}"); do
+    if curl -fsS -H 'Host: clickchecker.dev' "http://127.0.0.1:${NGINX_BG_PORT}/" | grep -q "\"color\":\"${color}\""; then
+      return 0
+    fi
+    sleep "${PUBLIC_VERIFY_DELAY_SECONDS}"
+  done
+
+  echo "Temporary nginx path did not report expected color: ${color}" >&2
+  exit 1
+}
+
 stop_old_color() {
   local color="$1"
 
@@ -208,6 +225,9 @@ main() {
 
   echo "Reloading temporary nginx"
   reload_bg_nginx
+
+  echo "Verifying temporary nginx response"
+  verify_bg_nginx_color "${TARGET_COLOR}"
 
   echo "Stopping old color: ${old_color}"
   stop_old_color "${old_color}"
