@@ -15,6 +15,7 @@
   - green: `8082`
 - readiness 확인 경로
   - `/actuator/health/readiness`
+- 현재 운영 기본 색상은 `blue(8081)`다.
 
 ## 목표
 
@@ -33,6 +34,7 @@
 - 임시 `nginx` 컨테이너 기준 upstream 전환 검증 완료
   - blue 응답 확인
   - upstream 변경 후 green 응답 확인
+- 실제 운영 첫 적용으로 `8080 -> 8081(app-blue)` 전환 완료
 
 ## 전환 절차
 
@@ -182,6 +184,6 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-blue
 
 ## 다음 작업
 
-- 운영 nginx와 Blue/Green 전환용 nginx를 어떻게 합칠지 결정
-- 실제 EC2 운영 경로에서 전환 실험 수행
-- Blue/Green 시행착오를 별도 트러블슈팅 문서로 기록
+- 운영 nginx의 메인 앱 upstream을 `8081 <-> 8082` 전환 기준으로 더 구조화
+- 실제 EC2에서 `blue -> green` 운영 전환 수행
+- 기존 CI 배포 경로를 `app-blue`, `app-green` 중심으로 재설계
