@@ -4,6 +4,9 @@ set -euo pipefail
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 APP_DOMAIN="clickchecker.dev"
 NGINX_CONFIG="/etc/nginx/sites-available/default"
+ACTIVE_COLOR=""
+TARGET_COLOR=""
+SWITCHED=0
 
 compose_up_infra() {
   $COMPOSE up -d prometheus grafana
@@ -15,9 +18,7 @@ stop_color() {
 
 require_env() {
   local key="$1"
-  local value
-  value=$(grep -E "^${key}=" .env | tail -n1 | cut -d'=' -f2- || true)
-  if [ -z "${value}" ]; then
+  if ! grep -Eq "^${key}=" .env; then
     echo "Missing required .env key: ${key}" >&2
     return 1
   fi
@@ -133,6 +134,26 @@ smoke_post_json() {
     -d "$data" || true
 }
 
+rollback_on_error() {
+  local exit_code=$?
+
+  trap - ERR
+
+  if [ "${exit_code}" -eq 0 ]; then
+    return
+  fi
+
+  if [ "${SWITCHED}" -eq 1 ] && [ -n "${ACTIVE_COLOR}" ]; then
+    echo "Deploy failed after switch. Rolling back to ${ACTIVE_COLOR}" >&2
+    if ! env SKIP_BUILD=1 SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${ACTIVE_COLOR}"; then
+      echo "Rollback failed" >&2
+      dump_logs
+    fi
+  fi
+
+  exit "${exit_code}"
+}
+
 main() {
   command -v jq >/dev/null 2>&1 || { echo "jq not installed on EC2"; exit 1; }
   [ -f .env ] || { echo ".env not found"; exit 1; }
@@ -144,22 +165,21 @@ main() {
 
   chmod +x ./scripts/blue-green-prod-switch.sh
 
-  local active_color target_color switched smoke_ok ts now org_code api_key event_body event_code agg_code
-  active_color=$(current_color)
-  target_color=$(other_color "$active_color")
-  switched=0
+  local smoke_ok ts now org_code api_key event_body event_code agg_code
+  ACTIVE_COLOR=$(current_color)
+  TARGET_COLOR=$(other_color "$ACTIVE_COLOR")
 
-  echo "ACTIVE_COLOR=${active_color}"
-  echo "TARGET_COLOR=${target_color}"
+  echo "ACTIVE_COLOR=${ACTIVE_COLOR}"
+  echo "TARGET_COLOR=${TARGET_COLOR}"
 
   compose_up_infra
 
-  if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "$target_color"; then
+  if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
     echo "Deploy failed during blue-green switch"
     dump_logs
     exit 1
   fi
-  switched=1
+  SWITCHED=1
 
   if ! wait_health 12 5; then
     echo "Deploy verification failed (health)"
@@ -231,8 +251,11 @@ main() {
   fi
 
   echo "Stopping old color after successful verification"
-  stop_color "$active_color" || true
+  stop_color "${ACTIVE_COLOR}" || true
+  SWITCHED=0
   echo "Deploy completed successfully"
 }
+
+trap rollback_on_error ERR
 
 main "$@"
