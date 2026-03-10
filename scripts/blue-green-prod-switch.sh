@@ -18,9 +18,11 @@ set -euo pipefail
 #   NGINX_CONFIG             Active nginx config path
 #   SKIP_STOP_OLD=1          Keep old color running after switch
 #   SKIP_BUILD=1             Skip --build on target color startup
+#   STABILIZE_SECONDS        Wait time after direct app verification
 
 COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"
 NGINX_CONFIG="${NGINX_CONFIG:-/etc/nginx/sites-available/default}"
+STABILIZE_SECONDS="${STABILIZE_SECONDS:-5}"
 TARGET_COLOR="${1:-}"
 
 require_command() {
@@ -191,6 +193,9 @@ main() {
 
   echo "Verifying direct app response"
   verify_root_color "${TARGET_COLOR}"
+
+  echo "Waiting ${STABILIZE_SECONDS}s for app stabilization"
+  sleep "${STABILIZE_SECONDS}"
 
   echo "Switching nginx target to ${TARGET_COLOR}"
   switch_nginx_target "${TARGET_COLOR}"
