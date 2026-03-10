@@ -8,9 +8,7 @@ x-app-prod-env: &app-prod-env
   SENTRY_DSN: ${SENTRY_DSN:-}
 
 x-app-prod-common: &app-prod-common
-  build:
-    context: .
-    dockerfile: Dockerfile
+  image: ${APP_IMAGE}
   restart: unless-stopped
   stop_grace_period: 40s
   environment: *app-prod-env

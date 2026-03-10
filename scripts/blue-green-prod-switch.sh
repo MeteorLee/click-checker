@@ -17,7 +17,6 @@ set -euo pipefail
 #   COMPOSE_FILES            Compose args override
 #   NGINX_CONFIG             Active nginx config path
 #   SKIP_STOP_OLD=1          Keep old color running after switch
-#   SKIP_BUILD=1             Skip --build on target color startup
 #   STABILIZE_SECONDS        Wait time after direct app verification
 
 COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"
@@ -293,13 +292,8 @@ main() {
   echo "[switch] active color=${active}"
   echo "[switch] target color=${TARGET_COLOR}"
 
-  if [[ "${SKIP_BUILD:-0}" == "1" ]]; then
-    echo "[switch] starting app-${TARGET_COLOR} without build"
-    compose up -d "app-${TARGET_COLOR}" >/dev/null
-  else
-    echo "[switch] starting app-${TARGET_COLOR} with build"
-    compose up -d --build "app-${TARGET_COLOR}" >/dev/null
-  fi
+  echo "[switch] starting app-${TARGET_COLOR}"
+  compose up -d "app-${TARGET_COLOR}" >/dev/null
   TARGET_STARTED=1
 
   echo "[switch] waiting for readiness on ${TARGET_COLOR}"
