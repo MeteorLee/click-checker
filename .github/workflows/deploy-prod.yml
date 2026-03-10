@@ -32,21 +32,48 @@ jobs:
 
       - name: Create deployment bundle
         run: |
+          set -euo pipefail
+
           zip -r "${DEPLOY_BUNDLE}" \
             . \
             -x ".git/*" \
             -x ".github/*" \
             -x "build/*" \
-            -x ".gradle/*"
+            -x ".gradle/*" \
+            -x ".idea/*" \
+            -x "*.iml" \
+            -x "out/*" \
+            -x ".DS_Store"
 
       - name: Upload bundle to S3
         run: |
+          set -euo pipefail
+
           aws s3 cp \
             "${DEPLOY_BUNDLE}" \
             "s3://${S3_BUCKET}/${DEPLOY_BUNDLE}"
 
-      - name: Create CodeDeploy deployment
+      - name: Show deploy target configuration
         run: |
+          set -euo pipefail
+
+          echo "AWS_REGION=${AWS_REGION}"
+          echo "CODEDEPLOY_APPLICATION=${CODEDEPLOY_APPLICATION}"
+          echo "CODEDEPLOY_DEPLOYMENT_GROUP=${CODEDEPLOY_DEPLOYMENT_GROUP}"
+          aws sts get-caller-identity
+          aws deploy get-application \
+            --application-name "${CODEDEPLOY_APPLICATION}" \
+            --output table
+          aws deploy get-deployment-group \
+            --application-name "${CODEDEPLOY_APPLICATION}" \
+            --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
+            --output table
+
+      - name: Create CodeDeploy deployment
+        id: create_deployment
+        run: |
+          set -euo pipefail
+
           deployment_id=$(
             aws deploy create-deployment \
               --application-name "${CODEDEPLOY_APPLICATION}" \
@@ -62,18 +89,29 @@ jobs:
             exit 1
           fi
 
-          echo "DEPLOYMENT_ID=${deployment_id}" >> "${GITHUB_ENV}"
+          echo "deployment_id=${deployment_id}" >> "${GITHUB_OUTPUT}"
           echo "Created deployment: ${deployment_id}"
 
       - name: Wait for CodeDeploy deployment
         run: |
+          set -euo pipefail
+
           aws deploy wait deployment-successful \
-            --deployment-id "${DEPLOYMENT_ID}"
+            --deployment-id "${{ steps.create_deployment.outputs.deployment_id }}"
 
       - name: Show deployment result
         if: always()
         run: |
+          set -euo pipefail
+
+          deployment_id="${{ steps.create_deployment.outputs.deployment_id }}"
+
+          if [ -z "${deployment_id}" ]; then
+            echo "DEPLOYMENT_ID is empty. Skipping deployment result lookup."
+            exit 0
+          fi
+
           aws deploy get-deployment \
-            --deployment-id "${DEPLOYMENT_ID}" \
+            --deployment-id "${deployment_id}" \
             --query 'deploymentInfo.[status,errorInformation,message]' \
             --output table
