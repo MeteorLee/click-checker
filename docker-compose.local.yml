@@ -14,6 +14,9 @@ services:
       - "5432:5432"
 
   prometheus:
+    depends_on:
+      app:
+        condition: service_healthy
     ports:
       - "9090:9090"
 
