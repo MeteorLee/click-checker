@@ -9,7 +9,7 @@
 
 - 운영 도메인: `https://clickchecker.dev`
 - Grafana 관리자 경로: `https://grafana.clickchecker.dev`
-- 운영 nginx 메인 앱 경로는 현재 `127.0.0.1:8082(app-green)`을 보고 있다.
+- 운영 nginx 메인 앱 upstream은 현재 `127.0.0.1:8082(app-green)`을 보고 있다.
 - 운영 Grafana 경로는 현재 설정 그대로 유지해야 한다.
 - `app-blue`는 `8081`, `app-green`는 `8082`를 사용한다.
 - 현재 운영 기본 색상은 `green(8082)`다.
@@ -164,4 +164,5 @@ curl -s https://clickchecker.dev/actuator/health
 
 - 현재 운영 기본 색상은 `green(8082)`다.
 - 다음 교대 전환은 `8082(green) -> 8081(blue)` 순서로 수행한다.
-- 운영 nginx 메인 앱 경로는 현재 직접 포트 참조 방식이므로, 후속으로 `upstream click_checker_app` 구조로 정리한다.
+- 운영 nginx 메인 앱 경로는 현재 `upstream click_checker_app` 구조로 정리됐다.
+- 다음 교대 전환부터는 `./scripts/blue-green-prod-switch.sh` 사용을 우선 검토한다.

@@ -219,6 +219,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 - 실제 운영 첫 교대 전환은 운영 nginx의 메인 앱 `proxy_pass`를 `8081 -> 8082`로 바꾸는 방식으로 진행했다.
 - 현재 운영 기준 색상은 `green(8082)`이며, 다음 전환은 `green -> blue` 순서로 수행한다.
 - 운영용 전환 스크립트를 추가했지만, 첫 실행은 여전히 주의 깊게 검증하며 진행한다.
+- 현재 repo와 운영 nginx 모두 `upstream click_checker_app` 구조를 사용할 수 있게 정리됐다.
 
 ## 다음 작업
 
