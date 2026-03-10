@@ -57,17 +57,23 @@ jobs:
               --output text
           )
 
-          echo "deployment_id=${deployment_id}" >> "${GITHUB_ENV}"
+          if [ -z "${deployment_id}" ] || [ "${deployment_id}" = "None" ]; then
+            echo "Failed to create deployment id" >&2
+            exit 1
+          fi
+
+          echo "DEPLOYMENT_ID=${deployment_id}" >> "${GITHUB_ENV}"
+          echo "Created deployment: ${deployment_id}"
 
       - name: Wait for CodeDeploy deployment
         run: |
           aws deploy wait deployment-successful \
-            --deployment-id "${deployment_id}"
+            --deployment-id "${DEPLOYMENT_ID}"
 
       - name: Show deployment result
         if: always()
         run: |
           aws deploy get-deployment \
-            --deployment-id "${deployment_id}" \
+            --deployment-id "${DEPLOYMENT_ID}" \
             --query 'deploymentInfo.[status,errorInformation,message]' \
             --output table
