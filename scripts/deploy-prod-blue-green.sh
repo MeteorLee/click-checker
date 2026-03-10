@@ -146,7 +146,7 @@ rollback_on_error() {
 
   if [ "${SWITCHED}" -eq 1 ] && [ -n "${ACTIVE_COLOR}" ]; then
     echo "[rollback] deploy failed after switch, restoring ${ACTIVE_COLOR}" >&2
-    if ! env SKIP_BUILD=1 SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${ACTIVE_COLOR}"; then
+    if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${ACTIVE_COLOR}"; then
       echo "[rollback] failed" >&2
       dump_logs
     fi
