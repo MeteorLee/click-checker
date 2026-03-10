@@ -39,9 +39,6 @@ services:
     image: prom/prometheus:v2.55.1
     container_name: click-checker-prometheus
     restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_healthy
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
