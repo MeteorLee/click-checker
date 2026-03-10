@@ -182,7 +182,7 @@ jobs:
               rollback
             fi
 
-            if ! SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
+            if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
               echo "Deploy failed during blue-green switch"
               dump_logs
               rollback
