@@ -4,8 +4,12 @@ set -euo pipefail
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 APP_DOMAIN="clickchecker.dev"
 NGINX_CONFIG="/etc/nginx/sites-available/default"
+ACTIVE_COLOR=""
+TARGET_COLOR=""
+SWITCHED=0
 
 compose_up_infra() {
+  echo "[deploy] starting infra services"
   $COMPOSE up -d prometheus grafana
 }
 
@@ -15,9 +19,7 @@ stop_color() {
 
 require_env() {
   local key="$1"
-  local value
-  value=$(grep -E "^${key}=" .env | tail -n1 | cut -d'=' -f2- || true)
-  if [ -z "${value}" ]; then
+  if ! grep -Eq "^${key}=" .env; then
     echo "Missing required .env key: ${key}" >&2
     return 1
   fi
@@ -133,6 +135,26 @@ smoke_post_json() {
     -d "$data" || true
 }
 
+rollback_on_error() {
+  local exit_code=$?
+
+  trap - ERR
+
+  if [ "${exit_code}" -eq 0 ]; then
+    return
+  fi
+
+  if [ "${SWITCHED}" -eq 1 ] && [ -n "${ACTIVE_COLOR}" ]; then
+    echo "[rollback] deploy failed after switch, restoring ${ACTIVE_COLOR}" >&2
+    if ! env SKIP_BUILD=1 SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${ACTIVE_COLOR}"; then
+      echo "[rollback] failed" >&2
+      dump_logs
+    fi
+  fi
+
+  exit "${exit_code}"
+}
+
 main() {
   command -v jq >/dev/null 2>&1 || { echo "jq not installed on EC2"; exit 1; }
   [ -f .env ] || { echo ".env not found"; exit 1; }
@@ -144,25 +166,24 @@ main() {
 
   chmod +x ./scripts/blue-green-prod-switch.sh
 
-  local active_color target_color switched smoke_ok ts now org_code api_key event_body event_code agg_code
-  active_color=$(current_color)
-  target_color=$(other_color "$active_color")
-  switched=0
+  local smoke_ok ts now org_code api_key event_body event_code agg_code
+  ACTIVE_COLOR=$(current_color)
+  TARGET_COLOR=$(other_color "$ACTIVE_COLOR")
 
-  echo "ACTIVE_COLOR=${active_color}"
-  echo "TARGET_COLOR=${target_color}"
+  echo "[deploy] active color=${ACTIVE_COLOR}"
+  echo "[deploy] target color=${TARGET_COLOR}"
 
   compose_up_infra
 
-  if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "$target_color"; then
-    echo "Deploy failed during blue-green switch"
+  if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
+    echo "[deploy] blue-green switch failed"
     dump_logs
     exit 1
   fi
-  switched=1
+  SWITCHED=1
 
   if ! wait_health 12 5; then
-    echo "Deploy verification failed (health)"
+    echo "[verify] public health check failed"
     dump_logs
     exit 1
   fi
@@ -171,17 +192,17 @@ main() {
   ts=$(date +"%Y%m%d%H%M%S")
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-  echo "Smoke: create organization"
+  echo "[smoke] create organization"
   org_code=$(smoke_post_json "https://${APP_DOMAIN}/api/organizations" \
     "{\"name\":\"__smoke-org-${ts}\"}" \
     "/tmp/smoke_org.json")
 
-  echo "ORG_CODE=${org_code}"
+  echo "[smoke] organization status=${org_code}"
   if [ "$org_code" = "200" ] || [ "$org_code" = "201" ]; then
     api_key=$(jq -r '.apiKey // empty' /tmp/smoke_org.json 2>/dev/null || true)
 
     if [ -n "$api_key" ]; then
-      echo "Smoke: post event"
+      echo "[smoke] post event"
       event_body=$(jq -nc \
         --arg externalUserId "deploy-smoke-user" \
         --arg eventType "__smoke" \
@@ -197,42 +218,45 @@ main() {
         -X POST "https://${APP_DOMAIN}/api/events" \
         -d "$event_body" || true)
 
-      echo "EVENT_CODE=${event_code}"
-      echo "Smoke: query aggregates"
+      echo "[smoke] event status=${event_code}"
+      echo "[smoke] query aggregates"
       agg_code=$(curl -sS -o "/tmp/smoke_agg.json" -w "%{http_code}" \
         --resolve "${APP_DOMAIN}:443:127.0.0.1" \
         -H "X-API-Key: ${api_key}" \
         "https://${APP_DOMAIN}/api/events/aggregates/paths?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
 
-      echo "AGG_CODE=${agg_code}"
+      echo "[smoke] aggregate status=${agg_code}"
       if { [ "$event_code" = "200" ] || [ "$event_code" = "201" ]; } && [ "$agg_code" = "200" ]; then
         smoke_ok=1
-        echo "Smoke check passed"
+        echo "[smoke] passed"
       else
-        echo "Smoke API failed"
+        echo "[smoke] api check failed"
         echo "---- /tmp/smoke_event.json ----"
         cat /tmp/smoke_event.json || true
         echo "---- /tmp/smoke_agg.json ----"
         cat /tmp/smoke_agg.json || true
       fi
     else
-      echo "API_KEY parse failed"
+      echo "[smoke] apiKey parse failed"
       dump_smoke_org_response
     fi
   else
-    echo "Organization create failed"
+    echo "[smoke] organization create failed"
     dump_smoke_org_response
   fi
 
   if [ "$smoke_ok" -ne 1 ]; then
-    echo "Deploy verification failed (smoke)"
+    echo "[verify] smoke check failed"
     dump_logs
     exit 1
   fi
 
-  echo "Stopping old color after successful verification"
-  stop_color "$active_color" || true
-  echo "Deploy completed successfully"
+  echo "[deploy] stopping old color after successful verification"
+  stop_color "${ACTIVE_COLOR}" || true
+  SWITCHED=0
+  echo "[deploy] completed successfully"
 }
+
+trap rollback_on_error ERR
 
 main "$@"
