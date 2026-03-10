@@ -3,7 +3,7 @@
 ## 문서 목적
 
 단일 EC2 환경에서 `app-blue`와 `app-green` 두 애플리케이션 컨테이너를 번갈아 활성화하는 절차를 정리한다.  
-이 문서는 운영 적용 전 기준 런북이며, 현재까지는 로컬 검증이 완료된 상태를 기준으로 작성한다.
+이 문서는 로컬 검증과 실제 운영 전환 결과를 함께 반영한 기준 런북이다.
 
 ## 현재 전제
 
@@ -15,7 +15,7 @@
   - green: `8082`
 - readiness 확인 경로
   - `/actuator/health/readiness`
-- 현재 운영 기본 색상은 `blue(8081)`다.
+- 현재 운영 기본 색상은 `green(8082)`다.
 
 ## 목표
 
@@ -35,6 +35,7 @@
   - blue 응답 확인
   - upstream 변경 후 green 응답 확인
 - 실제 운영 첫 적용으로 `8080 -> 8081(app-blue)` 전환 완료
+- 실제 운영 교대 전환으로 `8081(app-blue) -> 8082(app-green)` 전환 완료
 
 ## 전환 절차
 
@@ -51,7 +52,7 @@
 예시:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app-green
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app-blue
 ```
 
 ### 3. readiness 확인
@@ -59,7 +60,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 예시:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app-green wget -qO- http://localhost:8082/actuator/health/readiness
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app-blue wget -qO- http://localhost:8081/actuator/health/readiness
 ```
 
 기대 결과:
@@ -75,24 +76,25 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app-gree
 예시:
 
 ```bash
-curl -s http://127.0.0.1:8082/
+curl -s http://127.0.0.1:8081/
 ```
 
 기대 결과:
 
 ```json
-{"service":"click-checker","status":"ok","health":"/actuator/health","color":"green"}
+{"service":"click-checker","status":"ok","health":"/actuator/health","color":"blue"}
 ```
 
 ### 5. nginx upstream 전환
 
-`nginx/blue-green-click-checker.conf`의 active upstream 한 줄을 새 색상으로 변경한다.
+검증 환경에서는 `nginx/blue-green-click-checker.conf`,
+운영 환경에서는 `/etc/nginx/sites-available/default`의 메인 앱 대상만 새 색상으로 변경한다.
 
 예시:
 
 ```nginx
 upstream click_checker_app {
-    server app-green:8082;
+    server 127.0.0.1:8081;
 }
 ```
 
@@ -133,10 +135,12 @@ curl -s https://clickchecker.dev
 예시:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-blue
+docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 ```
 
 ## 전환 스크립트
+
+### 검증용 스크립트
 
 현재 검증용 전환 스크립트:
 
@@ -167,7 +171,38 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-blue
 - `click-checker-nginx-bg-test`
 - 로컬 `.env`
 를 전제로 한다.
-- 실제 운영 nginx와 운영 배포 경로를 직접 전환하는 스크립트는 아직 아니다.
+- 실제 운영 nginx와 운영 배포 경로를 직접 전환하는 스크립트는 아니다.
+
+### 운영용 스크립트
+
+현재 운영 전환 스크립트:
+
+```bash
+./scripts/blue-green-prod-switch.sh
+```
+
+특징:
+
+- 현재 운영 색상을 `/etc/nginx/sites-available/default`에서 읽는다.
+- 반대 색상 컨테이너를 기동한다.
+- readiness와 루트 응답 색상을 확인한다.
+- 운영 nginx 메인 앱 대상을 새 색상으로 전환한다.
+- `nginx -t` 후 `reload`한다.
+- `https://clickchecker.dev` 응답을 다시 확인한다.
+- 이전 색상 컨테이너를 종료한다.
+
+예시:
+
+```bash
+./scripts/blue-green-prod-switch.sh blue
+./scripts/blue-green-prod-switch.sh green
+```
+
+주의:
+
+- EC2 운영 서버에서 실행해야 한다.
+- 현재는 메인 앱 경로만 전환하며 Grafana 블록은 건드리지 않는다.
+- 운영 nginx가 upstream 구조 또는 직접 `proxy_pass 127.0.0.1:8081/8082` 구조일 때 둘 다 처리하도록 작성됐다.
 
 ## 롤백 절차
 
@@ -181,9 +216,12 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-blue
 - 운영 적용 전에는 반드시 두 파일의 역할을 구분해서 관리한다.
 - 실제 운영 반영 전에는 `grafana.clickchecker.dev` HTTPS/Basic Auth 설정이 덮어써지지 않도록 주의한다.
 - 검증용 임시 nginx에서 bind-mounted 단일 설정 파일을 바꿨을 때는 `reload`보다 재생성이 더 확실하다.
+- 실제 운영 첫 교대 전환은 운영 nginx의 메인 앱 `proxy_pass`를 `8081 -> 8082`로 바꾸는 방식으로 진행했다.
+- 현재 운영 기준 색상은 `green(8082)`이며, 다음 전환은 `green -> blue` 순서로 수행한다.
+- 운영용 전환 스크립트를 추가했지만, 첫 실행은 여전히 주의 깊게 검증하며 진행한다.
+- 현재 repo와 운영 nginx 모두 `upstream click_checker_app` 구조를 사용할 수 있게 정리됐다.
 
 ## 다음 작업
 
-- 운영 nginx의 메인 앱 upstream을 `8081 <-> 8082` 전환 기준으로 더 구조화
-- 실제 EC2에서 `blue -> green` 운영 전환 수행
+- 실제 EC2에서 운영용 전환 스크립트로 `green -> blue` 전환 수행
 - 기존 CI 배포 경로를 `app-blue`, `app-green` 중심으로 재설계
