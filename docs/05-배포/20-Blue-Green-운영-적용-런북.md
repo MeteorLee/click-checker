@@ -9,7 +9,7 @@
 
 - 운영 도메인: `https://clickchecker.dev`
 - Grafana 관리자 경로: `https://grafana.clickchecker.dev`
-- 운영 nginx 메인 앱 upstream: `127.0.0.1:8080`
+- 운영 nginx 메인 앱 upstream은 이제 `127.0.0.1:8081(app-blue)` 기준으로 전환 완료
 - 운영 Grafana 경로는 현재 설정 그대로 유지해야 한다.
 - `app-blue`는 `8081`, `app-green`는 `8082`를 사용한다.
 
@@ -28,6 +28,14 @@
 - readiness `UP`를 확인한 뒤 운영 nginx의 메인 앱 upstream을 `8081`로 전환한다.
 - 전환 후 `clickchecker.dev` 응답이 정상이고 `color=blue`를 반환하는지 확인한다.
 - 문제가 있으면 즉시 `8080` legacy 앱으로 복구한다.
+
+## 현재 결과
+
+- 첫 운영 적용은 완료됐다.
+- `clickchecker.dev` 메인 앱은 현재 `app-blue(8081)`를 보고 있다.
+- 루트 응답에서 `color=blue`가 확인됐다.
+- `app(8080)` legacy 컨테이너는 중지했다.
+- `grafana.clickchecker.dev`는 기존 설정 그대로 정상 동작했다.
 
 ## 사전 체크리스트
 
@@ -119,6 +127,11 @@ curl -s https://clickchecker.dev/actuator/health
 
 첫 운영 적용에서는 전환 직후 바로 `8080` 앱을 내리지 않는다.  
 일정 시간 관찰 후 문제가 없다고 판단되면 종료 시점을 별도로 결정한다.
+
+실제 적용 결과:
+
+- 초기 관찰 후 `app(8080)` legacy 컨테이너를 중지했다.
+- 운영 메인 경로는 `app-blue(8081)`만 보도록 정리했다.
 
 ## 롤백 절차
 
