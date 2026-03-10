@@ -176,47 +176,68 @@
   - readiness 확인
   - 운영 nginx 메인 앱 upstream만 `8080 -> 8081`
   순서로 적용했다.
+- 이후 CI 배포 경로를 `app` 중심 호출에서 분리하고, Blue/Green 전용 배포 스크립트(`scripts/deploy-prod-blue-green.sh`)를 호출하는 구조로 재구성했다.
 
 ### 정리
 
 - Blue/Green을 도입한 뒤에는 기존 `app` 중심 배포 경로를 그대로 두면 안 된다.
-- 이후 운영 자동화에서는 `app-blue`, `app-green` 기준으로 배포 호출을 다시 설계해야 한다.
+- 운영 자동화도 `app-blue`, `app-green` 기준 호출로 맞춰야 한다.
 
-## 10. 실제 운영 `blue -> green` 전환은 아직 upstream 한 줄 전환이 아니라 `proxy_pass` 직접 수정으로 처리한 점
+## 10. `appleboy/ssh-action` inline 스크립트 파싱 오류
 
 ### 증상
 
-- 실제 운영 첫 교대 전환에서는 `clickchecker.dev` 메인 앱 경로를
-  - `127.0.0.1:8081`
-  - `127.0.0.1:8082`
-로 직접 바꾸는 방식으로 전환했다.
+- GitHub Actions에서 배포 시작 직후 다음 오류가 반복됐다.
+  - `bash: -c: line 126: syntax error near unexpected token ';'`
+- 원격 EC2 로그 이전 단계에서 실패해, 서버 로직보다 workflow script 파싱 문제로 판단됐다.
 
 ### 원인
 
-- 운영 nginx는 여전히 `proxy_pass http://127.0.0.1:8081;` 같은 직접 포트 참조 상태였다.
-- 로컬/검증용 Blue/Green 구조는 이미 `upstream click_checker_app` 기준으로 정리했지만,
-  운영 nginx에는 아직 그 구조를 안전하게 반영하지 못했다.
+- `deploy-prod.yml`의 SSH 액션 `script:` 블록에 긴 bash 로직이 그대로 들어가 있었다.
+- 로컬 shell 문법 검사(`bash -n`)는 통과해도, action 래퍼/원격 실행 경로에서 파싱 실패가 발생했다.
 
 ### 해결
 
-- 이번 운영 전환은 서비스 중단 없이 `blue -> green` 교대 자체를 먼저 확인하는 데 집중했다.
-- 메인 앱 블록 두 군데만 `8081 -> 8082`로 바꿔 전환했고,
-  `clickchecker.dev` 응답 `color=green`과 health 정상으로 결과를 검증했다.
+- 배포 핵심 로직을 `scripts/deploy-prod-blue-green.sh`로 분리했다.
+- workflow는 다음 최소 단계만 수행하도록 단순화했다.
+  - `git fetch/checkout/pull`
+  - 실행 권한 부여
+  - 배포 스크립트 실행
 
 ### 정리
 
-- 운영 교대 전환 자체는 성공했다.
-- 다만 운영 nginx는 아직 하드코딩된 포트 전환에 의존하므로,
-  다음 단계에서 `upstream click_checker_app` 구조로 정리해야 한다.
+- SSH 액션 inline 스크립트가 길어질수록 디버깅과 파싱 안정성이 급격히 나빠진다.
+- 운영 배포 로직은 repo 스크립트로 분리하는 것이 더 안전하다.
+
+## 11. 실제 운영 `blue -> green` 전환 이후 운영 nginx upstream 구조 반영
+
+### 증상
+
+- 실제 운영 첫 교대 전환은 `proxy_pass` 직접 포트 변경으로 수행됐다.
+
+### 원인
+
+- 운영 안정성을 우선해 최소 변경으로 교대 전환을 먼저 완료했다.
+- 그 시점에는 운영 nginx를 `upstream click_checker_app` 구조로 재정리하지 않은 상태였다.
+
+### 해결
+
+- `blue -> green` 전환 성공 확인 후 운영 nginx를 upstream 구조로 반영했다.
+- 현재는 `upstream click_checker_app` 타겟만 변경하면 색상 전환이 가능하다.
+
+### 정리
+
+- 운영 교대 전환은 성공했고, 이후 운영 nginx까지 upstream 구조로 정리해 하드코딩 의존을 줄였다.
 
 ## 정리
 
-이번 단계에서 가장 중요했던 판단은 다음 네 가지였다.
+이번 단계에서 가장 중요했던 판단은 다음 여섯 가지였다.
 
 1. 공통 compose와 환경별 compose의 역할을 다시 분리한 것
 2. 운영 nginx와 Blue/Green 검증용 nginx를 분리한 것
 3. 검증용 nginx는 `reload`보다 재생성 전략이 더 안전하다는 점을 확인한 것
 4. 운영 첫 적용은 기존 CI 배포 흐름을 그대로 재사용하지 않고 수동 절차로 분리한 것
-5. 실제 운영 교대 전환은 성공했지만, 운영 nginx upstream 구조화는 아직 남아 있다는 점을 분리해서 본 것
+5. SSH 액션 inline 스크립트를 배포 전용 파일로 분리해 파싱 오류를 제거한 것
+6. 수동 교대 검증 후 운영 nginx도 upstream 구조로 정리해 다음 전환 난이도를 낮춘 것
 
 이 판단들을 먼저 바로잡은 뒤에야 Blue/Green 전환 자체를 안전하게 검증할 수 있었다.
