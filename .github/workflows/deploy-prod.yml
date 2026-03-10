@@ -24,8 +24,10 @@ jobs:
 
             # ---- helpers ----
             COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-            compose_down() { $COMPOSE down --remove-orphans; }
-            compose_up()   { $COMPOSE up -d --build app prometheus grafana; }
+            APP_DOMAIN="clickchecker.dev"
+            NGINX_CONFIG="/etc/nginx/sites-available/default"
+            compose_up_infra() { $COMPOSE up -d prometheus grafana; }
+            stop_color() { $COMPOSE stop "app-$1"; }
             require_env() {
               local key="$1"
               local value
@@ -38,10 +40,14 @@ jobs:
             dump_logs() {
               echo "---- docker compose ps ----"
               $COMPOSE ps || true
-              echo "---- app logs (tail=200) ----"
-              $COMPOSE logs --tail=200 app || true
-              echo "---- postgres logs (tail=100) ----"
-              $COMPOSE logs --tail=100 postgres || true
+              echo "---- app-blue logs (tail=200) ----"
+              $COMPOSE logs --tail=200 app-blue || true
+              echo "---- app-green logs (tail=200) ----"
+              $COMPOSE logs --tail=200 app-green || true
+              echo "---- grafana logs (tail=100) ----"
+              $COMPOSE logs --tail=100 grafana || true
+              echo "---- prometheus logs (tail=100) ----"
+              $COMPOSE logs --tail=100 prometheus || true
             }
             dump_smoke_org_response() {
               if [ ! -f /tmp/smoke_org.json ]; then
@@ -57,11 +63,40 @@ jobs:
               fi
             }
 
+            current_color() {
+              if sudo grep -q 'server 127.0.0.1:8081;' "${NGINX_CONFIG}"; then
+                echo "blue"
+                return
+              fi
+              if sudo grep -q 'server 127.0.0.1:8082;' "${NGINX_CONFIG}"; then
+                echo "green"
+                return
+              fi
+              if sudo grep -q 'proxy_pass http://127.0.0.1:8081;' "${NGINX_CONFIG}"; then
+                echo "blue"
+                return
+              fi
+              if sudo grep -q 'proxy_pass http://127.0.0.1:8082;' "${NGINX_CONFIG}"; then
+                echo "green"
+                return
+              fi
+              echo "Could not detect active color from nginx config"
+              return 1
+            }
+
+            other_color() {
+              case "$1" in
+                blue) echo "green" ;;
+                green) echo "blue" ;;
+                *) echo "Unknown color: $1"; return 1 ;;
+              esac
+            }
+
             wait_health() {
               local tries="${1:-12}"
               local sleep_s="${2:-5}"
               for i in $(seq 1 "$tries"); do
-                if curl --max-time 5 -fsS http://localhost:8080/actuator/health 2>/dev/null | jq -e '.status == "UP"' >/dev/null; then
+                if curl --max-time 5 --resolve "${APP_DOMAIN}:443:127.0.0.1" -fsS "https://${APP_DOMAIN}/actuator/health" 2>/dev/null | jq -e '.status == "UP"' >/dev/null; then
                   echo "Health check passed"
                   return 0
                 fi
@@ -76,17 +111,36 @@ jobs:
               local data="$2"
               local out="$3"
               curl -sS -o "$out" -w "%{http_code}" \
+                --resolve "${APP_DOMAIN}:443:127.0.0.1" \
                 -H "Content-Type: application/json" \
                 -X POST "$url" \
                 -d "$data" || true
             }
 
             rollback() {
-              echo "Start rollback to ${PREV_SHA}"
-              git reset --hard "${PREV_SHA}"
+              echo "Start rollback"
 
-              compose_down
-              compose_up
+              if [ "${SWITCHED:-0}" -eq 1 ]; then
+                echo "Switch back nginx to ${ACTIVE_COLOR}"
+                if sudo grep -q 'upstream click_checker_app' "${NGINX_CONFIG}"; then
+                  if [ "${ACTIVE_COLOR}" = "blue" ]; then
+                    sudo sed -i -E "0,/server 127\\.0\\.0\\.1:(8081|8082);/s//server 127.0.0.1:8081;/" "${NGINX_CONFIG}"
+                  else
+                    sudo sed -i -E "0,/server 127\\.0\\.0\\.1:(8081|8082);/s//server 127.0.0.1:8082;/" "${NGINX_CONFIG}"
+                  fi
+                else
+                  if [ "${ACTIVE_COLOR}" = "blue" ]; then
+                    sudo sed -i 's#proxy_pass http://127.0.0.1:8082;#proxy_pass http://127.0.0.1:8081;#g' "${NGINX_CONFIG}"
+                  else
+                    sudo sed -i 's#proxy_pass http://127.0.0.1:8081;#proxy_pass http://127.0.0.1:8082;#g' "${NGINX_CONFIG}"
+                  fi
+                fi
+                sudo nginx -t
+                sudo systemctl reload nginx
+              fi
+
+              stop_color "${TARGET_COLOR}" || true
+              git reset --hard "${PREV_SHA}"
 
               if wait_health 12 5; then
                 echo "Rollback completed. Marking workflow as failed to surface deployment issue."
@@ -114,15 +168,28 @@ jobs:
             echo "PREV_SHA=${PREV_SHA}"
 
             git pull --ff-only origin prod
+            chmod +x ./scripts/blue-green-prod-switch.sh
 
-            compose_down
-            if ! compose_up; then
-              echo "Deploy failed during compose_up"
+            ACTIVE_COLOR=$(current_color)
+            TARGET_COLOR=$(other_color "${ACTIVE_COLOR}")
+            SWITCHED=0
+            echo "ACTIVE_COLOR=${ACTIVE_COLOR}"
+            echo "TARGET_COLOR=${TARGET_COLOR}"
+
+            if ! compose_up_infra; then
+              echo "Deploy failed during infrastructure ensure"
               dump_logs
               rollback
             fi
 
-            # 1) health verification
+            if ! SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
+              echo "Deploy failed during blue-green switch"
+              dump_logs
+              rollback
+            fi
+            SWITCHED=1
+
+            # 1) public health verification
             if ! wait_health 12 5; then
               echo "Deploy verification failed (health)"
               dump_logs
@@ -135,7 +202,7 @@ jobs:
             NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
             echo "Smoke: create organization"
-            ORG_CODE=$(smoke_post_json "http://localhost:8080/api/organizations" \
+            ORG_CODE=$(smoke_post_json "https://${APP_DOMAIN}/api/organizations" \
               "{\"name\":\"__smoke-org-${TS}\"}" \
               "/tmp/smoke_org.json")
 
@@ -151,17 +218,19 @@ jobs:
                 echo "${EVENT_BODY}"
 
                 EVENT_CODE=$(curl -sS -o "/tmp/smoke_event.json" -w "%{http_code}" \
+                  --resolve "${APP_DOMAIN}:443:127.0.0.1" \
                   -H "Content-Type: application/json" \
                   -H "X-API-Key: ${API_KEY}" \
-                  -X POST "http://localhost:8080/api/events" \
+                  -X POST "https://${APP_DOMAIN}/api/events" \
                   -d "${EVENT_BODY}" || true)
 
                 echo "EVENT_CODE=${EVENT_CODE}"
 
                 echo "Smoke: query aggregates"
                 AGG_CODE=$(curl -sS -o "/tmp/smoke_agg.json" -w "%{http_code}" \
+                  --resolve "${APP_DOMAIN}:443:127.0.0.1" \
                   -H "X-API-Key: ${API_KEY}" \
-                  "http://localhost:8080/api/events/aggregates/paths?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
+                  "https://${APP_DOMAIN}/api/events/aggregates/paths?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
 
                 echo "AGG_CODE=${AGG_CODE}"
 
@@ -189,5 +258,8 @@ jobs:
               dump_logs
               rollback
             fi
+
+            echo "Stopping old color after successful verification"
+            stop_color "${ACTIVE_COLOR}" || true
 
             echo "Deploy completed successfully"
