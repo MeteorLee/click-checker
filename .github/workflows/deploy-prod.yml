@@ -1,28 +1,73 @@
-name: Deploy to EC2 (prod)
+name: Deploy to CodeDeploy (prod)
 
 on:
   push:
-    branches: [ "prod" ]
+    branches: ["prod"]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      S3_BUCKET: ${{ secrets.CODEDEPLOY_S3_BUCKET }}
+      CODEDEPLOY_APPLICATION: ${{ secrets.CODEDEPLOY_APPLICATION }}
+      CODEDEPLOY_DEPLOYMENT_GROUP: ${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}
+      DEPLOY_BUNDLE: click-checker-${{ github.sha }}.zip
+
     steps:
-      - name: Deploy on EC2 via SSH
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script_stop: true
-          script: |
-            set -e
-            cd ~/click-checker
-            git fetch origin
-            git checkout prod
-            git pull --ff-only origin prod
-            chmod +x ./scripts/blue-green-prod-switch.sh ./scripts/deploy-prod-blue-green.sh
-            ./scripts/deploy-prod-blue-green.sh
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create deployment bundle
+        run: |
+          zip -r "${DEPLOY_BUNDLE}" \
+            . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x "build/*" \
+            -x ".gradle/*"
+
+      - name: Upload bundle to S3
+        run: |
+          aws s3 cp \
+            "${DEPLOY_BUNDLE}" \
+            "s3://${S3_BUCKET}/${DEPLOY_BUNDLE}"
+
+      - name: Create CodeDeploy deployment
+        run: |
+          deployment_id=$(
+            aws deploy create-deployment \
+              --application-name "${CODEDEPLOY_APPLICATION}" \
+              --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
+              --s3-location "bucket=${S3_BUCKET},key=${DEPLOY_BUNDLE},bundleType=zip" \
+              --file-exists-behavior OVERWRITE \
+              --query 'deploymentId' \
+              --output text
+          )
+
+          echo "deployment_id=${deployment_id}" >> "${GITHUB_ENV}"
+
+      - name: Wait for CodeDeploy deployment
+        run: |
+          aws deploy wait deployment-successful \
+            --deployment-id "${deployment_id}"
+
+      - name: Show deployment result
+        if: always()
+        run: |
+          aws deploy get-deployment \
+            --deployment-id "${deployment_id}" \
+            --query 'deploymentInfo.[status,errorInformation,message]' \
+            --output table
