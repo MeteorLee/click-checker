@@ -1,0 +1,32 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /home/ubuntu/click-checker
+    overwrite: true
+
+permissions:
+  - object: /home/ubuntu/click-checker
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+  - object: /home/ubuntu/click-checker/scripts
+    pattern: "**/*.sh"
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+
+hooks:
+  AfterInstall:
+    - location: scripts/codedeploy/after-install.sh
+      timeout: 120
+      runas: ubuntu
+  ApplicationStart:
+    - location: scripts/codedeploy/application-start.sh
+      timeout: 300
+      runas: ubuntu
+  ValidateService:
+    - location: scripts/codedeploy/validate-service.sh
+      timeout: 300
+      runas: ubuntu
