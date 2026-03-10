@@ -24,7 +24,7 @@ hooks:
       runas: ubuntu
   ApplicationStart:
     - location: scripts/codedeploy/application-start.sh
-      timeout: 300
+      timeout: 900
       runas: ubuntu
   ValidateService:
     - location: scripts/codedeploy/validate-service.sh
