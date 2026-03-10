@@ -185,13 +185,15 @@ wait_for_readiness() {
   local attempt
 
   for attempt in $(seq 1 30); do
-    if curl -fsS "http://127.0.0.1:${port}/actuator/health/readiness" | grep -q '"status":"UP"'; then
+    if curl -fsS "http://127.0.0.1:${port}/actuator/health/readiness" 2>/dev/null | grep -q '"status":"UP"'; then
+      echo "[switch] readiness passed for ${color}"
       return 0
     fi
+    echo "[switch] readiness retry ${attempt}/30 for ${color}"
     sleep 2
   done
 
-  echo "Readiness check failed for ${color} on port ${port}" >&2
+  echo "[switch] readiness check failed for ${color} on port ${port}" >&2
   exit 1
 }
 
@@ -200,10 +202,12 @@ verify_root_color() {
   local port
   port=$(target_port "${color}")
 
-  if ! curl -fsS "http://127.0.0.1:${port}/" | grep -q "\"color\":\"${color}\""; then
-    echo "Root response did not report expected color: ${color}" >&2
+  if ! curl -fsS "http://127.0.0.1:${port}/" 2>/dev/null | grep -q "\"color\":\"${color}\""; then
+    echo "[switch] root response did not report expected color: ${color}" >&2
     exit 1
   fi
+
+  echo "[switch] direct app response verified for ${color}"
 }
 
 verify_nginx_color() {
@@ -211,13 +215,15 @@ verify_nginx_color() {
   local attempt
 
   for attempt in $(seq 1 "${PUBLIC_VERIFY_ATTEMPTS}"); do
-    if curl -fsS --resolve clickchecker.dev:443:127.0.0.1 https://clickchecker.dev | grep -q "\"color\":\"${color}\""; then
+    if curl -fsS --resolve clickchecker.dev:443:127.0.0.1 https://clickchecker.dev 2>/dev/null | grep -q "\"color\":\"${color}\""; then
+      echo "[switch] public response verified for ${color}"
       return 0
     fi
+    echo "[switch] public verify retry ${attempt}/${PUBLIC_VERIFY_ATTEMPTS} for ${color}"
     sleep "${PUBLIC_VERIFY_DELAY_SECONDS}"
   done
 
-  echo "Public nginx path did not report expected color: ${color}" >&2
+  echo "[switch] public nginx path did not report expected color: ${color}" >&2
   exit 1
 }
 
@@ -225,7 +231,7 @@ stop_old_color() {
   local color="$1"
 
   if [[ "${SKIP_STOP_OLD:-0}" == "1" ]]; then
-    echo "Skipping old color stop"
+    echo "[switch] skipping old color stop"
     return
   fi
 
@@ -241,10 +247,10 @@ rollback_on_error() {
     return
   fi
 
-  echo "Switch failed. Attempting rollback." >&2
+  echo "[switch] failed, attempting rollback" >&2
 
   if [[ -n "${ACTIVE_COLOR}" && "${NGINX_SWITCHED}" -eq 1 ]]; then
-    echo "Restoring nginx target to ${ACTIVE_COLOR}" >&2
+    echo "[switch] restoring nginx target to ${ACTIVE_COLOR}" >&2
     switch_nginx_target "${ACTIVE_COLOR}" || true
     if sudo nginx -t >/dev/null 2>&1; then
       sudo systemctl reload nginx >/dev/null 2>&1 || true
@@ -253,12 +259,12 @@ rollback_on_error() {
   fi
 
   if [[ -n "${TARGET_COLOR}" && "${TARGET_STARTED}" -eq 1 ]]; then
-    echo "Stopping failed target color: ${TARGET_COLOR}" >&2
+    echo "[switch] stopping failed target color: ${TARGET_COLOR}" >&2
     compose stop "app-${TARGET_COLOR}" >/dev/null 2>&1 || true
   fi
 
   if [[ -n "${ACTIVE_COLOR}" ]]; then
-    echo "Ensuring previous active color is running: ${ACTIVE_COLOR}" >&2
+    echo "[switch] ensuring previous active color is running: ${ACTIVE_COLOR}" >&2
     compose up -d "app-${ACTIVE_COLOR}" >/dev/null 2>&1 || true
   fi
 
@@ -284,45 +290,45 @@ main() {
   local old_color
   old_color="${active}"
 
-  echo "Active color : ${active}"
-  echo "Target color : ${TARGET_COLOR}"
+  echo "[switch] active color=${active}"
+  echo "[switch] target color=${TARGET_COLOR}"
 
   if [[ "${SKIP_BUILD:-0}" == "1" ]]; then
-    echo "Starting app-${TARGET_COLOR} without build"
+    echo "[switch] starting app-${TARGET_COLOR} without build"
     compose up -d "app-${TARGET_COLOR}" >/dev/null
   else
-    echo "Starting app-${TARGET_COLOR} with build"
+    echo "[switch] starting app-${TARGET_COLOR} with build"
     compose up -d --build "app-${TARGET_COLOR}" >/dev/null
   fi
   TARGET_STARTED=1
 
-  echo "Waiting for readiness on ${TARGET_COLOR}"
+  echo "[switch] waiting for readiness on ${TARGET_COLOR}"
   wait_for_readiness "${TARGET_COLOR}"
 
-  echo "Verifying direct app response"
+  echo "[switch] verifying direct app response"
   verify_root_color "${TARGET_COLOR}"
 
-  echo "Waiting ${STABILIZE_SECONDS}s for app stabilization"
+  echo "[switch] waiting ${STABILIZE_SECONDS}s for app stabilization"
   sleep "${STABILIZE_SECONDS}"
 
-  echo "Switching nginx target to ${TARGET_COLOR}"
+  echo "[switch] switching nginx target to ${TARGET_COLOR}"
   switch_nginx_target "${TARGET_COLOR}"
   NGINX_SWITCHED=1
 
-  echo "Validating nginx config"
+  echo "[switch] validating nginx config"
   sudo nginx -t >/dev/null
 
-  echo "Reloading nginx"
+  echo "[switch] reloading nginx"
   sudo systemctl reload nginx
   write_state_file "${TARGET_COLOR}"
 
-  echo "Verifying public response"
+  echo "[switch] verifying public response"
   verify_nginx_color "${TARGET_COLOR}"
 
-  echo "Stopping old color: ${old_color}"
+  echo "[switch] stopping old color: ${old_color}"
   stop_old_color "${old_color}"
 
-  echo "Switch complete"
+  echo "[switch] complete"
 }
 
 trap rollback_on_error ERR
