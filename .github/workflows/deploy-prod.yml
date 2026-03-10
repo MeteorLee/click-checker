@@ -176,13 +176,17 @@ jobs:
             echo "ACTIVE_COLOR=${ACTIVE_COLOR}"
             echo "TARGET_COLOR=${TARGET_COLOR}"
 
-            if ! compose_up_infra; then
+            if compose_up_infra; then
+              :
+            else
               echo "Deploy failed during infrastructure ensure"
               dump_logs
               rollback
             fi
 
-            if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
+            if env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
+              :
+            else
               echo "Deploy failed during blue-green switch"
               dump_logs
               rollback
@@ -190,7 +194,9 @@ jobs:
             SWITCHED=1
 
             # 1) public health verification
-            if ! wait_health 12 5; then
+            if wait_health 12 5; then
+              :
+            else
               echo "Deploy verification failed (health)"
               dump_logs
               rollback
