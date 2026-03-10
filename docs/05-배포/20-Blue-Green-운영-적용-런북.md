@@ -3,7 +3,8 @@
 ## 문서 목적
 
 로컬에서 검증한 Blue/Green 구조를 실제 운영 환경에 처음 올리고, 이후 첫 교대 전환까지 수행하는 절차를 정리한다.  
-처음 적용은 `8080 -> 8081(app-blue)`로 시작했고, 현재는 `8081(app-blue) -> 8082(app-green)` 교대 전환까지 완료된 상태를 기준으로 작성한다.
+처음 적용은 `8080 -> 8081(app-blue)`로 시작했고, 현재는 `8081(app-blue) -> 8082(app-green)` 교대 전환까지 완료된 상태를 기준으로 작성한다.  
+즉, 이 문서는 "처음 실제 운영에 올린 과정"과 "다음 전환 때 참고할 기준"을 함께 담는다.
 
 ## 현재 전제
 
@@ -21,6 +22,7 @@
 - readiness 기반 확인
 - 메인 앱 경로 전환
 - 롤백 기준 정의
+- 현재 기준 다음 전환(`green -> blue`) 참고
 
 ## 목표
 
@@ -35,13 +37,14 @@
 - 첫 교대 전환(`8081 -> 8082`)도 완료됐다.
 - `clickchecker.dev` 메인 앱은 현재 `app-green(8082)`를 보고 있다.
 - 루트 응답에서 `color=green`이 확인됐다.
-- `app(8080)` legacy 컨테이너와 `app-blue(8081)`는 중지했다.
+- `app(8080)` legacy 컨테이너는 운영 경로에서 제외했다.
+- 현재는 `app-blue(8081)`와 `app-green(8082)` 교대 구조를 기준으로 본다.
 - `grafana.clickchecker.dev`는 기존 설정 그대로 정상 동작했다.
 
 ## 사전 체크리스트
 
 - 현재 운영 nginx 백업 완료
-- 현재 운영 app(`8080`) 정상
+- 현재 활성 색상(`green`) 정상
 - `clickchecker.dev`, `/actuator/health` 정상
 - `grafana.clickchecker.dev` 정상
 - EC2 자원 상태 확인
@@ -131,9 +134,9 @@ curl -s https://clickchecker.dev/actuator/health
 
 실제 적용 결과:
 
-- 첫 적용 후 `app(8080)` legacy 컨테이너를 중지했다.
-- 교대 전환 후 `app-blue(8081)` 컨테이너도 중지했다.
-- 운영 메인 경로는 현재 `app-green(8082)`만 보도록 정리했다.
+- 첫 적용 후 `app(8080)` legacy 컨테이너를 운영 경로에서 제외했다.
+- `app-blue -> app-green` 교대 전환 후에는 활성 색상만 외부 트래픽을 받도록 정리했다.
+- 현재 운영 메인 경로는 `app-green(8082)`를 보고 있다.
 
 ## 롤백 절차
 
@@ -152,12 +155,16 @@ curl -s https://clickchecker.dev/actuator/health
 3. `sudo systemctl reload nginx`
 4. 필요 시 새 색상 컨테이너를 종료한다.
 
+참고:
+
+- 이후 전환부터는 `./scripts/blue-green-prod-switch.sh`로 같은 절차를 더 짧게 반복할 수 있다.
+
 ## 전환 후 확인 항목
 
 - `clickchecker.dev` 응답 정상
-- 루트 응답 `color=green`
+- 루트 응답 `color`가 목표 색상과 일치
 - `/actuator/health` 200
-- `app-green` healthy
+- 목표 색상 컨테이너 healthy
 - `grafana.clickchecker.dev` 정상
 
 ## 다음 단계
@@ -165,4 +172,4 @@ curl -s https://clickchecker.dev/actuator/health
 - 현재 운영 기본 색상은 `green(8082)`다.
 - 다음 교대 전환은 `8082(green) -> 8081(blue)` 순서로 수행한다.
 - 운영 nginx 메인 앱 경로는 현재 `upstream click_checker_app` 구조로 정리됐다.
-- 다음 교대 전환부터는 `./scripts/blue-green-prod-switch.sh` 사용을 우선 검토한다.
+- 다음 교대 전환부터는 `./scripts/blue-green-prod-switch.sh` 사용을 기본 경로로 본다.
