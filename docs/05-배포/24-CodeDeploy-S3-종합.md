@@ -63,7 +63,7 @@ GitHub Actions
 - `ApplicationStart`
   - ECR 로그인
   - 이미지 pull
-  - 기존 `deploy-prod-blue-green.sh` 실행
+  - 기존 `deploy-prod-orchestrator.sh` 실행
 - `ValidateService`
   - 공개 health 재확인
 

@@ -42,7 +42,7 @@
 ### 1. 현재 활성 색상 확인
 
 - 현재 `nginx` upstream이 어느 포트를 보고 있는지 확인한다.
-- 기준 파일: `nginx/blue-green-click-checker.conf`
+- 기준 파일: `nginx/click-checker-blue-green-template.conf`
 - 확인 포인트:
   - `server app-blue:8081;`
   - 또는 `server app-green:8082;`
@@ -87,7 +87,7 @@ curl -s http://127.0.0.1:8081/
 
 ### 5. nginx upstream 전환
 
-검증 환경에서는 `nginx/blue-green-click-checker.conf`,
+검증 환경에서는 `nginx/click-checker-blue-green-template.conf`,
 운영 환경에서는 `/etc/nginx/sites-available/default`의 메인 앱 대상만 새 색상으로 변경한다.
 
 예시:
@@ -101,7 +101,7 @@ upstream click_checker_app {
 ### 6. nginx 설정 반영
 
 ```bash
-sudo cp ~/click-checker/nginx/blue-green-click-checker.conf /etc/nginx/sites-available/default
+sudo cp ~/click-checker/nginx/click-checker-blue-green-template.conf /etc/nginx/sites-available/default
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -116,7 +116,7 @@ docker run --rm -d \
   --name click-checker-nginx-bg-test \
   --network click-checker_default \
   -p 18080:80 \
-  -v "$PWD/nginx/blue-green-click-checker.conf:/etc/nginx/conf.d/default.conf:ro" \
+  -v "$PWD/nginx/click-checker-blue-green-template.conf:/etc/nginx/conf.d/default.conf:ro" \
   nginx:1.25-alpine
 ```
 
@@ -145,12 +145,12 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 현재 검증용 전환 스크립트:
 
 ```bash
-./scripts/blue-green-switch.sh
+./scripts/blue-green-local-switch.sh
 ```
 
 특징:
 
-- 현재 활성 색상을 `nginx/blue-green-click-checker.conf`에서 읽는다.
+- 현재 활성 색상을 `nginx/click-checker-blue-green-template.conf`에서 읽는다.
 - 반대 색상 컨테이너를 기동한다.
 - readiness가 `UP`이 될 때까지 기다린다.
 - upstream을 새 색상으로 변경한다.
@@ -160,14 +160,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 색상을 명시해서 실행할 수도 있다.
 
 ```bash
-./scripts/blue-green-switch.sh blue
-./scripts/blue-green-switch.sh green
+./scripts/blue-green-local-switch.sh blue
+./scripts/blue-green-local-switch.sh green
 ```
 
 주의:
 
 - 이 스크립트는 현재 **검증용 구조**를 기준으로 작성됐다.
-- `nginx/blue-green-click-checker.conf`
+- `nginx/click-checker-blue-green-template.conf`
 - `click-checker-nginx-bg-test`
 - 로컬 `.env`
 를 전제로 한다.
@@ -178,7 +178,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 현재 운영 전환 스크립트:
 
 ```bash
-./scripts/blue-green-prod-switch.sh
+./scripts/blue-green-prod-lib.sh
 ```
 
 특징:
@@ -194,8 +194,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 예시:
 
 ```bash
-./scripts/blue-green-prod-switch.sh blue
-./scripts/blue-green-prod-switch.sh green
+./scripts/blue-green-prod-lib.sh blue
+./scripts/blue-green-prod-lib.sh green
 ```
 
 주의:
@@ -212,7 +212,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 
 ## 주의사항
 
-- 현재 운영용 `nginx/click-checker.conf`와 Blue/Green 검증용 `nginx/blue-green-click-checker.conf`는 역할이 다르다.
+- 현재 운영용 `nginx/click-checker.conf`와 Blue/Green 검증용 `nginx/click-checker-blue-green-template.conf`는 역할이 다르다.
 - 운영 적용 전에는 반드시 두 파일의 역할을 구분해서 관리한다.
 - 실제 운영 반영 전에는 `grafana.clickchecker.dev` HTTPS/Basic Auth 설정이 덮어써지지 않도록 주의한다.
 - 검증용 임시 nginx에서 bind-mounted 단일 설정 파일을 바꿨을 때는 `reload`보다 재생성이 더 확실하다.
