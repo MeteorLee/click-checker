@@ -2,8 +2,10 @@ import http from 'k6/http';
 import { check } from 'k6';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const ORG_ID = Number(__ENV.ORG_ID || '1');
+const API_KEY = __ENV.API_KEY;
 const EVENT_TYPE = __ENV.EVENT_TYPE || 'click';
+const PATH_PREFIX = __ENV.PATH_PREFIX || '/loadtest/deploy-validation/write';
+const RUN_ID = __ENV.RUN_ID || 'manual-run';
 
 export const options = {
   scenarios: {
@@ -23,19 +25,23 @@ export const options = {
 };
 
 export default function () {
+  if (!API_KEY) {
+    throw new Error('API_KEY environment variable is required');
+  }
+
   const now = new Date().toISOString();
   const body = JSON.stringify({
-    organizationId: ORG_ID,
     externalUserId: `load-user-${__VU}`,
     eventType: EVENT_TYPE,
-    path: `/__test/load/${__VU}/${__ITER % 50}`,
+    path: `${PATH_PREFIX}/${__VU}/${__ITER % 50}`,
     occurredAt: now,
-    payload: JSON.stringify({ source: 'k6', vu: __VU, iter: __ITER }),
+    payload: JSON.stringify({ source: 'k6', runId: RUN_ID, vu: __VU, iter: __ITER }),
   });
 
   const params = {
     headers: {
       'Content-Type': 'application/json',
+      'X-API-Key': API_KEY,
     },
   };
 
