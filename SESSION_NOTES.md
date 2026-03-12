@@ -4,6 +4,7 @@
 - 목표: 멀티테넌트 B2B 이벤트 분석 백엔드.
 - 핵심 범위: `organization > eventUser > path > eventType`.
 - 운영 prod 앱은 현재 Amazon RDS for PostgreSQL을 바라본다.
+- 운영 배포 구조는 현재 `GitHub Actions -> ECR -> S3 -> CodeDeploy -> EC2 -> Blue/Green` 기준으로 정리돼 있다.
 - local postgres는 local 개발/검증용으로만 유지한다.
 - `Organization` 생성 시 API Key 발급/해시 저장 구현 완료.
 - `EventUser` 도메인 뼈대 구현 완료:
@@ -31,6 +32,9 @@
   - 현재 `bucket`은 enum(`HOUR`, `DAY`) 직접 바인딩 기준으로 동작
   - 소문자 입력(`hour/day`) 유연 처리와 에러 메시지 개선은
     이후 요청 DTO 리팩터링 시점에 함께 정리하기로 결정
+- 운영 관측 기준:
+  - Grafana / Prometheus / `k6` 기반으로 배포 실전 검증 가능한 상태다.
+  - 배포 실전 검증 기준으로는 `read`는 바로 통과했고, `write`는 1차 실패 후 old color drain 대기 추가 뒤 재검증에 통과했다.
 
 ## 구현된 파일 (상위)
 - EventUser 도메인:
@@ -50,9 +54,20 @@
   - `src/main/java/com/clickchecker/event/repository/dto/TimeBucket.java`
   - `src/main/java/com/clickchecker/event/repository/dto/TimeBucketCountDto.java`
 - HTTP 샘플:
-  - `http/event.http`
-  - `http/event-user.http`
-  - `http/organization.http`
+  - `api-scenarios/event.http`
+  - `api-scenarios/event-user.http`
+  - `api-scenarios/organization.http`
+- 배포 / 운영 스크립트:
+  - `scripts/deploy-prod-blue-green.sh`
+  - `scripts/blue-green-prod-switch.sh`
+  - `scripts/codedeploy/after-install.sh`
+  - `scripts/codedeploy/application-start.sh`
+  - `scripts/codedeploy/validate-service.sh`
+- 부하 검증:
+  - `k6/smoke-read.js`
+  - `k6/smoke-write.js`
+- 운영 관측:
+  - `prometheus/prometheus.yml`
 - 줄바꿈 정책:
   - `.gitattributes`에서 LF 정규화 적용
 
@@ -78,13 +93,14 @@
 - `POSTGRES_*`는 local postgres 컨테이너 기동용으로만 본다
 
 ## 다음 권장 작업
-1. 웹 진입점/배포 고도화 범위/완료 기준 고정
-   - 후속 범위 정리
-2. API Key 로그 하드닝:
-   - 인증 로그 정책 정리(원문 키 미노출)
-3. `EventUser` API 테넌트 스코프 정합성 정리:
-   - `/api/event-users`도 인증 org 기반 전환 여부 결정
-4. `/api/events/aggregates/count` 운영 노출 여부 확정(유지/차단)
+1. old color drain / 종료 절차 개선
+   - 현재 `OLD_COLOR_DRAIN_SECONDS`는 1차 완화책이며, 종료 절차 고도화는 별도 개선 작업으로 이어간다.
+2. 운영 관측 기준 최소 정리
+   - 현재 Grafana / Prometheus / `k6` 기준을 대시보드/알림 기준으로 짧게 고정한다.
+3. `EventUser` API 테넌트 스코프 정합성 정리
+   - `/api/event-users`도 인증 org 기반 전환 여부를 결정한다.
+4. 샘플 시나리오 / 문서 계약 정합화
+   - `k6`, `api-scenarios`, 오래된 문서 예시를 현재 `X-API-Key` 계약 기준으로 마감 정리한다.
 
 ## 최근 업데이트 (추가)
 - RDS 전환 완료:
@@ -141,10 +157,27 @@
     - 배포 시작 전 `.env` 필수 키 사전검증 추가:
       - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `API_KEY_PEPPER`, `API_KEY_ENV`
     - 목적: `set -e` 조기 종료로 롤백 미실행되던 케이스 방지
-  - Flyway 최종 마무리(추가):
+- Flyway 최종 마무리(추가):
     - `POST /api/organizations` 500(`api_key_hash` NOT NULL 위반) 원인 수정
     - 조직 생성 시 API Key를 선발급해 `apiKeyKid/hash/prefix`를 insert 시점에 저장하도록 정렬
     - `prod` 배포 스모크 통과로 Flyway 전환 종료 확인
+- Blue/Green / CodeDeploy 운영 구조 정리:
+  - Blue/Green 전환 구조를 운영 기준으로 적용
+  - `GitHub Actions -> ECR -> S3 -> CodeDeploy -> EC2 -> Blue/Green` 흐름 정리 완료
+  - EC2 `/home/ubuntu/click-checker`는 `.git` 없는 배포 디렉터리 기준으로 재정리 완료
+- 운영 관측 경로 정리:
+  - Prometheus scrape target을 `app:8080`에서 `app-blue:8081`, `app-green:8082`로 수정
+  - Grafana에서 운영 Prometheus 데이터 소스를 연결하고 실전 검증 쿼리(`RPS`, `p95`, `p99`, `5xx`)를 확인
+- 배포 실전 검증 완료:
+  - `read` baseline / 배포 중 검증 완료
+  - `write` baseline / 배포 중 검증 완료
+  - 1차 `write` 검증 실패(`http_req_failed = 5.57%`)를 재현하고 Nginx upstream reset 정황 확인
+  - `OLD_COLOR_DRAIN_SECONDS` 추가 후 같은 조건 재검증에서 `http_req_failed = 0.00%` 확인
+  - 관련 문서 정리:
+    - `docs/05-배포/25-배포-실전-검증-런북.md`
+    - `docs/05-배포/26-배포-실전-검증-기록.md`
+    - `docs/05-배포/27-배포-실전-검증-트러블슈팅.md`
+    - `docs/05-배포/28-배포-실전-검증-종합.md`
 
 ## 3분 데모 스크립트
 1. 조직 생성:
