@@ -58,8 +58,8 @@
   - `api-scenarios/event-user.http`
   - `api-scenarios/organization.http`
 - 배포 / 운영 스크립트:
-  - `scripts/deploy-prod-blue-green.sh`
-  - `scripts/blue-green-prod-switch.sh`
+  - `scripts/deploy-prod-orchestrator.sh`
+  - `scripts/blue-green-prod-lib.sh`
   - `scripts/codedeploy/after-install.sh`
   - `scripts/codedeploy/application-start.sh`
   - `scripts/codedeploy/validate-service.sh`

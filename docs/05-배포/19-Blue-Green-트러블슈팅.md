@@ -74,7 +74,7 @@
 
 - 먼저 실제 EC2 nginx 설정을 기준으로 repo `nginx/click-checker.conf`를 다시 맞췄다.
 - 그 다음 Blue/Green 검증은 운영 파일을 건드리지 않기 위해
-  `nginx/blue-green-click-checker.conf`
+  `nginx/click-checker-blue-green-template.conf`
   별도 파일로 분리했다.
 
 ## 5. 운영 nginx를 바로 바꾸면 Grafana HTTPS를 덮어쓸 위험이 있던 문제
@@ -109,7 +109,7 @@
 ### 해결
 
 - `nginx:1.25-alpine` 임시 컨테이너를 띄우고,
-- `blue-green-click-checker.conf`를 마운트해
+- `click-checker-blue-green-template.conf`를 마운트해
 - `18080` 포트에서만 Blue/Green 전환을 검증했다.
 
 ## 7. 최종적으로 확인한 것
@@ -127,7 +127,7 @@
 
 ### 증상
 
-- `blue-green-click-checker.conf`에서 upstream을 `green -> blue`로 다시 바꿨는데
+- `click-checker-blue-green-template.conf`에서 upstream을 `green -> blue`로 다시 바꿨는데
 - 임시 nginx 컨테이너는 계속 이전 upstream(`app-green:8082`)을 보고 있었다.
 - 그 결과 `green` 컨테이너를 내린 뒤에도 `502 Bad Gateway`가 발생했다.
 
@@ -143,7 +143,7 @@
 - 즉,
   - 기존 임시 nginx 제거
   - 같은 이름으로 다시 실행
-  - 최신 `blue-green-click-checker.conf` 재마운트
+  - 최신 `click-checker-blue-green-template.conf` 재마운트
 순서로 처리한다.
 
 ### 정리
@@ -176,7 +176,7 @@
   - readiness 확인
   - 운영 nginx 메인 앱 upstream만 `8080 -> 8081`
   순서로 적용했다.
-- 이후 CI 배포 경로를 `app` 중심 호출에서 분리하고, Blue/Green 전용 배포 스크립트(`scripts/deploy-prod-blue-green.sh`)를 호출하는 구조로 재구성했다.
+- 이후 CI 배포 경로를 `app` 중심 호출에서 분리하고, Blue/Green 전용 배포 스크립트(`scripts/deploy-prod-orchestrator.sh`)를 호출하는 구조로 재구성했다.
 
 ### 정리
 
@@ -198,7 +198,7 @@
 
 ### 해결
 
-- 배포 핵심 로직을 `scripts/deploy-prod-blue-green.sh`로 분리했다.
+- 배포 핵심 로직을 `scripts/deploy-prod-orchestrator.sh`로 분리했다.
 - workflow는 다음 최소 단계만 수행하도록 단순화했다.
   - `git fetch/checkout/pull`
   - 실행 권한 부여

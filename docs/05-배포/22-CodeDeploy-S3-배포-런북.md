@@ -9,8 +9,8 @@
 
 - 운영 구조는 단일 EC2 + Nginx + RDS + `app-blue/app-green` 기준이다.
 - 현재 운영 전환 스크립트는 이미 정리돼 있다.
-  - `scripts/deploy-prod-blue-green.sh`
-  - `scripts/blue-green-prod-switch.sh`
+  - `scripts/deploy-prod-orchestrator.sh`
+  - `scripts/blue-green-prod-lib.sh`
 - 현재 운영 배포는 CodeDeploy / S3 / ECR 기준으로 성공한 상태다.
 - 이번 단계에서는 기존 SSH 배포 기록은 남기되, 운영 기준은 CodeDeploy 흐름으로 본다.
 
@@ -66,7 +66,7 @@ docs/00-계획/10-codedeploy-s3-배포-계획.md
 원칙:
 
 - hook 스크립트는 기존 배포 스크립트 역할을 중복 구현하지 않는다.
-- 가능하면 기존 `deploy-prod-blue-green.sh`를 호출하는 구조로 유지한다.
+- 가능하면 기존 `deploy-prod-orchestrator.sh`를 호출하는 구조로 유지한다.
 - 다만 운영 서버에서 Docker build를 수행하지 않도록 이미지 전달 방식은 변경한다.
 
 ### 3. CodeDeploy hook 역할 정리

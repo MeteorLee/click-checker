@@ -157,7 +157,7 @@ curl -s https://clickchecker.dev/actuator/health
 
 참고:
 
-- 이후 전환부터는 `./scripts/blue-green-prod-switch.sh`로 같은 절차를 더 짧게 반복할 수 있다.
+- 이후 전환부터는 `./scripts/blue-green-prod-lib.sh`로 같은 절차를 더 짧게 반복할 수 있다.
 
 ## 전환 후 확인 항목
 
@@ -172,4 +172,4 @@ curl -s https://clickchecker.dev/actuator/health
 - 현재 운영 기본 색상은 `green(8082)`다.
 - 다음 교대 전환은 `8082(green) -> 8081(blue)` 순서로 수행한다.
 - 운영 nginx 메인 앱 경로는 현재 `upstream click_checker_app` 구조로 정리됐다.
-- 다음 교대 전환부터는 `./scripts/blue-green-prod-switch.sh` 사용을 기본 경로로 본다.
+- 다음 교대 전환부터는 `./scripts/blue-green-prod-lib.sh` 사용을 기본 경로로 본다.

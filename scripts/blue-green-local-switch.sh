@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Switch the active upstream in nginx/blue-green-click-checker.conf between
-# app-blue:8081 and app-green:8082, then optionally reload the temporary
-# verification nginx container.
+# Local-only blue/green switch helper for temporary verification.
+# This script is intended for manual or local environment checks using
+# nginx/click-checker-blue-green-template.conf and the temporary nginx container.
+# It is not the main prod deployment entrypoint.
 #
 # Usage:
-#   ./scripts/blue-green-switch.sh
-#   ./scripts/blue-green-switch.sh blue
-#   ./scripts/blue-green-switch.sh green
+#   ./scripts/blue-green-local-switch.sh
+#   ./scripts/blue-green-local-switch.sh blue
+#   ./scripts/blue-green-local-switch.sh green
 #
 # Environment:
 #   COMPOSE_FILES            Compose args override
@@ -17,9 +18,12 @@ set -euo pipefail
 #   SKIP_RELOAD=1            Skip nginx container reload
 #   SKIP_STOP_OLD=1          Keep old color running after switch
 #
+# Main prod entrypoint:
+# - ./scripts/deploy-prod-orchestrator.sh
+#
 
 COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"
-NGINX_BG_CONFIG="${NGINX_BG_CONFIG:-nginx/blue-green-click-checker.conf}"
+NGINX_BG_CONFIG="${NGINX_BG_CONFIG:-nginx/click-checker-blue-green-template.conf}"
 NGINX_BG_CONTAINER="${NGINX_BG_CONTAINER:-click-checker-nginx-bg-test}"
 NGINX_BG_IMAGE="${NGINX_BG_IMAGE:-nginx:1.25-alpine}"
 NGINX_BG_NETWORK="${NGINX_BG_NETWORK:-click-checker_default}"
