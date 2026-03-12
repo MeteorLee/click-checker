@@ -176,7 +176,7 @@
   - readiness 확인
   - 운영 nginx 메인 앱 upstream만 `8080 -> 8081`
   순서로 적용했다.
-- 이후 CI 배포 경로를 `app` 중심 호출에서 분리하고, Blue/Green 전용 배포 스크립트(`scripts/deploy-prod-blue-green.sh`)를 호출하는 구조로 재구성했다.
+- 이후 CI 배포 경로를 `app` 중심 호출에서 분리하고, Blue/Green 전용 배포 스크립트(`scripts/deploy-prod-orchestrator.sh`)를 호출하는 구조로 재구성했다.
 
 ### 정리
 
@@ -198,7 +198,7 @@
 
 ### 해결
 
-- 배포 핵심 로직을 `scripts/deploy-prod-blue-green.sh`로 분리했다.
+- 배포 핵심 로직을 `scripts/deploy-prod-orchestrator.sh`로 분리했다.
 - workflow는 다음 최소 단계만 수행하도록 단순화했다.
   - `git fetch/checkout/pull`
   - 실행 권한 부여

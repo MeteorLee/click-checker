@@ -145,7 +145,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 현재 검증용 전환 스크립트:
 
 ```bash
-./scripts/blue-green-switch.sh
+./scripts/blue-green-local-switch.sh
 ```
 
 특징:
@@ -160,8 +160,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 색상을 명시해서 실행할 수도 있다.
 
 ```bash
-./scripts/blue-green-switch.sh blue
-./scripts/blue-green-switch.sh green
+./scripts/blue-green-local-switch.sh blue
+./scripts/blue-green-local-switch.sh green
 ```
 
 주의:
@@ -178,7 +178,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 현재 운영 전환 스크립트:
 
 ```bash
-./scripts/blue-green-prod-switch.sh
+./scripts/blue-green-prod-lib.sh
 ```
 
 특징:
@@ -194,8 +194,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml stop app-green
 예시:
 
 ```bash
-./scripts/blue-green-prod-switch.sh blue
-./scripts/blue-green-prod-switch.sh green
+./scripts/blue-green-prod-lib.sh blue
+./scripts/blue-green-prod-lib.sh green
 ```
 
 주의:
