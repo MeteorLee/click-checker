@@ -251,7 +251,7 @@ main() {
     exit 1
   fi
 
-  echo "[deploy] stopping old color after successful verification"
+  echo "[deploy] stopping old color after successful smoke verification"
   stop_color "${ACTIVE_COLOR}" || true
   SWITCHED=0
   echo "[deploy] completed successfully"
