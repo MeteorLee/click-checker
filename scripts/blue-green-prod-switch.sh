@@ -18,11 +18,13 @@ set -euo pipefail
 #   NGINX_CONFIG             Active nginx config path
 #   SKIP_STOP_OLD=1          Keep old color running after switch
 #   STABILIZE_SECONDS        Wait time after direct app verification
+#   OLD_COLOR_DRAIN_SECONDS  Wait time before stopping old color after switch
 
 COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"
 NGINX_CONFIG="${NGINX_CONFIG:-/etc/nginx/sites-available/default}"
 STATE_FILE="${STATE_FILE:-/var/run/click-checker-active-color}"
 STABILIZE_SECONDS="${STABILIZE_SECONDS:-5}"
+OLD_COLOR_DRAIN_SECONDS="${OLD_COLOR_DRAIN_SECONDS:-15}"
 PUBLIC_VERIFY_ATTEMPTS="${PUBLIC_VERIFY_ATTEMPTS:-5}"
 PUBLIC_VERIFY_DELAY_SECONDS="${PUBLIC_VERIFY_DELAY_SECONDS:-2}"
 TARGET_COLOR="${1:-}"
@@ -318,6 +320,9 @@ main() {
 
   echo "[switch] verifying public response"
   verify_nginx_color "${TARGET_COLOR}"
+
+  echo "[switch] waiting ${OLD_COLOR_DRAIN_SECONDS}s before stopping old color"
+  sleep "${OLD_COLOR_DRAIN_SECONDS}"
 
   echo "[switch] stopping old color: ${old_color}"
   stop_old_color "${old_color}"
