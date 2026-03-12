@@ -23,13 +23,13 @@ cd "$APP_DIR"
 
 require_file "$APP_DIR/docker-compose.yml"
 require_file "$APP_DIR/docker-compose.prod.yml"
-require_file "$APP_DIR/scripts/deploy-prod-blue-green.sh"
-require_file "$APP_DIR/scripts/blue-green-prod-switch.sh"
+require_file "$APP_DIR/scripts/deploy-prod-orchestrator.sh"
+require_file "$APP_DIR/scripts/blue-green-prod-lib.sh"
 require_file "$IMAGE_DETAIL_FILE"
 
 chmod +x \
-  "$APP_DIR/scripts/deploy-prod-blue-green.sh" \
-  "$APP_DIR/scripts/blue-green-prod-switch.sh"
+  "$APP_DIR/scripts/deploy-prod-orchestrator.sh" \
+  "$APP_DIR/scripts/blue-green-prod-lib.sh"
 
 APP_IMAGE=$(awk -F= '$1 == "APP_IMAGE" { print substr($0, index($0, "=") + 1) }' "$IMAGE_DETAIL_FILE")
 
