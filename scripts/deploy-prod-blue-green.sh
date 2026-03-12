@@ -175,7 +175,7 @@ main() {
 
   compose_up_infra
 
-  if ! env SKIP_STOP_OLD=1 ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
+  if ! ./scripts/blue-green-prod-switch.sh "${TARGET_COLOR}"; then
     echo "[deploy] blue-green switch failed"
     dump_logs
     exit 1
@@ -251,8 +251,6 @@ main() {
     exit 1
   fi
 
-  echo "[deploy] stopping old color after successful smoke verification"
-  stop_color "${ACTIVE_COLOR}" || true
   SWITCHED=0
   echo "[deploy] completed successfully"
 }
