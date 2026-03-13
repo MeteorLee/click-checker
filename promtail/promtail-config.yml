@@ -3,7 +3,7 @@ server:
   grpc_listen_port: 0
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /var/lib/promtail/positions.yaml
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
@@ -17,12 +17,15 @@ scrape_configs:
       - docker: {}
     relabel_configs:
       - source_labels: [__meta_docker_container_name]
+        regex: "/click-checker-(app|app-blue|app-green).*"
+        action: keep
+      - source_labels: [__meta_docker_container_name]
         regex: "/(.*)"
         target_label: container
       - replacement: click-checker
         target_label: job
       - replacement: docker
-        target_label: instance
+        target_label: source
       - source_labels: [__meta_docker_container_name]
         regex: "/click-checker-(app|app-blue|app-green).*"
         target_label: app
@@ -34,6 +37,6 @@ scrape_configs:
           - localhost
         labels:
           job: click-checker
-          instance: host
+          source: host
           app: nginx
           __path__: /var/log/nginx/*.log

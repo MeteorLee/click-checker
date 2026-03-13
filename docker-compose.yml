@@ -66,6 +66,7 @@ services:
       - loki
     volumes:
       - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - click-checker-promtail-data:/var/lib/promtail
 
   alertmanager:
     image: prom/alertmanager:v0.28.1
@@ -93,3 +94,4 @@ volumes:
   click-checker-prometheus-data:
   click-checker-grafana-data:
   click-checker-loki-data:
+  click-checker-promtail-data:
