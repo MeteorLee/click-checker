@@ -17,6 +17,10 @@ services:
   app:
     profiles: ["legacy"]
 
+  prometheus:
+    volumes:
+      - ./prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+
   app-blue:
     <<: *app-prod-common
     environment:
@@ -46,6 +50,12 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+
+  promtail:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log/nginx:/var/log/nginx:ro
 
   grafana:
     ports:

@@ -17,8 +17,23 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    volumes:
+      - ./prometheus/prometheus.local.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9090:9090"
+
+  loki:
+    ports:
+      - "3100:3100"
+
+  promtail:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+
+  alertmanager:
+    ports:
+      - "9093:9093"
 
   grafana:
     ports:
