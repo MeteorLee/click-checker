@@ -24,6 +24,8 @@ cd "$APP_DIR"
 require_file "$APP_DIR/docker-compose.yml"
 require_file "$APP_DIR/docker-compose.prod.yml"
 require_file "$APP_DIR/scripts/deploy-prod-orchestrator.sh"
+require_file "$APP_DIR/scripts/deploy-observability-prod.sh"
+require_file "$APP_DIR/scripts/validate-observability-prod.sh"
 require_file "$APP_DIR/scripts/blue-green-prod-lib.sh"
 require_file "$APP_DIR/scripts/deploy-smoke.sh"
 require_file "$APP_DIR/scripts/deploy-drain.sh"
@@ -31,6 +33,8 @@ require_file "$IMAGE_DETAIL_FILE"
 
 chmod +x \
   "$APP_DIR/scripts/deploy-prod-orchestrator.sh" \
+  "$APP_DIR/scripts/deploy-observability-prod.sh" \
+  "$APP_DIR/scripts/validate-observability-prod.sh" \
   "$APP_DIR/scripts/blue-green-prod-lib.sh" \
   "$APP_DIR/scripts/deploy-smoke.sh" \
   "$APP_DIR/scripts/deploy-drain.sh"
