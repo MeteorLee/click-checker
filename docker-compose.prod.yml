@@ -17,6 +17,10 @@ services:
   app:
     profiles: ["legacy"]
 
+  prometheus:
+    volumes:
+      - ./prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+
   app-blue:
     <<: *app-prod-common
     environment:

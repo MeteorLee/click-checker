@@ -42,7 +42,7 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${PROMETHEUS_CONFIG_FILE:-./prometheus/prometheus.local.yml}:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - click-checker-prometheus-data:/prometheus
 
