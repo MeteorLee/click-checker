@@ -35,7 +35,9 @@ require_env_value() {
 
 start_draining() {
   echo "[drain] start draining ${APP_COLOR}"
-  curl -fsS -X POST "http://127.0.0.1:${APP_PORT}/internal/drain/start" >/tmp/drain_start.json
+  curl -fsS \
+    -H "Accept: application/json" \
+    -X POST "http://127.0.0.1:${APP_PORT}/internal/drain/start" >/tmp/drain_start.json
   cat /tmp/drain_start.json
 }
 
@@ -46,7 +48,7 @@ wait_for_drain_to_settle() {
   active_requests="unknown"
 
   for attempt in $(seq 1 "${DRAIN_STATUS_ATTEMPTS}"); do
-    if ! status_json=$(curl -fsS "http://127.0.0.1:${APP_PORT}/internal/drain/status" 2>/dev/null); then
+    if ! status_json=$(curl -fsS -H "Accept: application/json" "http://127.0.0.1:${APP_PORT}/internal/drain/status" 2>/dev/null); then
       echo "[drain] status retry ${attempt}/${DRAIN_STATUS_ATTEMPTS} color=${APP_COLOR} reason=status_endpoint_unavailable"
       sleep "${DRAIN_STATUS_DELAY_SECONDS}"
       continue
