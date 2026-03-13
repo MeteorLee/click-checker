@@ -63,11 +63,6 @@ dump_logs() {
   compose logs --tail=100 prometheus || true
 }
 
-compose_up_infra() {
-  echo "[deploy] starting infra services"
-  compose up -d prometheus grafana
-}
-
 wait_public_health() {
   local attempt
 
@@ -161,8 +156,6 @@ main() {
 
   echo "[deploy] active color=${ACTIVE_COLOR}"
   echo "[deploy] target color=${TARGET_COLOR}"
-
-  compose_up_infra
 
   echo "[deploy] starting target app-${TARGET_COLOR}"
   compose up -d "app-${TARGET_COLOR}" >/dev/null
