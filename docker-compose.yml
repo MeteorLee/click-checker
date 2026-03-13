@@ -43,6 +43,38 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - click-checker-prometheus-data:/prometheus
+
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: click-checker-loki
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - click-checker-loki-data:/loki
+
+  promtail:
+    image: grafana/promtail:3.2.1
+    container_name: click-checker-promtail
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: click-checker-alertmanager
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
 
   grafana:
     image: grafana/grafana:11.2.2
@@ -50,9 +82,14 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+      - loki
     volumes:
       - click-checker-grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
 
 volumes:
   click-checker-pg-data:
+  click-checker-prometheus-data:
   click-checker-grafana-data:
+  click-checker-loki-data:

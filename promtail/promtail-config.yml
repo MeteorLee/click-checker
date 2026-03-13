@@ -1,0 +1,39 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: click-checker-docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    pipeline_stages:
+      - docker: {}
+    relabel_configs:
+      - source_labels: [__meta_docker_container_name]
+        regex: "/(.*)"
+        target_label: container
+      - replacement: click-checker
+        target_label: job
+      - replacement: docker
+        target_label: instance
+      - source_labels: [__meta_docker_container_name]
+        regex: "/click-checker-(app|app-blue|app-green).*"
+        target_label: app
+        replacement: "$1"
+
+  - job_name: click-checker-nginx
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: click-checker
+          instance: host
+          app: nginx
+          __path__: /var/log/nginx/*.log

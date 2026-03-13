@@ -1,0 +1,65 @@
+groups:
+  - name: click-checker-alerts
+    rules:
+      - alert: ClickCheckerNoScrapeTargets
+        expr: absent(up{job="click-checker-app"})
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "click-checker scrape targets are missing"
+          description: "Prometheus cannot find any click-checker-app scrape target."
+
+      - alert: ClickCheckerAppDown
+        expr: sum(up{job="click-checker-app"}) == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "click-checker app is down"
+          description: "Prometheus cannot scrape any click-checker app target."
+
+      - alert: ClickCheckerHigh5xxRatio
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="click-checker-app",status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_server_requests_seconds_count{job="click-checker-app"}[5m])), 1)
+          ) >= 0.02
+          and
+          sum(rate(http_server_requests_seconds_count{job="click-checker-app"}[5m])) >= 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "click-checker 5xx ratio is high"
+          description: "5xx ratio has stayed at or above 2% for 5 minutes."
+
+      - alert: ClickCheckerHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(http_server_requests_seconds_bucket{job="click-checker-app"}[5m])
+            )
+          ) >= 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "click-checker p95 latency is high"
+          description: "p95 latency has stayed at or above 800ms for 5 minutes."
+
+      - alert: ClickCheckerHighDbPoolUsage
+        expr: |
+          max(
+            hikaricp_connections_active{job="click-checker-app"}
+            /
+            clamp_min(hikaricp_connections_max{job="click-checker-app"}, 1)
+          ) >= 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "click-checker DB pool usage is high"
+          description: "HikariCP active connections have stayed at or above 80% of max for 5 minutes."

@@ -47,6 +47,12 @@ services:
       retries: 15
       start_period: 30s
 
+  promtail:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log/nginx:/var/log/nginx:ro
+
   grafana:
     ports:
       - "3000:3000"
