@@ -35,6 +35,11 @@
 - 운영 관측 기준:
   - Grafana / Prometheus / `k6` 기반으로 배포 실전 검증 가능한 상태다.
   - 배포 실전 검증 기준으로는 `read`는 바로 통과했고, `write`는 1차 실패 후 old color drain 대기 추가 뒤 재검증에 통과했다.
+- 종료 절차 개선 기준:
+  - `deploy-prod-orchestrator -> deploy-smoke -> deploy-drain` 구조로 정리됐다.
+  - 앱 내부에는 `TrafficState`, `ActiveRequestTracker`, `/internal/drain/*`가 추가됐다.
+  - 운영 nginx는 `/internal/` 외부 접근을 차단한다.
+  - 배포 중 infra 단계와 `prometheus -> app-blue` 의존성 때문에 active app 조기 recreate가 발생할 수 있음을 확인했고, 현재는 그 수정까지 반영된 상태다.
 
 ## 구현된 파일 (상위)
 - EventUser 도메인:
@@ -93,14 +98,14 @@
 - `POSTGRES_*`는 local postgres 컨테이너 기동용으로만 본다
 
 ## 다음 권장 작업
-1. old color drain / 종료 절차 개선
-   - 현재 `OLD_COLOR_DRAIN_SECONDS`는 1차 완화책이며, 종료 절차 고도화는 별도 개선 작업으로 이어간다.
+1. 샘플 시나리오 / 문서 계약 정합화
+   - `k6`, `api-scenarios`, 오래된 문서 예시를 현재 `X-API-Key` 계약 기준으로 마감 정리한다.
 2. 운영 관측 기준 최소 정리
    - 현재 Grafana / Prometheus / `k6` 기준을 대시보드/알림 기준으로 짧게 고정한다.
 3. `EventUser` API 테넌트 스코프 정합성 정리
    - `/api/event-users`도 인증 org 기반 전환 여부를 결정한다.
-4. 샘플 시나리오 / 문서 계약 정합화
-   - `k6`, `api-scenarios`, 오래된 문서 예시를 현재 `X-API-Key` 계약 기준으로 마감 정리한다.
+4. 종료 절차 고도화 후속 검토
+   - 현재 direct smoke + internal drain 구조는 안정화됐고, 이후에는 active request 기반 drain 판단 고도화를 검토한다.
 
 ## 최근 업데이트 (추가)
 - RDS 전환 완료:
@@ -178,6 +183,35 @@
     - `docs/05-배포/26-배포-실전-검증-기록.md`
     - `docs/05-배포/27-배포-실전-검증-트러블슈팅.md`
     - `docs/05-배포/28-배포-실전-검증-종합.md`
+- 종료 절차 개선 완료:
+  - 앱 내부 draining 지원 추가
+    - `TrafficState`, `TrafficStateManager`
+    - `ActiveRequestTracker`, `ActiveRequestTrackingFilter`
+    - `POST /internal/drain/start`, `GET /internal/drain/status`
+  - 배포 스크립트 구조 정리
+    - `scripts/deploy-prod-orchestrator.sh`
+    - `scripts/deploy-smoke.sh`
+    - `scripts/deploy-drain.sh`
+    - `scripts/blue-green-prod-lib.sh`
+  - 운영 nginx `/internal/` 외부 차단 적용
+  - 개선 중 실제 이슈 확인 및 수정
+    - 새 smoke/drain 스크립트 실행 권한 누락
+    - `internal drain` content negotiation 문제
+    - 배포 중 infra 단계와 `prometheus -> app-blue` 의존성으로 active app 조기 recreate 발생
+  - 최종 수정
+    - `docker-compose.prod.yml`에서 `prometheus` override 제거
+    - 배포 중 infra 단계 제거
+  - 최종 write 재검증 성공
+    - `T0/T1 = 10:06`
+    - `T2 = 10:09:19`
+    - `T3 = 10:11 전후`
+    - `http_req_failed = 0.00%`, `p95 = 44.26ms`, `p99 = 112.69ms`
+  - 관련 문서 정리:
+    - `docs/05-배포/29-종료-절차-개선-런북.md`
+    - `docs/05-배포/30-종료-절차-개선-기록.md`
+    - `docs/05-배포/31-종료-절차-개선-트러블슈팅.md`
+    - `docs/05-배포/32-종료-절차-개선-종합.md`
+    - `docs/00-실행기록/12-종료-절차-개선-실행기록.md`
 
 ## 3분 데모 스크립트
 1. 조직 생성:
