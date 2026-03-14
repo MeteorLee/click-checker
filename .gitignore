@@ -224,6 +224,7 @@ gradle-app.setting
 
 # docker
 .env
+.secrets/
 
 # test용 http 파일
 # *.http
