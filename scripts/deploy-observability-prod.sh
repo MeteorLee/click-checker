@@ -30,6 +30,8 @@ main() {
   [ -f "${DEPLOY_ENV_FILE}" ] || { echo "${DEPLOY_ENV_FILE} not found"; exit 1; }
   [ -f "${DISCORD_WEBHOOK_FILE}" ] || { echo "${DISCORD_WEBHOOK_FILE} not found"; exit 1; }
 
+  chmod 644 "${DISCORD_WEBHOOK_FILE}"
+
   echo "[observability] starting shared prod observability services"
   compose up -d prometheus loki promtail alertmanager grafana
 
