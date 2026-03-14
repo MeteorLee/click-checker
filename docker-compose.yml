@@ -76,6 +76,7 @@ services:
       - --config.file=/etc/alertmanager/alertmanager.yml
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${ALERTMANAGER_DISCORD_WEBHOOK_FILE:-./.secrets/alertmanager/discord-webhook-url}:/etc/alertmanager/secrets/discord-webhook-url:ro
 
   grafana:
     image: grafana/grafana:11.2.2
