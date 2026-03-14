@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,6 +21,19 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final List<String> SCANNER_PATH_PATTERNS = List.of(
+            "/wp-admin",
+            "/wordpress/",
+            "/.git/",
+            ".php",
+            ".bak",
+            ".old",
+            ".save",
+            ".dist",
+            ".sample",
+            "~"
+    );
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex, HttpServletRequest request) {
@@ -69,8 +83,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex,
-                                                                               HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpServletRequest request) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), "Malformed JSON request", request.getRequestURI(), List.of())
@@ -90,11 +103,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
-        Sentry.captureException(ex);
+        if (!(ex instanceof NoResourceFoundException)
+                || shouldCaptureNoResourceFound(request)) {
+            Sentry.captureException(ex);
+        }
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), "Internal server error", request.getRequestURI(), List.of())
         );
+    }
+
+    private boolean shouldCaptureNoResourceFound(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return SCANNER_PATH_PATTERNS.stream().noneMatch(path::contains);
     }
 
     private String formatFieldError(FieldError e) {
