@@ -33,7 +33,8 @@
   - 소문자 입력(`hour/day`) 유연 처리와 에러 메시지 개선은
     이후 요청 DTO 리팩터링 시점에 함께 정리하기로 결정
 - 운영 관측 기준:
-  - Grafana / Prometheus / `k6` 기반으로 배포 실전 검증 가능한 상태다.
+  - `Prometheus + Loki + Grafana + Alertmanager + Sentry` 기준의 운영 관측 체계 1차 구성이 완료됐다.
+  - local / prod 모두에서 observability stack 기동, readiness, 조회, Discord 알림 수신까지 확인했다.
   - 배포 실전 검증 기준으로는 `read`는 바로 통과했고, `write`는 1차 실패 후 old color drain 대기 추가 뒤 재검증에 통과했다.
 - 종료 절차 개선 기준:
   - `deploy-prod-orchestrator -> deploy-smoke -> deploy-drain` 구조로 정리됐다.
@@ -72,7 +73,13 @@
   - `k6/smoke-read.js`
   - `k6/smoke-write.js`
 - 운영 관측:
-  - `prometheus/prometheus.yml`
+  - `prometheus/prometheus.local.yml`
+  - `prometheus/prometheus.prod.yml`
+  - `prometheus/alerts.yml`
+  - `loki/loki-config.yml`
+  - `promtail/promtail-config.yml`
+  - `alertmanager/alertmanager.yml`
+  - `grafana/provisioning/...`
 - 줄바꿈 정책:
   - `.gitattributes`에서 LF 정규화 적용
 
@@ -98,14 +105,14 @@
 - `POSTGRES_*`는 local postgres 컨테이너 기동용으로만 본다
 
 ## 다음 권장 작업
-1. 샘플 시나리오 / 문서 계약 정합화
+1. `EventUser` API 테넌트 스코프 정합성 정리
+   - `/api/event-users`를 인증 org 기준으로 어떻게 정렬할지 결정한다.
+2. 샘플 시나리오 / 문서 계약 정합화
    - `k6`, `api-scenarios`, 오래된 문서 예시를 현재 `X-API-Key` 계약 기준으로 마감 정리한다.
-2. 운영 관측 기준 최소 정리
-   - 현재 Grafana / Prometheus / `k6` 기준을 대시보드/알림 기준으로 짧게 고정한다.
-3. `EventUser` API 테넌트 스코프 정합성 정리
-   - `/api/event-users`도 인증 org 기반 전환 여부를 결정한다.
-4. 종료 절차 고도화 후속 검토
-   - 현재 direct smoke + internal drain 구조는 안정화됐고, 이후에는 active request 기반 drain 판단 고도화를 검토한다.
+3. 6단계 집계 기능 고도화 진입점 확정
+   - Route Template / 응답 구조 / API 계약 중 무엇을 먼저 할지 좁힌다.
+4. 관측 고도화는 후속 단계로 이관
+   - Loki S3 저장, retention/compactor, Alertmanager 고도화는 9단계 직전(8.6 성격)으로 미룬다.
 
 ## 최근 업데이트 (추가)
 - RDS 전환 완료:
@@ -212,6 +219,28 @@
     - `docs/05-배포/31-종료-절차-개선-트러블슈팅.md`
     - `docs/05-배포/32-종료-절차-개선-종합.md`
     - `docs/00-실행기록/12-종료-절차-개선-실행기록.md`
+- 운영 관측 체계(5.5.4) 완료:
+  - observability stack 확장
+    - `Prometheus`, `Loki`, `Promtail`, `Alertmanager`, `Grafana`
+  - Prometheus local/prod 설정 분리
+  - Grafana provisioning / overview dashboard 구성
+  - `X-Request-Id`, `APP_COLOR` 기반 추적 기준 보강
+  - observability prod 운영 스크립트 추가
+    - `scripts/deploy-observability-prod.sh`
+    - `scripts/restart-observability-prod.sh`
+    - `scripts/validate-observability-prod.sh`
+  - local / prod 검증 완료
+    - readiness 통과
+    - Prometheus target / rules 확인
+    - Grafana / Loki 조회 확인
+    - Alertmanager Discord 알림 `FIRING` / `RESOLVED` 수신 확인
+  - Sentry 관측 품질 보정
+    - 명백한 스캐너 `NoResourceFoundException` 경로를 Sentry 전송 대상에서 제외
+  - 관련 문서 정리:
+    - `docs/05-배포/33-운영-관측-체계-런북.md`
+    - `docs/05-배포/34-운영-관측-체계-트러블슈팅.md`
+    - `docs/05-배포/35-운영-관측-체계-종합.md`
+    - `docs/04-운영-설계/운영-관측-정책.md`
 
 ## 3분 데모 스크립트
 1. 조직 생성:

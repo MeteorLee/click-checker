@@ -23,9 +23,20 @@ import java.util.List;
 public class GlobalExceptionHandler {
 
     private static final List<String> SCANNER_PATH_PATTERNS = List.of(
+            "/.env",
             "/wp-admin",
             "/wordpress/",
+            "/wp-includes/",
             "/.git/",
+            "wlwmanifest.xml",
+            "/v1/models",
+            "/v1/embeddings",
+            "/v1/completions",
+            "/admin/assets/",
+            "/favicon.ico",
+            "/robots.txt",
+            "/sitemap.xml",
+            "/feed/",
             ".php",
             ".bak",
             ".old",
@@ -114,8 +125,15 @@ public class GlobalExceptionHandler {
     }
 
     private boolean shouldCaptureNoResourceFound(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        String path = normalizePath(request.getRequestURI());
         return SCANNER_PATH_PATTERNS.stream().noneMatch(path::contains);
+    }
+
+    private String normalizePath(String path) {
+        return path == null
+                ? ""
+                : path.toLowerCase()
+                        .replaceAll("/{2,}", "/");
     }
 
     private String formatFieldError(FieldError e) {
