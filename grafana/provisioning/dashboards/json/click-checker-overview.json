@@ -264,8 +264,8 @@
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "click-checker-loki"
+        "type": "prometheus",
+        "uid": "click-checker-prometheus"
       },
       "gridPos": {
         "h": 8,
