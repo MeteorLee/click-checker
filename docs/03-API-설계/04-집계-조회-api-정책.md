@@ -84,6 +84,7 @@
 - `totalEvents`
 - `uniqueUsers`
 - `identifiedEventRate`
+- `eventTypeMappingCoverage`
 - `comparison`
 - `topRoutes`
 - `topEventTypes`
@@ -97,6 +98,10 @@
 - `identifiedEventRate`
   - `eventUser`가 붙은 이벤트 수 / 전체 이벤트 수
   - `uniqueUsers` 숫자의 해석 보조 지표
+- `eventTypeMappingCoverage`
+  - raw eventType이 있는 이벤트 중 canonical eventType으로 정상 매핑된 이벤트 비율
+  - `topEventTypes`와 eventType 기반 집계 숫자의 해석 보조 지표
+  - 현재는 `eventType` 필터가 없는 overview에서만 계산하고, raw eventType으로 이미 좁힌 overview에서는 `null`로 둔다
 - `comparison`
   - 직전 같은 길이 구간과 비교
   - `delta = current - previous`
