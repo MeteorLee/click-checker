@@ -8,9 +8,10 @@
 ## 현재 엔드포인트
 - `GET /api/v1/events/analytics/users/overview`
 - `POST /api/v1/events/analytics/funnels/report`
+- `GET /api/v1/events/analytics/retention/daily`
 
 ## 예정 엔드포인트
-- `GET /api/v1/events/analytics/retention/daily`
+- cohort 상세/확장 API
 
 ## 공통 인증 / 스코프
 - 보호 대상:
@@ -128,6 +129,26 @@
 ### 목적
 - 사용자의 최초 유입 cohort를 기준으로 Day N 재방문율을 계산한다.
 
+### 엔드포인트
+- `GET /api/v1/events/analytics/retention/daily`
+
+### 쿼리 파라미터
+- `from`
+- `to`
+- `timezone`
+- `externalUserId` (선택)
+
+### 응답 항목
+- `timezone`
+- `items[].cohortDate`
+- `items[].cohortUsers`
+- `items[].day1Users`
+- `items[].day1RetentionRate`
+- `items[].day7Users`
+- `items[].day7RetentionRate`
+- `items[].day30Users`
+- `items[].day30RetentionRate`
+
 ### 최소 지원 범위
 - daily cohort만 지원
 - Day 1 / 7 / 30 retention
@@ -144,6 +165,12 @@
 ### Day N retention 정의
 - Day N retention은 cohort 기준일로부터 N일 후의 동일 local date bucket에 활동이 있는 사용자의 비율이다.
 - `on or after` 방식은 이번 단계에서 지원하지 않는다.
+
+### 구현 방식
+- cohort 사용자는 `firstSeen`이 요청 구간(`from <= firstSeen < to`) 안에 있는 식별 사용자만 포함한다.
+- `cohortDate`는 `firstSeen`을 요청 `timezone`으로 변환한 local date다.
+- 활동 여부는 조회 구간 이후 최대 30일을 추가 조회해 exact-day 기준으로 판정한다.
+- 각 retention 비율은 `retainedUsers / cohortUsers`로 계산한다.
 
 ## 응답 구조 정책
 
@@ -190,5 +217,6 @@
 - funnel은 현재 `canonicalEventType only` step만 지원한다.
 - funnel 응답의 비율은 현재 `step1` 대비 `conversionRateFromFirstStep`만 제공한다.
 - funnel의 custom conversion window, routeKey 결합 step, drop-off 상세 값은 아직 지원하지 않는다.
-- retention / cohort도 아직 구현 전이며, exact-day / timezone 기준만 먼저 문서로 고정한 상태다.
+- retention은 현재 daily cohort + Day 1/7/30 exact-day만 지원한다.
+- retention의 custom day set, on-or-after 방식, cohort 상세 drill-down은 아직 지원하지 않는다.
 - anonymous 포함 사용자 분석과 identity 병합은 이번 단계 범위 밖이다.
