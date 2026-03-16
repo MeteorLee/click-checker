@@ -1,4 +1,4 @@
-package com.clickchecker.analytics.user.controller;
+package com.clickchecker.analytics.retention.controller;
 
 import com.clickchecker.event.entity.Event;
 import com.clickchecker.event.repository.EventRepository;
@@ -18,8 +18,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -28,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("ci")
 @SpringBootTest
 @AutoConfigureMockMvc
-class UserAnalyticsControllerIntegrationTest {
+class RetentionAnalyticsControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,68 +35,57 @@ class UserAnalyticsControllerIntegrationTest {
     private EventRepository eventRepository;
 
     @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
     private EventUserRepository eventUserRepository;
 
     @Autowired
     private EventTypeMappingRepository eventTypeMappingRepository;
 
     @Autowired
+    private OrganizationRepository organizationRepository;
+
+    @Autowired
     private ApiKeyService apiKeyService;
 
     @Test
-    void overview_returnsIdentifiedNewReturningAndAverage() throws Exception {
+    void daily_returnsExactDayRetentionByTimezoneLocalDate() throws Exception {
         cleanup();
 
         Organization organization = saveOrganization();
         String apiKey = issueApiKey(organization);
 
-        EventUser newUser = saveEventUser(organization, "new-user");
-        EventUser returningUser = saveEventUser(organization, "returning-user");
+        EventUser user1 = saveEventUser(organization, "user-1");
+        EventUser user2 = saveEventUser(organization, "user-2");
+        EventUser user3 = saveEventUser(organization, "user-3");
 
-        eventRepository.save(Event.builder()
-                .organization(organization)
-                .eventUser(returningUser)
-                .eventType("view")
-                .path("/landing")
-                .occurredAt(Instant.parse("2026-03-01T10:00:00Z"))
-                .build());
+        saveEvent(organization, user1, "view", "/landing", "2026-03-01T01:00:00Z");
+        saveEvent(organization, user1, "view", "/landing", "2026-03-02T03:00:00Z");
+        saveEvent(organization, user1, "view", "/landing", "2026-03-08T05:00:00Z");
 
-        eventRepository.save(Event.builder()
-                .organization(organization)
-                .eventUser(newUser)
-                .eventType("click")
-                .path("/signup")
-                .occurredAt(Instant.parse("2026-03-12T10:00:00Z"))
-                .build());
-        eventRepository.save(Event.builder()
-                .organization(organization)
-                .eventUser(newUser)
-                .eventType("click")
-                .path("/signup")
-                .occurredAt(Instant.parse("2026-03-13T10:00:00Z"))
-                .build());
-        eventRepository.save(Event.builder()
-                .organization(organization)
-                .eventUser(returningUser)
-                .eventType("click")
-                .path("/home")
-                .occurredAt(Instant.parse("2026-03-14T10:00:00Z"))
-                .build());
+        saveEvent(organization, user2, "view", "/landing", "2026-03-01T12:00:00Z");
+        saveEvent(organization, user2, "view", "/landing", "2026-03-31T12:00:00Z");
+
+        saveEvent(organization, user3, "view", "/landing", "2026-03-02T01:00:00Z");
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/v1/events/analytics/users/overview")
-                                .param("from", "2026-03-10T00:00:00Z")
-                                .param("to", "2026-03-17T00:00:00Z")
+                        authorizedGet(apiKey)
+                                .param("from", "2026-03-01T00:00:00Z")
+                                .param("to", "2026-03-08T00:00:00Z")
+                                .param("timezone", "Asia/Seoul")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
-                .andExpect(jsonPath("$.identifiedUsers").value(2))
-                .andExpect(jsonPath("$.newUsers").value(1))
-                .andExpect(jsonPath("$.returningUsers").value(1))
-                .andExpect(jsonPath("$.avgEventsPerIdentifiedUser").value(1.5));
+                .andExpect(jsonPath("$.timezone").value("Asia/Seoul"))
+                .andExpect(jsonPath("$.items[0].cohortDate").value("2026-03-01"))
+                .andExpect(jsonPath("$.items[0].cohortUsers").value(2))
+                .andExpect(jsonPath("$.items[0].day1Users").value(1))
+                .andExpect(jsonPath("$.items[0].day1RetentionRate").value(0.5))
+                .andExpect(jsonPath("$.items[0].day7Users").value(1))
+                .andExpect(jsonPath("$.items[0].day7RetentionRate").value(0.5))
+                .andExpect(jsonPath("$.items[0].day30Users").value(1))
+                .andExpect(jsonPath("$.items[0].day30RetentionRate").value(0.5))
+                .andExpect(jsonPath("$.items[1].cohortDate").value("2026-03-02"))
+                .andExpect(jsonPath("$.items[1].cohortUsers").value(1))
+                .andExpect(jsonPath("$.items[1].day1Users").value(0));
     }
 
     private void cleanup() {
@@ -121,12 +108,28 @@ class UserAnalyticsControllerIntegrationTest {
                 .build());
     }
 
+    private void saveEvent(
+            Organization organization,
+            EventUser eventUser,
+            String eventType,
+            String path,
+            String occurredAt
+    ) {
+        eventRepository.save(Event.builder()
+                .organization(organization)
+                .eventUser(eventUser)
+                .eventType(eventType)
+                .path(path)
+                .occurredAt(Instant.parse(occurredAt))
+                .build());
+    }
+
     private String issueApiKey(Organization organization) {
         return apiKeyService.issueForOrganization(organization.getId()).apiKey();
     }
 
-    private MockHttpServletRequestBuilder authorizedGet(String apiKey, String path) {
-        return get(path)
+    private MockHttpServletRequestBuilder authorizedGet(String apiKey) {
+        return get("/api/v1/events/analytics/retention/daily")
                 .header(ApiKeyAuthFilter.API_KEY_HEADER, apiKey);
     }
 }
