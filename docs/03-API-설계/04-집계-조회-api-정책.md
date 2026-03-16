@@ -13,6 +13,16 @@
 - `GET /api/events/aggregates/paths`
 - `GET /api/events/aggregates/routes`
 - `GET /api/events/aggregates/time-buckets`
+- `GET /api/events/route-templates`
+- `POST /api/events/route-templates`
+- `PUT /api/events/route-templates/{id}`
+- `PUT /api/events/route-templates/{id}/active`
+- `DELETE /api/events/route-templates/{id}`
+- `GET /api/events/event-type-mappings`
+- `POST /api/events/event-type-mappings`
+- `PUT /api/events/event-type-mappings/{id}`
+- `PUT /api/events/event-type-mappings/{id}/active`
+- `DELETE /api/events/event-type-mappings/{id}`
 
 ## 공통 인증 / 스코프
 - 보호 대상: `/api/events/**`
@@ -49,6 +59,11 @@
 - `countRawPathBetween(...)`로 raw path별 count를 먼저 구한다.
 - 그 결과를 애플리케이션에서 routeKey 기준으로 다시 합산한다.
 - 즉 source of truth는 raw path이고, routeKey는 조회 시 계산값이다.
+
+### route template 관리 정책
+- route template는 조직 스코프에서 관리한다.
+- 현재는 `생성 / 목록 / 수정 / 활성-비활성 / 삭제`를 지원한다.
+- 일상적인 중지는 `active=false`를 우선 사용하고, 삭제는 잘못 만든 규칙 정리용으로 본다.
 
 ## overview 정책
 
@@ -103,6 +118,11 @@
 - 그 결과를 애플리케이션에서 canonical eventType 기준으로 다시 합산한다.
 - 즉 source of truth는 raw eventType이고, canonical eventType은 조회 시 계산값이다.
 
+### eventType mapping 관리 정책
+- eventType mapping도 조직 스코프에서 관리한다.
+- 현재는 `생성 / 목록 / 수정 / 활성-비활성 / 삭제`를 지원한다.
+- 일상적인 중지는 `active=false`를 우선 사용하고, 삭제는 잘못 만든 규칙 정리용으로 본다.
+
 ## raw-event-types 정책
 - raw eventType 기준 상세 집계
 - 현재 들어오고 있는 원본 값의 분포를 운영/정리 관점에서 확인하는 용도다.
@@ -139,15 +159,18 @@
 - `eventType` 필터가 있는 `overview.topEventTypes`는 아직 raw eventType 축을 그대로 따른다.
 - routeKey × eventType 교차 집계는 아직 없다.
 - route 기준 time-bucket trend는 아직 없다.
-- canonical eventType 매핑 CRUD는 아직 없다.
+- route template / eventType mapping 변경은 과거 이벤트 해석에도 즉시 영향을 준다.
+- 변경 이력이나 versioning은 아직 없다.
 
 ## 현재 테스트 커버리지
 - `EventCommandControllerIntegrationTest`
 - `EventQueryControllerIntegrationTest`
 - `EventQueryServiceTest`
+- `RouteTemplateControllerIntegrationTest`
+- `EventTypeMappingControllerIntegrationTest`
 - `CanonicalEventTypeResolverTest`
 - `RoutePathMatcherTest`
 - `RouteKeyResolverTest`
 
 ## 회귀 검증 명령
-- `./gradlew test --tests com.clickchecker.eventtype.service.CanonicalEventTypeResolverTest --tests com.clickchecker.event.controller.EventQueryControllerIntegrationTest --tests com.clickchecker.event.controller.EventCommandControllerIntegrationTest --tests com.clickchecker.event.service.EventQueryServiceTest --tests com.clickchecker.route.service.RoutePathMatcherTest --tests com.clickchecker.route.service.RouteKeyResolverTest`
+- `./gradlew test --tests com.clickchecker.eventtype.service.CanonicalEventTypeResolverTest --tests com.clickchecker.eventtype.controller.EventTypeMappingControllerIntegrationTest --tests com.clickchecker.event.controller.EventQueryControllerIntegrationTest --tests com.clickchecker.event.controller.EventCommandControllerIntegrationTest --tests com.clickchecker.event.service.EventQueryServiceTest --tests com.clickchecker.route.controller.RouteTemplateControllerIntegrationTest --tests com.clickchecker.route.service.RoutePathMatcherTest --tests com.clickchecker.route.service.RouteKeyResolverTest`
