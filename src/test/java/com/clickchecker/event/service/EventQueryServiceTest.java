@@ -11,9 +11,13 @@ import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
+import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathTimeBucketCountProjection;
+import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import java.time.Instant;
@@ -228,6 +232,102 @@ class EventQueryServiceTest {
                 new CanonicalEventTypeTimeBucketItem("click", bucket10, 9),
                 new CanonicalEventTypeTimeBucketItem(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, bucket11, 1),
                 new CanonicalEventTypeTimeBucketItem("view", bucket11, 3)
+        );
+    }
+
+    @Test
+    void countByTimeBucketBetween_fillsMissingDayBuckets_usingRequestedTimezone() {
+        Instant from = Instant.parse("2026-03-01T15:00:00Z");
+        Instant to = Instant.parse("2026-03-03T15:00:00Z");
+        Instant bucketStartKstDay1 = Instant.parse("2026-03-01T15:00:00Z");
+        Instant bucketStartKstDay2 = Instant.parse("2026-03-02T15:00:00Z");
+
+        when(eventQueryRepository.countRawOccurredAtBetween(
+                from,
+                to,
+                1L,
+                null,
+                null
+        )).thenReturn(List.of(
+                new RawOccurredAtCountProjection(Instant.parse("2026-03-02T00:30:00Z"), 3)
+        ));
+
+        List<TimeBucketCountProjection> result =
+                eventQueryService.countByTimeBucketBetween(from, to, 1L, null, null, TimeBucket.DAY, "Asia/Seoul");
+
+        assertThat(result).containsExactly(
+                new TimeBucketCountProjection(bucketStartKstDay1, 3),
+                new TimeBucketCountProjection(bucketStartKstDay2, 0)
+        );
+    }
+
+    @Test
+    void countByRouteKeyTimeBucketBetween_fillsMissingDayBuckets_usingRequestedTimezone() {
+        Instant from = Instant.parse("2026-03-01T15:00:00Z");
+        Instant to = Instant.parse("2026-03-03T15:00:00Z");
+        Instant bucketStartKstDay1 = Instant.parse("2026-03-01T15:00:00Z");
+        Instant bucketStartKstDay2 = Instant.parse("2026-03-02T15:00:00Z");
+
+        when(eventQueryRepository.countRawPathOccurredAtBetween(
+                from,
+                to,
+                1L,
+                null,
+                "click"
+        )).thenReturn(List.of(
+                new RawPathOccurredAtCountProjection("/posts/1", Instant.parse("2026-03-02T00:30:00Z"), 2)
+        ));
+
+        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
+
+        List<RouteTimeBucketItem> result =
+                eventQueryService.countByRouteKeyTimeBucketBetween(
+                        from,
+                        to,
+                        1L,
+                        null,
+                        "click",
+                        TimeBucket.DAY,
+                        "Asia/Seoul"
+                );
+
+        assertThat(result).containsExactly(
+                new RouteTimeBucketItem("/posts/{id}", bucketStartKstDay1, 2),
+                new RouteTimeBucketItem("/posts/{id}", bucketStartKstDay2, 0)
+        );
+    }
+
+    @Test
+    void countByCanonicalEventTypeTimeBucketBetween_fillsMissingDayBuckets_usingRequestedTimezone() {
+        Instant from = Instant.parse("2026-03-01T15:00:00Z");
+        Instant to = Instant.parse("2026-03-03T15:00:00Z");
+        Instant bucketStartKstDay1 = Instant.parse("2026-03-01T15:00:00Z");
+        Instant bucketStartKstDay2 = Instant.parse("2026-03-02T15:00:00Z");
+
+        when(eventQueryRepository.countRawEventTypeOccurredAtBetween(
+                from,
+                to,
+                1L,
+                null
+        )).thenReturn(List.of(
+                new RawEventTypeOccurredAtCountProjection("button_click", Instant.parse("2026-03-02T00:30:00Z"), 2)
+        ));
+
+        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+
+        List<CanonicalEventTypeTimeBucketItem> result =
+                eventQueryService.countByCanonicalEventTypeTimeBucketBetween(
+                        from,
+                        to,
+                        1L,
+                        null,
+                        TimeBucket.DAY,
+                        "Asia/Seoul"
+                );
+
+        assertThat(result).containsExactly(
+                new CanonicalEventTypeTimeBucketItem("click", bucketStartKstDay1, 2),
+                new CanonicalEventTypeTimeBucketItem("click", bucketStartKstDay2, 0)
         );
     }
 }

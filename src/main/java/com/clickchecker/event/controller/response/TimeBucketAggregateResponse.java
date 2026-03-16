@@ -12,6 +12,7 @@ public record TimeBucketAggregateResponse(
         Instant from,
         Instant to,
         String eventType,
+        String timezone,
         TimeBucket bucket,
         List<TimeBucketCountProjection> items
 ) {

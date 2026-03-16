@@ -10,6 +10,7 @@ public record RouteTimeBucketAggregateResponse(
         Instant from,
         Instant to,
         String eventType,
+        String timezone,
         TimeBucket bucket,
         List<RouteTimeBucketItem> items
 ) {

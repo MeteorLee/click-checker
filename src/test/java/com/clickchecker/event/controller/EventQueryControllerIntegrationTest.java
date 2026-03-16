@@ -477,21 +477,28 @@ class EventQueryControllerIntegrationTest {
 
         mockMvc.perform(
                         authorizedGet(apiKey, "/api/events/aggregates/route-time-buckets")
-                                .param("from", "2026-02-13T00:00:00Z")
-                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("from", "2026-02-13T10:00:00Z")
+                                .param("to", "2026-02-13T12:00:00Z")
                                 .param("eventType", "click")
                                 .param("bucket", "HOUR")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.timezone").value("UTC"))
                 .andExpect(jsonPath("$.bucket").value("HOUR"))
-                .andExpect(jsonPath("$.items.length()").value(2))
-                .andExpect(jsonPath("$.items[0].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.items[0].routeKey").value("/landing"))
                 .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
-                .andExpect(jsonPath("$.items[0].count").value(2))
-                .andExpect(jsonPath("$.items[1].routeKey").value("/landing"))
-                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T11:00:00Z"))
-                .andExpect(jsonPath("$.items[1].count").value(1));
+                .andExpect(jsonPath("$.items[0].count").value(0))
+                .andExpect(jsonPath("$.items[1].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T10:00:00Z"))
+                .andExpect(jsonPath("$.items[1].count").value(2))
+                .andExpect(jsonPath("$.items[2].routeKey").value("/landing"))
+                .andExpect(jsonPath("$.items[2].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[2].count").value(1))
+                .andExpect(jsonPath("$.items[3].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items[3].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[3].count").value(0));
     }
 
     @Test
@@ -511,23 +518,33 @@ class EventQueryControllerIntegrationTest {
 
         mockMvc.perform(
                         authorizedGet(apiKey, "/api/events/aggregates/event-type-time-buckets")
-                                .param("from", "2026-02-13T00:00:00Z")
-                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("from", "2026-02-13T10:00:00Z")
+                                .param("to", "2026-02-13T12:00:00Z")
                                 .param("bucket", "HOUR")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.timezone").value("UTC"))
                 .andExpect(jsonPath("$.bucket").value("HOUR"))
-                .andExpect(jsonPath("$.items.length()").value(3))
-                .andExpect(jsonPath("$.items[0].canonicalEventType").value("click"))
+                .andExpect(jsonPath("$.items.length()").value(6))
+                .andExpect(jsonPath("$.items[0].canonicalEventType").value("UNMAPPED_EVENT_TYPE"))
                 .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
-                .andExpect(jsonPath("$.items[0].count").value(2))
-                .andExpect(jsonPath("$.items[1].canonicalEventType").value("UNMAPPED_EVENT_TYPE"))
-                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T11:00:00Z"))
-                .andExpect(jsonPath("$.items[1].count").value(1))
+                .andExpect(jsonPath("$.items[0].count").value(0))
+                .andExpect(jsonPath("$.items[1].canonicalEventType").value("click"))
+                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T10:00:00Z"))
+                .andExpect(jsonPath("$.items[1].count").value(2))
                 .andExpect(jsonPath("$.items[2].canonicalEventType").value("view"))
-                .andExpect(jsonPath("$.items[2].bucketStart").value("2026-02-13T11:00:00Z"))
-                .andExpect(jsonPath("$.items[2].count").value(1));
+                .andExpect(jsonPath("$.items[2].bucketStart").value("2026-02-13T10:00:00Z"))
+                .andExpect(jsonPath("$.items[2].count").value(0))
+                .andExpect(jsonPath("$.items[3].canonicalEventType").value("UNMAPPED_EVENT_TYPE"))
+                .andExpect(jsonPath("$.items[3].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[3].count").value(1))
+                .andExpect(jsonPath("$.items[4].canonicalEventType").value("click"))
+                .andExpect(jsonPath("$.items[4].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[4].count").value(0))
+                .andExpect(jsonPath("$.items[5].canonicalEventType").value("view"))
+                .andExpect(jsonPath("$.items[5].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[5].count").value(1));
     }
 
     @Test
@@ -543,12 +560,13 @@ class EventQueryControllerIntegrationTest {
 
         mockMvc.perform(
                         authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
-                                .param("from", "2026-02-13T00:00:00Z")
-                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("from", "2026-02-13T10:00:00Z")
+                                .param("to", "2026-02-13T12:00:00Z")
                                 .param("bucket", "HOUR")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.timezone").value("UTC"))
                 .andExpect(jsonPath("$.bucket").value("HOUR"))
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
@@ -574,12 +592,43 @@ class EventQueryControllerIntegrationTest {
                                 .param("bucket", "DAY")
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timezone").value("UTC"))
                 .andExpect(jsonPath("$.bucket").value("DAY"))
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T00:00:00Z"))
                 .andExpect(jsonPath("$.items[0].count").value(2))
                 .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-14T00:00:00Z"))
                 .andExpect(jsonPath("$.items[1].count").value(1));
+    }
+
+    @Test
+    void aggregateTimeBuckets_usesTimezoneAndFillsMissingBuckets() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        eventRepository.save(Event.builder()
+                .eventType("click")
+                .path("/home")
+                .organization(organization)
+                .occurredAt(Instant.parse("2026-02-13T16:00:00Z"))
+                .build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                                .param("from", "2026-02-13T15:00:00Z")
+                                .param("to", "2026-02-15T15:00:00Z")
+                                .param("timezone", "Asia/Seoul")
+                                .param("bucket", "DAY")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timezone").value("Asia/Seoul"))
+                .andExpect(jsonPath("$.bucket").value("DAY"))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T15:00:00Z"))
+                .andExpect(jsonPath("$.items[0].count").value(1))
+                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-14T15:00:00Z"))
+                .andExpect(jsonPath("$.items[1].count").value(0));
     }
 
     @Test
@@ -598,12 +647,13 @@ class EventQueryControllerIntegrationTest {
         mockMvc.perform(
                         authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
                                 .param("externalUserId", "u-1001")
-                                .param("from", "2026-02-13T00:00:00Z")
-                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("from", "2026-02-13T10:00:00Z")
+                                .param("to", "2026-02-13T11:00:00Z")
                                 .param("bucket", "HOUR")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.externalUserId").value("u-1001"))
+                .andExpect(jsonPath("$.timezone").value("UTC"))
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
                 .andExpect(jsonPath("$.items[0].count").value(2));

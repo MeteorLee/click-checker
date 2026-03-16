@@ -10,6 +10,7 @@ public record CanonicalEventTypeTimeBucketAggregateResponse(
         String externalUserId,
         Instant from,
         Instant to,
+        String timezone,
         TimeBucket bucket,
         List<CanonicalEventTypeTimeBucketItem> items
 ) {

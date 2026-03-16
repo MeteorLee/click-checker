@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -178,11 +179,13 @@ public class EventQueryController {
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
+            @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
         }
+        validateTimezone(timezone);
 
         return new RouteTimeBucketAggregateResponse(
                 authOrgId,
@@ -190,6 +193,7 @@ public class EventQueryController {
                 from,
                 to,
                 eventType,
+                timezone,
                 bucket,
                 eventQueryService.countByRouteKeyTimeBucketBetween(
                         from,
@@ -197,7 +201,8 @@ public class EventQueryController {
                         authOrgId,
                         externalUserId,
                         eventType,
-                        bucket
+                        bucket,
+                        timezone
                 )
         );
     }
@@ -208,24 +213,28 @@ public class EventQueryController {
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
+            @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
         }
+        validateTimezone(timezone);
 
         return new CanonicalEventTypeTimeBucketAggregateResponse(
                 authOrgId,
                 externalUserId,
                 from,
                 to,
+                timezone,
                 bucket,
                 eventQueryService.countByCanonicalEventTypeTimeBucketBetween(
                         from,
                         to,
                         authOrgId,
                         externalUserId,
-                        bucket
+                        bucket,
+                        timezone
                 )
         );
     }
@@ -237,11 +246,13 @@ public class EventQueryController {
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
+            @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
         }
+        validateTimezone(timezone);
 
         List<TimeBucketCountProjection> items = eventQueryService.countByTimeBucketBetween(
                 from,
@@ -249,7 +260,8 @@ public class EventQueryController {
                 authOrgId,
                 externalUserId,
                 eventType,
-                bucket
+                bucket,
+                timezone
         );
 
         return new TimeBucketAggregateResponse(
@@ -258,8 +270,17 @@ public class EventQueryController {
                 from,
                 to,
                 eventType,
+                timezone,
                 bucket,
                 items
         );
+    }
+
+    private void validateTimezone(String timezone) {
+        try {
+            ZoneId.of(timezone);
+        } catch (Exception exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`timezone` is invalid.");
+        }
     }
 }
