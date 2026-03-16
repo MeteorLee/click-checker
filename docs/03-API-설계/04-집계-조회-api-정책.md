@@ -17,6 +17,7 @@
 - `GET /api/events/aggregates/event-type-time-buckets`
 - `GET /api/events/aggregates/paths`
 - `GET /api/events/aggregates/routes`
+- `GET /api/events/aggregates/routes/unmatched-paths`
 - `GET /api/events/aggregates/routes/unique-users`
 - `GET /api/events/aggregates/time-buckets`
 - `GET /api/events/route-templates`
@@ -226,6 +227,16 @@
   2. `path -> routeKey`를 적용한다.
   3. 같은 routeKey 안에서 distinct `eventUser.id` 수를 계산한다.
   4. `top`은 최종 routeKey unique user 결과에 적용한다.
+
+## routes/unmatched-paths 정책
+- `UNMATCHED_ROUTE` 운영 보조 조회
+- route template에 매칭되지 않은 실제 raw path 목록을 보여준다.
+- 현재 구현은 다음 순서로 계산한다.
+  1. raw path별 count를 먼저 구한다.
+  2. 각 path를 `path -> routeKey`로 해석한다.
+  3. `UNMATCHED_ROUTE`로 떨어지는 path만 남긴다.
+  4. `count desc`, `path asc` 정렬 후 `top`을 적용한다.
+- 목적은 route template를 보강할 운영 입력을 제공하는 것이다.
 
 ## time-buckets 정책
 - 시간 구간별 count 집계
