@@ -1,16 +1,16 @@
 package com.clickchecker.event.service;
 
-import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
-import com.clickchecker.event.controller.response.CanonicalEventTypeTimeBucketItem;
-import com.clickchecker.event.controller.response.CanonicalEventTypeUniqueUserItem;
-import com.clickchecker.event.controller.response.OverviewResponse;
-import com.clickchecker.event.controller.response.RouteAggregateItem;
-import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
-import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketItem;
-import com.clickchecker.event.controller.response.RouteTimeBucketItem;
-import com.clickchecker.event.controller.response.RouteUniqueUserItem;
-import com.clickchecker.event.controller.response.UnmatchedPathItem;
-import com.clickchecker.event.model.TimeBucket;
+import com.clickchecker.analytics.common.model.TimeBucket;
+import com.clickchecker.analytics.overview.controller.response.OverviewResponse;
+import com.clickchecker.analytics.aggregate.controller.response.CanonicalEventTypeItem;
+import com.clickchecker.analytics.aggregate.controller.response.CanonicalEventTypeUniqueUserItem;
+import com.clickchecker.analytics.aggregate.controller.response.RouteAggregateItem;
+import com.clickchecker.analytics.aggregate.controller.response.RouteEventTypeAggregateItem;
+import com.clickchecker.analytics.aggregate.controller.response.RouteUniqueUserItem;
+import com.clickchecker.analytics.aggregate.controller.response.UnmatchedPathItem;
+import com.clickchecker.analytics.trend.controller.response.CanonicalEventTypeTimeBucketItem;
+import com.clickchecker.analytics.trend.controller.response.RouteEventTypeTimeBucketItem;
+import com.clickchecker.analytics.trend.controller.response.RouteTimeBucketItem;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
