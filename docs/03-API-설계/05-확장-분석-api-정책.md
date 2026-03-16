@@ -7,9 +7,9 @@
 
 ## 현재 엔드포인트
 - `GET /api/v1/events/analytics/users/overview`
+- `POST /api/v1/events/analytics/funnels/report`
 
 ## 예정 엔드포인트
-- `POST /api/v1/events/analytics/funnels/report`
 - `GET /api/v1/events/analytics/retention/daily`
 
 ## 공통 인증 / 스코프
@@ -22,8 +22,9 @@
 ## 공통 시간 / 사용자 기준
 - `from`, `to`
   - 필수
-  - 기준: `from <= occurredAt < to`
+  - 기본 기준: `from <= occurredAt < to`
   - `Instant` 절대시간 범위로 해석한다.
+  - 단, funnel은 `step1 anchor`는 `from <= occurredAt < to`에서 찾고, 후속 step 탐색은 기본 conversion window(`7일`)만큼 lookahead 한다.
 - `timezone`
   - funnel / retention / cohort 응답 메타와 날짜 해석에 사용한다.
   - 특히 cohort date와 retention day bucket은 요청 timezone 기준 local date로 해석한다.
@@ -74,6 +75,25 @@
 ### 목적
 - 식별 사용자 기준 전환 흐름을 step 순서대로 계산한다.
 
+### 엔드포인트
+- `POST /api/v1/events/analytics/funnels/report`
+
+### 요청 항목
+- `from`
+- `to`
+- `externalUserId` (선택)
+- `steps`
+  - canonical eventType 이름 목록
+  - 최소 2개, 최대 4개
+
+### 응답 항목
+- `steps`
+- `conversionWindow`
+- `items[].stepOrder`
+- `items[].canonicalEventType`
+- `items[].users`
+- `items[].conversionRateFromFirstStep`
+
 ### 최소 지원 범위
 - 2~4 step
 - step 정의는 `canonicalEventType only`
@@ -86,10 +106,17 @@
 
 ### anchor / 순서 규칙
 - 각 사용자는 step1의 최초 발생 시점을 anchor로 삼는다.
+- step1 anchor는 `from <= occurredAt < to` 범위에서만 찾는다.
 - anchor 이전에 발생한 step2~N 이벤트는 계산에 포함하지 않는다.
 - 각 step은 직전 인정 step 시각 이상에서 조건을 만족하는 최초 이벤트 1건만 인정한다.
 - 같은 step 이벤트를 여러 번 발생시켜도 가장 이른 인정 1건만 사용한다.
 - step2 없이 step3만 발생한 사용자는 step3 전환자로 인정하지 않는다.
+
+### conversion window 적용 방식
+- 최소 버전의 기본 conversion window는 `7일`이다.
+- 후속 step은 anchor 시각부터 `7일` 이내에서만 인정한다.
+- 따라서 실제 계산 시에는 `to` 이후 이벤트도 최대 `7일` lookahead 하여 step2~N를 판정할 수 있다.
+- 단, step1 anchor 자체는 항상 요청 구간(`from ~ to`) 안에서만 잡는다.
 
 ### same timestamp 규칙
 - 같은 timestamp의 이벤트는 허용한다.
@@ -160,6 +187,8 @@
 
 ## 현재 제한
 - `users/overview`는 현재 `externalUserId` 필터만 지원한다.
-- funnel은 아직 구현 전이며, canonical eventType only step 계약만 고정한 상태다.
+- funnel은 현재 `canonicalEventType only` step만 지원한다.
+- funnel 응답의 비율은 현재 `step1` 대비 `conversionRateFromFirstStep`만 제공한다.
+- funnel의 custom conversion window, routeKey 결합 step, drop-off 상세 값은 아직 지원하지 않는다.
 - retention / cohort도 아직 구현 전이며, exact-day / timezone 기준만 먼저 문서로 고정한 상태다.
 - anonymous 포함 사용자 분석과 identity 병합은 이번 단계 범위 밖이다.
