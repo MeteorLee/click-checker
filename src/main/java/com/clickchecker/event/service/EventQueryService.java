@@ -6,6 +6,7 @@ import com.clickchecker.event.controller.response.CanonicalEventTypeTimeBucketIt
 import com.clickchecker.event.controller.response.RawEventTypeItem;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
+import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketItem;
 import com.clickchecker.event.controller.response.RouteTimeBucketItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
@@ -394,6 +395,64 @@ public class EventQueryService {
         return items;
     }
 
+    @Transactional(readOnly = true)
+    public List<RouteEventTypeTimeBucketItem> countByRouteKeyAndCanonicalEventTypeTimeBucketBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            TimeBucket bucket,
+            String timezone
+    ) {
+        ZoneId zoneId = ZoneId.of(timezone);
+        Map<RouteEventTypeTimeBucketKey, Long> countsByKey = eventQueryRepository.countRawPathEventTypeOccurredAtBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId
+                ).stream()
+                .collect(Collectors.groupingBy(
+                        item -> new RouteEventTypeTimeBucketKey(
+                                routeKeyResolver.resolve(organizationId, item.path()),
+                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                                bucket.floor(item.occurredAt(), zoneId)
+                        ),
+                        Collectors.summingLong(item -> item.count())
+                ));
+
+        List<RouteEventTypeAxis> axes = countsByKey.keySet().stream()
+                .map(key -> new RouteEventTypeAxis(key.routeKey(), key.canonicalEventType()))
+                .distinct()
+                .sorted(Comparator
+                        .comparing(RouteEventTypeAxis::routeKey)
+                        .thenComparing(RouteEventTypeAxis::canonicalEventType))
+                .toList();
+
+        if (axes.isEmpty()) {
+            return List.of();
+        }
+
+        List<RouteEventTypeTimeBucketItem> items = new ArrayList<>();
+        for (Instant bucketStart : bucketStarts(from, to, bucket, zoneId)) {
+            for (RouteEventTypeAxis axis : axes) {
+                items.add(new RouteEventTypeTimeBucketItem(
+                        axis.routeKey(),
+                        axis.canonicalEventType(),
+                        bucketStart,
+                        countsByKey.getOrDefault(
+                                new RouteEventTypeTimeBucketKey(
+                                        axis.routeKey(),
+                                        axis.canonicalEventType(),
+                                        bucketStart
+                                ),
+                                0L
+                        )
+                ));
+            }
+        }
+        return items;
+    }
+
     private Instant previousFrom(Instant from, Instant to) {
         return from.minus(Duration.between(from, to));
     }
@@ -488,6 +547,19 @@ public class EventQueryService {
     private record CanonicalEventTypeTimeBucketKey(
             String canonicalEventType,
             Instant bucketStart
+    ) {
+    }
+
+    private record RouteEventTypeTimeBucketKey(
+            String routeKey,
+            String canonicalEventType,
+            Instant bucketStart
+    ) {
+    }
+
+    private record RouteEventTypeAxis(
+            String routeKey,
+            String canonicalEventType
     ) {
     }
 

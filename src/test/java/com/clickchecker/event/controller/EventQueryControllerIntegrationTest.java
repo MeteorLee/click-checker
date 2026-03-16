@@ -548,6 +548,49 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
+    void aggregateRouteEventTypeTimeBuckets_groupsByResolvedAxesWithinEachBucket() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        saveRouteTemplate(organization, "/posts/{id}", "/posts/{id}", 100);
+        saveRouteTemplate(organization, "/landing", "/landing", 10);
+        saveEventTypeMapping(organization, "button_click", "click");
+        saveEventTypeMapping(organization, "page_view", "view");
+
+        eventRepository.save(Event.builder().eventType("button_click").path("/posts/1").organization(organization).occurredAt(Instant.parse("2026-02-13T10:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("page_view").path("/landing").organization(organization).occurredAt(Instant.parse("2026-02-13T11:15:00Z")).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/route-event-type-time-buckets")
+                                .param("from", "2026-02-13T10:00:00Z")
+                                .param("to", "2026-02-13T12:00:00Z")
+                                .param("bucket", "HOUR")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.timezone").value("UTC"))
+                .andExpect(jsonPath("$.bucket").value("HOUR"))
+                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.items[0].routeKey").value("/landing"))
+                .andExpect(jsonPath("$.items[0].canonicalEventType").value("view"))
+                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
+                .andExpect(jsonPath("$.items[0].count").value(0))
+                .andExpect(jsonPath("$.items[1].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items[1].canonicalEventType").value("click"))
+                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T10:00:00Z"))
+                .andExpect(jsonPath("$.items[1].count").value(1))
+                .andExpect(jsonPath("$.items[2].routeKey").value("/landing"))
+                .andExpect(jsonPath("$.items[2].canonicalEventType").value("view"))
+                .andExpect(jsonPath("$.items[2].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[2].count").value(1))
+                .andExpect(jsonPath("$.items[3].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items[3].canonicalEventType").value("click"))
+                .andExpect(jsonPath("$.items[3].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[3].count").value(0));
+    }
+
+    @Test
     void aggregateTimeBuckets_groupsByHour() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");

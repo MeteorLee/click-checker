@@ -9,6 +9,7 @@ import com.clickchecker.event.controller.response.RawEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteAggregateResponse;
 import com.clickchecker.event.controller.response.RouteEventTypeAggregateResponse;
+import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketAggregateResponse;
 import com.clickchecker.event.controller.response.RouteTimeBucketAggregateResponse;
 import com.clickchecker.event.controller.response.TimeBucketAggregateResponse;
 import com.clickchecker.event.model.TimeBucket;
@@ -150,6 +151,36 @@ public class EventQueryController {
                 to,
                 top,
                 eventQueryService.countByRouteKeyAndCanonicalEventTypeBetween(from, to, authOrgId, externalUserId, top)
+        );
+    }
+
+    @GetMapping("/aggregates/route-event-type-time-buckets")
+    public RouteEventTypeTimeBucketAggregateResponse aggregateRouteEventTypeTimeBuckets(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "UTC") String timezone,
+            @RequestParam TimeBucket bucket
+    ) {
+        validateTimeRange(from, to);
+        validateTimezone(timezone);
+
+        return new RouteEventTypeTimeBucketAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                timezone,
+                bucket,
+                eventQueryService.countByRouteKeyAndCanonicalEventTypeTimeBucketBetween(
+                        from,
+                        to,
+                        authOrgId,
+                        externalUserId,
+                        bucket,
+                        timezone
+                )
         );
     }
 

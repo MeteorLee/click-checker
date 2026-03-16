@@ -7,6 +7,7 @@ import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -300,6 +301,35 @@ public class EventQueryRepository {
                 )
                 .groupBy(event.eventType, event.occurredAt)
                 .orderBy(event.occurredAt.asc(), event.eventType.asc())
+                .fetch();
+    }
+
+    public List<RawPathEventTypeOccurredAtCountProjection> countRawPathEventTypeOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        RawPathEventTypeOccurredAtCountProjection.class,
+                        event.path,
+                        event.eventType,
+                        event.occurredAt,
+                        event.id.count()
+                ))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        pathExists(),
+                        eventTypeExists()
+                )
+                .groupBy(event.path, event.eventType, event.occurredAt)
+                .orderBy(event.occurredAt.asc(), event.path.asc(), event.eventType.asc())
                 .fetch();
     }
 
