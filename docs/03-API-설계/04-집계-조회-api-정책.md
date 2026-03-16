@@ -10,12 +10,14 @@
 - `GET /api/events/aggregates/overview`
 - `GET /api/events/aggregates/raw-event-types`
 - `GET /api/events/aggregates/event-types`
+- `GET /api/events/aggregates/event-types/unique-users`
 - `GET /api/events/aggregates/route-event-types`
 - `GET /api/events/aggregates/route-event-type-time-buckets`
 - `GET /api/events/aggregates/route-time-buckets`
 - `GET /api/events/aggregates/event-type-time-buckets`
 - `GET /api/events/aggregates/paths`
 - `GET /api/events/aggregates/routes`
+- `GET /api/events/aggregates/routes/unique-users`
 - `GET /api/events/aggregates/time-buckets`
 - `GET /api/events/route-templates`
 - `POST /api/events/route-templates`
@@ -141,6 +143,16 @@
 - raw eventType을 직접 노출하는 대신 조직별 매핑 규칙으로 묶은 값을 보여준다.
 - `top`은 raw eventType 단계가 아니라 canonical 재집계 이후에 적용한다.
 
+## event-types/unique-users 정책
+- canonical eventType 기준 unique user 상세 집계
+- raw eventType을 직접 노출하지 않고, 조직별 매핑 규칙으로 묶은 canonical eventType별 distinct `eventUser.id` 수를 보여준다.
+- 현재 구현은 다음 순서로 계산한다.
+  1. `eventType + eventUserId` raw 조합을 먼저 구한다.
+  2. `rawEventType -> canonicalEventType`를 적용한다.
+  3. 같은 canonical eventType 안에서 distinct `eventUser.id` 수를 계산한다.
+  4. `top`은 최종 canonical eventType unique user 결과에 적용한다.
+- 매핑되지 않은 eventType은 `UNMAPPED_EVENT_TYPE`으로 포함할 수 있다.
+
 ## route-event-types 정책
 - routeKey × canonical eventType 교차 집계
 - raw path와 raw eventType을 직접 노출하지 않고, 두 축을 각각 정규화한 뒤 조합별 count를 보여준다.
@@ -195,6 +207,15 @@
 - routeKey 기준 상세 집계
 - raw path를 직접 노출하는 대신 route template 기준으로 묶은 값을 보여준다.
 - `top`은 raw path 단계가 아니라 routeKey 재집계 이후에 적용한다.
+
+## routes/unique-users 정책
+- routeKey 기준 unique user 상세 집계
+- raw path를 직접 노출하지 않고, route template 기준으로 묶은 routeKey별 distinct `eventUser.id` 수를 보여준다.
+- 현재 구현은 다음 순서로 계산한다.
+  1. `path + eventUserId` raw 조합을 먼저 구한다.
+  2. `path -> routeKey`를 적용한다.
+  3. 같은 routeKey 안에서 distinct `eventUser.id` 수를 계산한다.
+  4. `top`은 최종 routeKey unique user 결과에 적용한다.
 
 ## time-buckets 정책
 - 시간 구간별 count 집계
