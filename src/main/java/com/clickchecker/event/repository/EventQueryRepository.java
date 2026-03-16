@@ -2,12 +2,14 @@ package com.clickchecker.event.repository;
 
 import com.clickchecker.event.entity.QEvent;
 import com.clickchecker.event.repository.projection.EventTypeCountProjection;
+import com.clickchecker.event.repository.projection.IdentifiedUserEventTypeOccurredAtProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeUserCountProjection;
 import com.clickchecker.event.repository.projection.IdentifiedUserFirstSeenProjection;
 import com.clickchecker.event.repository.projection.IdentifiedUserEventCountProjection;
+import com.clickchecker.event.repository.projection.IdentifiedUserOccurredAtProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
@@ -487,6 +489,58 @@ public class EventQueryRepository {
                 )
                 .groupBy(event.eventUser.id)
                 .orderBy(event.eventUser.id.asc())
+                .fetch();
+    }
+
+    public List<IdentifiedUserEventTypeOccurredAtProjection> findIdentifiedUserEventTypeOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        IdentifiedUserEventTypeOccurredAtProjection.class,
+                        event.eventUser.id,
+                        event.eventType,
+                        event.occurredAt
+                ))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        event.eventUser.isNotNull(),
+                        eventTypeExists()
+                )
+                .orderBy(event.eventUser.id.asc(), event.occurredAt.asc(), event.eventType.asc())
+                .fetch();
+    }
+
+    public List<IdentifiedUserOccurredAtProjection> findIdentifiedUserOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        IdentifiedUserOccurredAtProjection.class,
+                        event.eventUser.id,
+                        event.occurredAt
+                ))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        event.eventUser.isNotNull()
+                )
+                .orderBy(event.eventUser.id.asc(), event.occurredAt.asc())
                 .fetch();
     }
 
