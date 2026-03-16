@@ -1,6 +1,7 @@
 package com.clickchecker.event.controller;
 
 import com.clickchecker.event.controller.response.CanonicalEventTypeAggregateResponse;
+import com.clickchecker.event.controller.response.CanonicalEventTypeTimeBucketAggregateResponse;
 import com.clickchecker.event.controller.response.CountResponse;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.PathAggregateResponse;
@@ -8,6 +9,7 @@ import com.clickchecker.event.controller.response.RawEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteAggregateResponse;
 import com.clickchecker.event.controller.response.RouteEventTypeAggregateResponse;
+import com.clickchecker.event.controller.response.RouteTimeBucketAggregateResponse;
 import com.clickchecker.event.controller.response.TimeBucketAggregateResponse;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.projection.PathCountProjection;
@@ -166,6 +168,65 @@ public class EventQueryController {
                 to,
                 top,
                 eventQueryService.countByRouteKeyAndCanonicalEventTypeBetween(from, to, authOrgId, externalUserId, top)
+        );
+    }
+
+    @GetMapping("/aggregates/route-time-buckets")
+    public RouteTimeBucketAggregateResponse aggregateRouteTimeBuckets(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(required = false) String eventType,
+            @RequestParam TimeBucket bucket
+    ) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+
+        return new RouteTimeBucketAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                eventType,
+                bucket,
+                eventQueryService.countByRouteKeyTimeBucketBetween(
+                        from,
+                        to,
+                        authOrgId,
+                        externalUserId,
+                        eventType,
+                        bucket
+                )
+        );
+    }
+
+    @GetMapping("/aggregates/event-type-time-buckets")
+    public CanonicalEventTypeTimeBucketAggregateResponse aggregateEventTypeTimeBuckets(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam TimeBucket bucket
+    ) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+
+        return new CanonicalEventTypeTimeBucketAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                bucket,
+                eventQueryService.countByCanonicalEventTypeTimeBucketBetween(
+                        from,
+                        to,
+                        authOrgId,
+                        externalUserId,
+                        bucket
+                )
         );
     }
 

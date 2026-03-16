@@ -1,14 +1,19 @@
 package com.clickchecker.event.service;
 
 import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
+import com.clickchecker.event.controller.response.CanonicalEventTypeTimeBucketItem;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
+import com.clickchecker.event.controller.response.RouteTimeBucketItem;
+import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawPathTimeBucketCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import java.time.Instant;
@@ -165,6 +170,64 @@ class EventQueryServiceTest {
                 new RouteEventTypeAggregateItem("/posts/{id}", "click", 9),
                 new RouteEventTypeAggregateItem("/landing", "view", 3),
                 new RouteEventTypeAggregateItem("/landing", CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, 2)
+        );
+    }
+
+    @Test
+    void countByRouteKeyTimeBucketBetween_aggregatesByResolvedRouteKey_withinEachBucket() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+        Instant bucket10 = Instant.parse("2026-03-01T10:00:00Z");
+        Instant bucket11 = Instant.parse("2026-03-01T11:00:00Z");
+
+        when(eventQueryRepository.countRawPathTimeBucketBetween(from, to, 1L, null, "click", TimeBucket.HOUR))
+                .thenReturn(List.of(
+                        new RawPathTimeBucketCountProjection("/posts/1", bucket10, 5),
+                        new RawPathTimeBucketCountProjection("/posts/2", bucket10, 4),
+                        new RawPathTimeBucketCountProjection("/landing", bucket11, 3)
+                ));
+
+        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/posts/2")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
+
+        List<RouteTimeBucketItem> result =
+                eventQueryService.countByRouteKeyTimeBucketBetween(from, to, 1L, null, "click", TimeBucket.HOUR);
+
+        assertThat(result).containsExactly(
+                new RouteTimeBucketItem("/posts/{id}", bucket10, 9),
+                new RouteTimeBucketItem("/landing", bucket11, 3)
+        );
+    }
+
+    @Test
+    void countByCanonicalEventTypeTimeBucketBetween_aggregatesByResolvedCanonicalEventType_withinEachBucket() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+        Instant bucket10 = Instant.parse("2026-03-01T10:00:00Z");
+        Instant bucket11 = Instant.parse("2026-03-01T11:00:00Z");
+
+        when(eventQueryRepository.countRawEventTypeTimeBucketBetween(from, to, 1L, null, TimeBucket.HOUR))
+                .thenReturn(List.of(
+                        new RawEventTypeTimeBucketCountProjection("button_click", bucket10, 5),
+                        new RawEventTypeTimeBucketCountProjection("post_click", bucket10, 4),
+                        new RawEventTypeTimeBucketCountProjection("page_view", bucket11, 3),
+                        new RawEventTypeTimeBucketCountProjection("mystery_event", bucket11, 1)
+                ));
+
+        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
+        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
+                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+
+        List<CanonicalEventTypeTimeBucketItem> result =
+                eventQueryService.countByCanonicalEventTypeTimeBucketBetween(from, to, 1L, null, TimeBucket.HOUR);
+
+        assertThat(result).containsExactly(
+                new CanonicalEventTypeTimeBucketItem("click", bucket10, 9),
+                new CanonicalEventTypeTimeBucketItem(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, bucket11, 1),
+                new CanonicalEventTypeTimeBucketItem("view", bucket11, 3)
         );
     }
 }
