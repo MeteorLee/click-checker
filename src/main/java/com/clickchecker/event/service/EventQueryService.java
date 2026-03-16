@@ -79,6 +79,7 @@ public class EventQueryService {
                 currentTotalEvents,
                 currentUniqueUsers,
                 identifiedEventRate(currentTotalEvents, identifiedEvents),
+                eventTypeMappingCoverage(from, to, organizationId, externalUserId, eventType),
                 toComparison(currentTotalEvents, previousTotalEvents),
                 toRouteSummaries(from, to, organizationId, externalUserId, eventType),
                 toEventTypeSummaries(from, to, organizationId, externalUserId, eventType)
@@ -144,6 +145,40 @@ public class EventQueryService {
                         .thenComparing(CanonicalEventTypeItem::canonicalEventType))
                 .limit(top)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Double eventTypeMappingCoverageBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        long totalEventsWithEventType = eventQueryRepository.countEventsWithEventTypeBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId
+        );
+
+        if (totalEventsWithEventType == 0) {
+            return null;
+        }
+
+        long mappedEvents = eventQueryRepository.countRawEventTypeBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
+                        Integer.MAX_VALUE
+                ).stream()
+                .filter(item -> !CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE.equals(
+                        canonicalEventTypeResolver.resolve(organizationId, item.rawEventType())
+                ))
+                .mapToLong(RawEventTypeCountProjection::count)
+                .sum();
+
+        return mappedEvents / (double) totalEventsWithEventType;
     }
 
     @Transactional(readOnly = true)
@@ -592,6 +627,20 @@ public class EventQueryService {
             return null;
         }
         return identifiedEvents / (double) totalEvents;
+    }
+
+    private Double eventTypeMappingCoverage(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
+        if (eventType != null && !eventType.isBlank()) {
+            return null;
+        }
+
+        return eventTypeMappingCoverageBetween(from, to, organizationId, externalUserId);
     }
 
     private List<OverviewResponse.RouteSummary> toRouteSummaries(

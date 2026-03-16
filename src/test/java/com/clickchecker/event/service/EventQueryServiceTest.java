@@ -84,6 +84,8 @@ class EventQueryServiceTest {
                 .thenReturn(2L);
         when(eventQueryRepository.countIdentifiedEventsBetween(from, to, 1L, null, null))
                 .thenReturn(2L);
+        when(eventQueryRepository.countEventsWithEventTypeBetween(from, to, 1L, null))
+                .thenReturn(3L);
         when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, null))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 2),
@@ -105,6 +107,7 @@ class EventQueryServiceTest {
         assertThat(result.totalEvents()).isEqualTo(3);
         assertThat(result.uniqueUsers()).isEqualTo(2);
         assertThat(result.identifiedEventRate()).isEqualTo(2.0 / 3.0);
+        assertThat(result.eventTypeMappingCoverage()).isEqualTo(1.0);
         assertThat(result.comparison().current()).isEqualTo(3);
         assertThat(result.comparison().previous()).isZero();
         assertThat(result.comparison().delta()).isEqualTo(3);
@@ -171,6 +174,28 @@ class EventQueryServiceTest {
                 new CanonicalEventTypeUniqueUserItem("click", 2),
                 new CanonicalEventTypeUniqueUserItem("view", 1)
         );
+    }
+
+    @Test
+    void eventTypeMappingCoverageBetween_returnsMappedEventRatio() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+
+        when(eventQueryRepository.countEventsWithEventTypeBetween(from, to, 1L, null))
+                .thenReturn(10L);
+        when(eventQueryRepository.countRawEventTypeBetween(from, to, 1L, null, Integer.MAX_VALUE))
+                .thenReturn(List.of(
+                        new RawEventTypeCountProjection("button_click", 6),
+                        new RawEventTypeCountProjection("mystery_event", 4)
+                ));
+
+        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
+                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+
+        Double result = eventQueryService.eventTypeMappingCoverageBetween(from, to, 1L, null);
+
+        assertThat(result).isEqualTo(0.6);
     }
 
     @Test
