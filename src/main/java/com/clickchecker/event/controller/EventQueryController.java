@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -164,14 +165,14 @@ public class EventQueryController {
             @RequestParam TimeBucket bucket
     ) {
         validateTimeRange(from, to);
-        validateTimezone(timezone);
+        ZoneId zoneId = validateTimezone(timezone);
 
         return new RouteEventTypeTimeBucketAggregateResponse(
                 authOrgId,
                 externalUserId,
                 from,
                 to,
-                timezone,
+                zoneId.getId(),
                 bucket,
                 eventQueryService.countByRouteKeyAndCanonicalEventTypeTimeBucketBetween(
                         from,
@@ -179,7 +180,7 @@ public class EventQueryController {
                         authOrgId,
                         externalUserId,
                         bucket,
-                        timezone
+                        zoneId.getId()
                 )
         );
     }
@@ -195,7 +196,7 @@ public class EventQueryController {
             @RequestParam TimeBucket bucket
     ) {
         validateTimeRange(from, to);
-        validateTimezone(timezone);
+        ZoneId zoneId = validateTimezone(timezone);
 
         return new RouteTimeBucketAggregateResponse(
                 authOrgId,
@@ -203,7 +204,7 @@ public class EventQueryController {
                 from,
                 to,
                 eventType,
-                timezone,
+                zoneId.getId(),
                 bucket,
                 eventQueryService.countByRouteKeyTimeBucketBetween(
                         from,
@@ -212,7 +213,7 @@ public class EventQueryController {
                         externalUserId,
                         eventType,
                         bucket,
-                        timezone
+                        zoneId.getId()
                 )
         );
     }
@@ -227,14 +228,14 @@ public class EventQueryController {
             @RequestParam TimeBucket bucket
     ) {
         validateTimeRange(from, to);
-        validateTimezone(timezone);
+        ZoneId zoneId = validateTimezone(timezone);
 
         return new CanonicalEventTypeTimeBucketAggregateResponse(
                 authOrgId,
                 externalUserId,
                 from,
                 to,
-                timezone,
+                zoneId.getId(),
                 bucket,
                 eventQueryService.countByCanonicalEventTypeTimeBucketBetween(
                         from,
@@ -242,7 +243,7 @@ public class EventQueryController {
                         authOrgId,
                         externalUserId,
                         bucket,
-                        timezone
+                        zoneId.getId()
                 )
         );
     }
@@ -258,7 +259,7 @@ public class EventQueryController {
             @RequestParam TimeBucket bucket
     ) {
         validateTimeRange(from, to);
-        validateTimezone(timezone);
+        ZoneId zoneId = validateTimezone(timezone);
 
         List<TimeBucketCountProjection> items = eventQueryService.countByTimeBucketBetween(
                 from,
@@ -267,7 +268,7 @@ public class EventQueryController {
                 externalUserId,
                 eventType,
                 bucket,
-                timezone
+                zoneId.getId()
         );
 
         return new TimeBucketAggregateResponse(
@@ -276,7 +277,7 @@ public class EventQueryController {
                 from,
                 to,
                 eventType,
-                timezone,
+                zoneId.getId(),
                 bucket,
                 items
         );
@@ -297,10 +298,10 @@ public class EventQueryController {
         }
     }
 
-    private void validateTimezone(String timezone) {
+    private ZoneId validateTimezone(String timezone) {
         try {
-            ZoneId.of(timezone);
-        } catch (Exception exception) {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`timezone` is invalid.");
         }
     }

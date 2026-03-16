@@ -11,11 +11,14 @@ import com.clickchecker.event.controller.response.RouteTimeBucketItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
-import com.clickchecker.event.repository.projection.EventTypeCountProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
+import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
+import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -60,8 +64,7 @@ public class EventQueryService {
         long identifiedEvents = eventQueryRepository.countIdentifiedEventsBetween(from, to, organizationId, externalUserId, eventType);
 
         Instant previousFrom = previousFrom(from, to);
-        Instant previousTo = from;
-        long previousTotalEvents = eventQueryRepository.countBetween(previousFrom, previousTo, organizationId, externalUserId, eventType);
+        long previousTotalEvents = eventQueryRepository.countBetween(previousFrom, from, organizationId, externalUserId, eventType);
 
         return new OverviewResponse(
                 organizationId,
@@ -189,7 +192,7 @@ public class EventQueryService {
                                 routeKeyResolver.resolve(organizationId, item.path()),
                                 canonicalEventTypeResolver.resolve(organizationId, item.rawEventType())
                         ),
-                        Collectors.summingLong(item -> item.count())
+                        Collectors.summingLong(RawPathEventTypeCountProjection::count)
                 ));
 
         return countsByRouteEventType.entrySet().stream()
@@ -214,48 +217,23 @@ public class EventQueryService {
             Long organizationId,
             String externalUserId,
             String eventType,
-            TimeBucket bucket
-    ) {
-        return countByTimeBucketBetween(
-                from,
-                to,
-                organizationId,
-                externalUserId,
-                eventType,
-                bucket,
-                "UTC"
-        );
-    }
-
-    @Transactional(readOnly = true)
-    public List<TimeBucketCountProjection> countByTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            String eventType,
             TimeBucket bucket,
             String timezone
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
-        Map<Instant, Long> countsByBucket = eventQueryRepository.countRawOccurredAtBetween(
+        return buildTimeBucketCounts(
+                eventQueryRepository.countRawOccurredAtBetween(
                         from,
                         to,
                         organizationId,
                         externalUserId,
                         eventType
-                ).stream()
-                .collect(Collectors.groupingBy(
-                        item -> bucket.floor(item.occurredAt(), zoneId),
-                        Collectors.summingLong(RawOccurredAtCountProjection::count)
-                ));
-
-        return bucketStarts(from, to, bucket, zoneId).stream()
-                .map(bucketStart -> new TimeBucketCountProjection(
-                        bucketStart,
-                        countsByBucket.getOrDefault(bucketStart, 0L)
-                ))
-                .toList();
+                ),
+                from,
+                to,
+                bucket,
+                zoneId
+        );
     }
 
     @Transactional(readOnly = true)
@@ -267,14 +245,19 @@ public class EventQueryService {
             String eventType,
             TimeBucket bucket
     ) {
-        return countByRouteKeyTimeBucketBetween(
+        return buildRouteTimeBucketItems(
+                eventQueryRepository.countRawPathOccurredAtBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
+                        eventType
+                ),
+                organizationId,
                 from,
                 to,
-                organizationId,
-                externalUserId,
-                eventType,
                 bucket,
-                "UTC"
+                ZoneOffset.UTC
         );
     }
 
@@ -289,42 +272,20 @@ public class EventQueryService {
             String timezone
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
-        Map<RouteTimeBucketKey, Long> countsByRouteBucket = eventQueryRepository.countRawPathOccurredAtBetween(
+        return buildRouteTimeBucketItems(
+                eventQueryRepository.countRawPathOccurredAtBetween(
                         from,
                         to,
                         organizationId,
                         externalUserId,
                         eventType
-                ).stream()
-                .collect(Collectors.groupingBy(
-                        item -> new RouteTimeBucketKey(
-                                routeKeyResolver.resolve(organizationId, item.path()),
-                                bucket.floor(item.occurredAt(), zoneId)
-                        ),
-                        Collectors.summingLong(item -> item.count())
-                ));
-
-        List<String> routeKeys = countsByRouteBucket.keySet().stream()
-                .map(RouteTimeBucketKey::routeKey)
-                .distinct()
-                .sorted()
-                .toList();
-
-        if (routeKeys.isEmpty()) {
-            return List.of();
-        }
-
-        List<RouteTimeBucketItem> items = new ArrayList<>();
-        for (Instant bucketStart : bucketStarts(from, to, bucket, zoneId)) {
-            for (String routeKey : routeKeys) {
-                items.add(new RouteTimeBucketItem(
-                        routeKey,
-                        bucketStart,
-                        countsByRouteBucket.getOrDefault(new RouteTimeBucketKey(routeKey, bucketStart), 0L)
-                ));
-            }
-        }
-        return items;
+                ),
+                organizationId,
+                from,
+                to,
+                bucket,
+                zoneId
+        );
     }
 
     @Transactional(readOnly = true)
@@ -335,64 +296,44 @@ public class EventQueryService {
             String externalUserId,
             TimeBucket bucket
     ) {
-        return countByCanonicalEventTypeTimeBucketBetween(
-                from,
-                to,
-                organizationId,
-                externalUserId,
-                bucket,
-                "UTC"
-        );
-    }
-
-    @Transactional(readOnly = true)
-    public List<CanonicalEventTypeTimeBucketItem> countByCanonicalEventTypeTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            TimeBucket bucket,
-            String timezone
-    ) {
-        ZoneId zoneId = ZoneId.of(timezone);
-        Map<CanonicalEventTypeTimeBucketKey, Long> countsByEventTypeBucket = eventQueryRepository.countRawEventTypeOccurredAtBetween(
+        return buildCanonicalEventTypeTimeBucketItems(
+                eventQueryRepository.countRawEventTypeOccurredAtBetween(
                         from,
                         to,
                         organizationId,
                         externalUserId
-                ).stream()
-                .collect(Collectors.groupingBy(
-                        item -> new CanonicalEventTypeTimeBucketKey(
-                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
-                                bucket.floor(item.occurredAt(), zoneId)
-                        ),
-                        Collectors.summingLong(item -> item.count())
-                ));
+                ),
+                organizationId,
+                from,
+                to,
+                bucket,
+                ZoneOffset.UTC
+        );
+    }
 
-        List<String> canonicalEventTypes = countsByEventTypeBucket.keySet().stream()
-                .map(CanonicalEventTypeTimeBucketKey::canonicalEventType)
-                .distinct()
-                .sorted()
-                .toList();
-
-        if (canonicalEventTypes.isEmpty()) {
-            return List.of();
-        }
-
-        List<CanonicalEventTypeTimeBucketItem> items = new ArrayList<>();
-        for (Instant bucketStart : bucketStarts(from, to, bucket, zoneId)) {
-            for (String canonicalEventType : canonicalEventTypes) {
-                items.add(new CanonicalEventTypeTimeBucketItem(
-                        canonicalEventType,
-                        bucketStart,
-                        countsByEventTypeBucket.getOrDefault(
-                                new CanonicalEventTypeTimeBucketKey(canonicalEventType, bucketStart),
-                                0L
-                        )
-                ));
-            }
-        }
-        return items;
+    @Transactional(readOnly = true)
+    public List<CanonicalEventTypeTimeBucketItem> countByCanonicalEventTypeTimeBucketBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            TimeBucket bucket,
+            String timezone
+    ) {
+        ZoneId zoneId = ZoneId.of(timezone);
+        return buildCanonicalEventTypeTimeBucketItems(
+                eventQueryRepository.countRawEventTypeOccurredAtBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId
+                ),
+                organizationId,
+                from,
+                to,
+                bucket,
+                zoneId
+        );
     }
 
     @Transactional(readOnly = true)
@@ -417,7 +358,7 @@ public class EventQueryService {
                                 canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
                                 bucket.floor(item.occurredAt(), zoneId)
                         ),
-                        Collectors.summingLong(item -> item.count())
+                        Collectors.summingLong(RawPathEventTypeOccurredAtCountProjection::count)
                 ));
 
         List<RouteEventTypeAxis> axes = countsByKey.keySet().stream()
@@ -445,6 +386,110 @@ public class EventQueryService {
                                         axis.canonicalEventType(),
                                         bucketStart
                                 ),
+                                0L
+                        )
+                ));
+            }
+        }
+        return items;
+    }
+
+    private List<TimeBucketCountProjection> buildTimeBucketCounts(
+            List<RawOccurredAtCountProjection> counts,
+            Instant from,
+            Instant to,
+            TimeBucket bucket,
+            ZoneId zoneId
+    ) {
+        Map<Instant, Long> countsByBucket = counts.stream()
+                .collect(Collectors.groupingBy(
+                        item -> bucket.floor(item.occurredAt(), zoneId),
+                        Collectors.summingLong(RawOccurredAtCountProjection::count)
+                ));
+
+        return bucketStarts(from, to, bucket, zoneId).stream()
+                .map(bucketStart -> new TimeBucketCountProjection(
+                        bucketStart,
+                        countsByBucket.getOrDefault(bucketStart, 0L)
+                ))
+                .toList();
+    }
+
+    private List<RouteTimeBucketItem> buildRouteTimeBucketItems(
+            List<RawPathOccurredAtCountProjection> counts,
+            Long organizationId,
+            Instant from,
+            Instant to,
+            TimeBucket bucket,
+            ZoneId zoneId
+    ) {
+        Map<RouteTimeBucketKey, Long> countsByRouteBucket = counts.stream()
+                .collect(Collectors.groupingBy(
+                        item -> new RouteTimeBucketKey(
+                                routeKeyResolver.resolve(organizationId, item.path()),
+                                bucket.floor(item.occurredAt(), zoneId)
+                        ),
+                        Collectors.summingLong(RawPathOccurredAtCountProjection::count)
+                ));
+
+        List<String> routeKeys = countsByRouteBucket.keySet().stream()
+                .map(RouteTimeBucketKey::routeKey)
+                .distinct()
+                .sorted()
+                .toList();
+
+        if (routeKeys.isEmpty()) {
+            return List.of();
+        }
+
+        List<RouteTimeBucketItem> items = new ArrayList<>();
+        for (Instant bucketStart : bucketStarts(from, to, bucket, zoneId)) {
+            for (String routeKey : routeKeys) {
+                items.add(new RouteTimeBucketItem(
+                        routeKey,
+                        bucketStart,
+                        countsByRouteBucket.getOrDefault(new RouteTimeBucketKey(routeKey, bucketStart), 0L)
+                ));
+            }
+        }
+        return items;
+    }
+
+    private List<CanonicalEventTypeTimeBucketItem> buildCanonicalEventTypeTimeBucketItems(
+            List<RawEventTypeOccurredAtCountProjection> counts,
+            Long organizationId,
+            Instant from,
+            Instant to,
+            TimeBucket bucket,
+            ZoneId zoneId
+    ) {
+        Map<CanonicalEventTypeTimeBucketKey, Long> countsByEventTypeBucket = counts.stream()
+                .collect(Collectors.groupingBy(
+                        item -> new CanonicalEventTypeTimeBucketKey(
+                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                                bucket.floor(item.occurredAt(), zoneId)
+                        ),
+                        Collectors.summingLong(RawEventTypeOccurredAtCountProjection::count)
+                ));
+
+        List<String> canonicalEventTypes = countsByEventTypeBucket.keySet().stream()
+                .map(CanonicalEventTypeTimeBucketKey::canonicalEventType)
+                .distinct()
+                .sorted()
+                .toList();
+
+        if (canonicalEventTypes.isEmpty()) {
+            return List.of();
+        }
+
+        List<CanonicalEventTypeTimeBucketItem> items = new ArrayList<>();
+        for (Instant bucketStart : bucketStarts(from, to, bucket, zoneId)) {
+            for (String canonicalEventType : canonicalEventTypes) {
+                items.add(new CanonicalEventTypeTimeBucketItem(
+                        canonicalEventType,
+                        bucketStart,
+                        countsByEventTypeBucket.getOrDefault(
+                                new CanonicalEventTypeTimeBucketKey(canonicalEventType, bucketStart),
                                 0L
                         )
                 ));

@@ -258,7 +258,7 @@ class EventQueryControllerIntegrationTest {
     @Test
     void aggregatePaths_returnsUnauthorized_whenApiKeyIsMissing() throws Exception {
         cleanup();
-        Organization organization = saveOrganization("acme");
+        saveOrganization("acme");
 
         mockMvc.perform(
                         get("/api/events/aggregates/paths")
@@ -272,7 +272,7 @@ class EventQueryControllerIntegrationTest {
     @Test
     void aggregatePaths_returnsUnauthorized_whenApiKeyIsInvalid() throws Exception {
         cleanup();
-        Organization organization = saveOrganization("acme");
+        saveOrganization("acme");
 
         mockMvc.perform(
                         authorizedGet("ck_test_v1_invalid_deadbeef", "/api/events/aggregates/paths")
@@ -746,8 +746,8 @@ class EventQueryControllerIntegrationTest {
         );
     }
 
-    private RouteTemplate saveRouteTemplate(Organization organization, String template, String routeKey, int priority) {
-        return routeTemplateRepository.save(
+    private void saveRouteTemplate(Organization organization, String template, String routeKey, int priority) {
+        routeTemplateRepository.save(
                 RouteTemplate.builder()
                         .organization(organization)
                         .template(template)
@@ -758,12 +758,12 @@ class EventQueryControllerIntegrationTest {
         );
     }
 
-    private EventTypeMapping saveEventTypeMapping(
+    private void saveEventTypeMapping(
             Organization organization,
             String rawEventType,
             String canonicalEventType
     ) {
-        return eventTypeMappingRepository.save(
+        eventTypeMappingRepository.save(
                 EventTypeMapping.builder()
                         .organization(organization)
                         .rawEventType(rawEventType)
