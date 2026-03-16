@@ -73,4 +73,17 @@ public class EventTypeMapping {
         this.canonicalEventType = canonicalEventType;
         this.active = active == null || active;
     }
+
+    public void update(String rawEventType, String canonicalEventType) {
+        this.rawEventType = rawEventType;
+        this.canonicalEventType = canonicalEventType;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }

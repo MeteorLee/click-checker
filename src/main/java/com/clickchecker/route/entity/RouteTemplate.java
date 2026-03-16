@@ -75,4 +75,18 @@ public class RouteTemplate {
         this.priority = priority == null ? 0 : priority;
         this.active = active == null || active;
     }
+
+    public void update(String template, String routeKey, Integer priority) {
+        this.template = template;
+        this.routeKey = routeKey;
+        this.priority = priority == null ? 0 : priority;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }
