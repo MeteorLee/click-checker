@@ -1,6 +1,6 @@
 package com.clickchecker.eventuser.controller;
 
-import com.clickchecker.eventuser.dto.EventUserCreateRequest;
+import com.clickchecker.eventuser.controller.request.EventUserCreateRequest;
 import com.clickchecker.eventuser.service.EventUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

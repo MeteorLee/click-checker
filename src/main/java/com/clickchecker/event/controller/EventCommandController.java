@@ -1,6 +1,6 @@
 package com.clickchecker.event.controller;
 
-import com.clickchecker.event.dto.EventCreateRequest;
+import com.clickchecker.event.controller.request.EventCreateRequest;
 import com.clickchecker.event.service.EventCommandService;
 import com.clickchecker.web.resolver.CurrentOrganizationId;
 import jakarta.validation.Valid;

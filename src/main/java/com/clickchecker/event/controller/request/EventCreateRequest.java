@@ -1,4 +1,4 @@
-package com.clickchecker.event.dto;
+package com.clickchecker.event.controller.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

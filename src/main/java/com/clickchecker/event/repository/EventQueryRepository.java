@@ -1,9 +1,10 @@
 package com.clickchecker.event.repository;
 
 import com.clickchecker.event.entity.QEvent;
-import com.clickchecker.event.repository.dto.PathCountDto;
-import com.clickchecker.event.repository.dto.TimeBucket;
-import com.clickchecker.event.repository.dto.TimeBucketCountDto;
+import com.clickchecker.event.model.TimeBucket;
+import com.clickchecker.event.repository.projection.EventTypeCountProjection;
+import com.clickchecker.event.repository.projection.PathCountProjection;
+import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.DateTimeExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -21,21 +22,54 @@ public class EventQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public Long countBetween(Instant from, Instant to) {
-
+    public long countBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
         QEvent event = QEvent.event;
 
-        // from <= occurredAt < to
         Long result = queryFactory
                 .select(event.id.count())
                 .from(event)
-                .where(occurredAtBetween(from, to))
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        eventTypeEq(eventType)
+                )
                 .fetchOne();
 
         return result != null ? result : 0L;
     }
 
-    public List<PathCountDto> countByPathBetween(
+    public long countUniqueUsersBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
+        QEvent event = QEvent.event;
+
+        Long result = queryFactory
+                .select(event.eventUser.id.countDistinct())
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        eventTypeEq(eventType),
+                        event.eventUser.isNotNull()
+                )
+                .fetchOne();
+
+        return result != null ? result : 0L;
+    }
+
+    public List<EventTypeCountProjection> countByEventTypeBetween(
             Instant from,
             Instant to,
             Long organizationId,
@@ -46,7 +80,32 @@ public class EventQueryRepository {
         QEvent event = QEvent.event;
 
         return queryFactory
-                .select(Projections.constructor(PathCountDto.class, event.path, event.id.count()))
+                .select(Projections.constructor(EventTypeCountProjection.class, event.eventType, event.id.count()))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        eventTypeEq(eventType)
+                )
+                .groupBy(event.eventType)
+                .orderBy(event.id.count().desc(), event.eventType.asc())
+                .limit(top)
+                .fetch();
+    }
+
+    public List<PathCountProjection> countByPathBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType,
+            int top
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(PathCountProjection.class, event.path, event.id.count()))
                 .from(event)
                 .where(
                         occurredAtBetween(from, to),
@@ -61,7 +120,31 @@ public class EventQueryRepository {
                 .fetch();
     }
 
-    public List<TimeBucketCountDto> countByTimeBucketBetween(
+    public List<PathCountProjection> countRawPathBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(PathCountProjection.class, event.path, event.id.count()))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        eventTypeEq(eventType),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        pathExists()
+                )
+                .groupBy(event.path)
+                .orderBy(event.id.count().desc(), event.path.asc())
+                .fetch();
+    }
+
+    public List<TimeBucketCountProjection> countByTimeBucketBetween(
             Instant from,
             Instant to,
             Long organizationId,
@@ -73,7 +156,7 @@ public class EventQueryRepository {
         DateTimeExpression<Instant> bucketStart = timeBucketStartExpr(bucket);
 
         return queryFactory
-                .select(Projections.constructor(TimeBucketCountDto.class, bucketStart, event.id.count()))
+                .select(Projections.constructor(TimeBucketCountProjection.class, bucketStart, event.id.count()))
                 .from(event)
                 .where(
                         occurredAtBetween(from, to),

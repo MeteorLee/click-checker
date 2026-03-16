@@ -1,6 +1,6 @@
 package com.clickchecker.event.service;
 
-import com.clickchecker.event.dto.EventCreateRequest;
+import com.clickchecker.event.controller.request.EventCreateRequest;
 import com.clickchecker.event.entity.Event;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.eventuser.entity.EventUser;

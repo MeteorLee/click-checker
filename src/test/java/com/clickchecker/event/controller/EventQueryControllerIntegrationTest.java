@@ -7,6 +7,8 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.route.entity.RouteTemplate;
+import com.clickchecker.route.repository.RouteTemplateRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,9 @@ class EventQueryControllerIntegrationTest {
 
     @Autowired
     private ApiKeyService apiKeyService;
+
+    @Autowired
+    private RouteTemplateRepository routeTemplateRepository;
 
     @Test
     void aggregatePaths_returnsTopNPaths_withoutEventTypeFilter() throws Exception {
@@ -274,6 +279,80 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
+    void aggregateRoutes_groupsRawPathsByResolvedRouteKey() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        saveRouteTemplate(organization, "/posts/{id}", "/posts/{id}", 100);
+        saveRouteTemplate(organization, "/landing", "/landing", 10);
+
+        LocalDateTime base = LocalDateTime.of(2026, 2, 13, 12, 0);
+        eventRepository.save(Event.builder().eventType("click").path("/posts/1").organization(organization).occurredAt(toInstant(base.plusMinutes(1))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/posts/2").organization(organization).occurredAt(toInstant(base.plusMinutes(2))).build());
+        eventRepository.save(Event.builder().eventType("click").path("/landing").organization(organization).occurredAt(toInstant(base.plusMinutes(3))).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/routes")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("eventType", "click")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.eventType").value("click"))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items[0].count").value(2))
+                .andExpect(jsonPath("$.items[1].routeKey").value("/landing"))
+                .andExpect(jsonPath("$.items[1].count").value(1));
+    }
+
+    @Test
+    void aggregateOverview_returnsSummaryWithComparisonAndTopBreakdowns() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+        EventUser eventUserA = saveEventUser(organization, "u-1001");
+        EventUser eventUserB = saveEventUser(organization, "u-1002");
+
+        saveRouteTemplate(organization, "/posts/{id}", "/posts/{id}", 100);
+        saveRouteTemplate(organization, "/landing", "/landing", 10);
+
+        eventRepository.save(Event.builder().eventType("click").path("/posts/1").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("click").path("/posts/2").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
+        eventRepository.save(Event.builder().eventType("view").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
+
+        eventRepository.save(Event.builder().eventType("click").path("/posts/3").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-12T00:10:00Z")).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/overview")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.totalEvents").value(3))
+                .andExpect(jsonPath("$.uniqueUsers").value(2))
+                .andExpect(jsonPath("$.comparison.current").value(3))
+                .andExpect(jsonPath("$.comparison.previous").value(1))
+                .andExpect(jsonPath("$.comparison.delta").value(2))
+                .andExpect(jsonPath("$.comparison.deltaRate").value(2.0))
+                .andExpect(jsonPath("$.comparison.hasPreviousBaseline").value(true))
+                .andExpect(jsonPath("$.topRoutes.length()").value(2))
+                .andExpect(jsonPath("$.topRoutes[0].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.topRoutes[0].count").value(2))
+                .andExpect(jsonPath("$.topRoutes[1].routeKey").value("/landing"))
+                .andExpect(jsonPath("$.topRoutes[1].count").value(1))
+                .andExpect(jsonPath("$.topEventTypes.length()").value(2))
+                .andExpect(jsonPath("$.topEventTypes[0].eventType").value("click"))
+                .andExpect(jsonPath("$.topEventTypes[0].count").value(2))
+                .andExpect(jsonPath("$.topEventTypes[1].eventType").value("view"))
+                .andExpect(jsonPath("$.topEventTypes[1].count").value(1));
+    }
+
+    @Test
     void aggregateTimeBuckets_groupsByHour() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
@@ -370,6 +449,7 @@ class EventQueryControllerIntegrationTest {
     private void cleanup() {
         eventRepository.deleteAll();
         eventUserRepository.deleteAll();
+        routeTemplateRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 
@@ -390,6 +470,18 @@ class EventQueryControllerIntegrationTest {
                 EventUser.builder()
                         .organization(organization)
                         .externalUserId(externalUserId)
+                        .build()
+        );
+    }
+
+    private RouteTemplate saveRouteTemplate(Organization organization, String template, String routeKey, int priority) {
+        return routeTemplateRepository.save(
+                RouteTemplate.builder()
+                        .organization(organization)
+                        .template(template)
+                        .routeKey(routeKey)
+                        .priority(priority)
+                        .active(true)
                         .build()
         );
     }

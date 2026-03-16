@@ -1,8 +1,14 @@
 package com.clickchecker.event.controller;
 
-import com.clickchecker.event.repository.dto.PathCountDto;
-import com.clickchecker.event.repository.dto.TimeBucket;
-import com.clickchecker.event.repository.dto.TimeBucketCountDto;
+import com.clickchecker.event.controller.response.CountResponse;
+import com.clickchecker.event.controller.response.OverviewResponse;
+import com.clickchecker.event.controller.response.PathAggregateResponse;
+import com.clickchecker.event.controller.response.RouteAggregateItem;
+import com.clickchecker.event.controller.response.RouteAggregateResponse;
+import com.clickchecker.event.controller.response.TimeBucketAggregateResponse;
+import com.clickchecker.event.model.TimeBucket;
+import com.clickchecker.event.repository.projection.PathCountProjection;
+import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.event.service.EventQueryService;
 import com.clickchecker.web.resolver.CurrentOrganizationId;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +36,21 @@ public class EventQueryController {
         return new CountResponse(eventType, count);
     }
 
+    @GetMapping("/aggregates/overview")
+    public OverviewResponse aggregateOverview(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(required = false) String eventType
+    ) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+
+        return eventQueryService.getOverview(from, to, authOrgId, externalUserId, eventType);
+    }
+
     @GetMapping("/aggregates/paths")
     public PathAggregateResponse aggregatePaths(
             @CurrentOrganizationId Long authOrgId,
@@ -46,8 +67,28 @@ public class EventQueryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
         }
 
-        List<PathCountDto> pathCounts = eventQueryService.countByPathBetween(from, to, authOrgId, externalUserId, eventType, top);
+        List<PathCountProjection> pathCounts = eventQueryService.countByPathBetween(from, to, authOrgId, externalUserId, eventType, top);
         return new PathAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, pathCounts);
+    }
+
+    @GetMapping("/aggregates/routes")
+    public RouteAggregateResponse aggregateRoutes(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(required = false) String eventType,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+        if (top < 1 || top > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
+        }
+
+        List<RouteAggregateItem> routeCounts = eventQueryService.countByRouteKeyBetween(from, to, authOrgId, externalUserId, eventType, top);
+        return new RouteAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, routeCounts);
     }
 
     @GetMapping("/aggregates/time-buckets")
@@ -63,7 +104,7 @@ public class EventQueryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
         }
 
-        List<TimeBucketCountDto> items = eventQueryService.countByTimeBucketBetween(
+        List<TimeBucketCountProjection> items = eventQueryService.countByTimeBucketBetween(
                 from,
                 to,
                 authOrgId,
@@ -82,25 +123,4 @@ public class EventQueryController {
                 items
         );
     }
-
-    public record CountResponse(String eventType, Long count) {}
-    public record PathAggregateResponse(
-            Long organizationId,
-            String externalUserId,
-            Instant from,
-            Instant to,
-            String eventType,
-            int top,
-            List<PathCountDto> items
-    ) {}
-
-    public record TimeBucketAggregateResponse(
-            Long organizationId,
-            String externalUserId,
-            Instant from,
-            Instant to,
-            String eventType,
-            TimeBucket bucket,
-            List<TimeBucketCountDto> items
-    ) {}
 }
