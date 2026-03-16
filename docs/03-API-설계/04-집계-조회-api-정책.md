@@ -8,6 +8,8 @@
 ## 현재 엔드포인트
 - `GET /api/events/aggregates/count`
 - `GET /api/events/aggregates/overview`
+- `GET /api/events/aggregates/raw-event-types`
+- `GET /api/events/aggregates/event-types`
 - `GET /api/events/aggregates/paths`
 - `GET /api/events/aggregates/routes`
 - `GET /api/events/aggregates/time-buckets`
@@ -77,7 +79,39 @@
 - `topRoutes`
   - routeKey 기준 상위 3개
 - `topEventTypes`
-  - 현재 필터 계약 기준 상위 3개
+  - `eventType` 필터가 없으면 canonical eventType 기준 상위 3개
+  - `eventType` 필터가 있으면 현재 raw eventType 필터 집합 안에서 상위 3개
+
+## eventType 정책
+
+### raw eventType
+- 이벤트 저장 시 들어온 `eventType` 원본을 그대로 유지한다.
+- 예:
+  - `button_click`
+  - `page_view`
+
+### canonical eventType
+- 조회 시점에 raw eventType을 조직별 매핑 규칙으로 정규화한 값이다.
+- 예:
+  - `button_click`, `post_click` -> `click`
+  - `page_view` -> `view`
+- 매핑이 없거나 raw 값이 비어 있으면 `UNMAPPED_EVENT_TYPE`을 사용한다.
+
+### 현재 구현 방향
+- canonical eventType도 아직 이벤트 row에 저장하지 않는다.
+- `countRawEventTypeBetween(...)`로 raw eventType별 count를 먼저 구한다.
+- 그 결과를 애플리케이션에서 canonical eventType 기준으로 다시 합산한다.
+- 즉 source of truth는 raw eventType이고, canonical eventType은 조회 시 계산값이다.
+
+## raw-event-types 정책
+- raw eventType 기준 상세 집계
+- 현재 들어오고 있는 원본 값의 분포를 운영/정리 관점에서 확인하는 용도다.
+- 매핑 전 관찰용 API로 사용한다.
+
+## event-types 정책
+- canonical eventType 기준 상세 집계
+- raw eventType을 직접 노출하는 대신 조직별 매핑 규칙으로 묶은 값을 보여준다.
+- `top`은 raw eventType 단계가 아니라 canonical 재집계 이후에 적용한다.
 
 ## paths 정책
 - raw path 기준 상세 집계
@@ -102,16 +136,18 @@
 
 ## 현재 제한
 - timezone 반영은 아직 본격적으로 붙지 않았다.
-- `topEventTypes`의 필터 의미는 현재 공통 필터 계약을 그대로 따른다.
+- `eventType` 필터가 있는 `overview.topEventTypes`는 아직 raw eventType 축을 그대로 따른다.
 - routeKey × eventType 교차 집계는 아직 없다.
 - route 기준 time-bucket trend는 아직 없다.
+- canonical eventType 매핑 CRUD는 아직 없다.
 
 ## 현재 테스트 커버리지
 - `EventCommandControllerIntegrationTest`
 - `EventQueryControllerIntegrationTest`
 - `EventQueryServiceTest`
+- `CanonicalEventTypeResolverTest`
 - `RoutePathMatcherTest`
 - `RouteKeyResolverTest`
 
 ## 회귀 검증 명령
-- `./gradlew test --tests com.clickchecker.event.controller.EventQueryControllerIntegrationTest --tests com.clickchecker.event.controller.EventCommandControllerIntegrationTest --tests com.clickchecker.event.service.EventQueryServiceTest --tests com.clickchecker.route.service.RoutePathMatcherTest --tests com.clickchecker.route.service.RouteKeyResolverTest`
+- `./gradlew test --tests com.clickchecker.eventtype.service.CanonicalEventTypeResolverTest --tests com.clickchecker.event.controller.EventQueryControllerIntegrationTest --tests com.clickchecker.event.controller.EventCommandControllerIntegrationTest --tests com.clickchecker.event.service.EventQueryServiceTest --tests com.clickchecker.route.service.RoutePathMatcherTest --tests com.clickchecker.route.service.RouteKeyResolverTest`
