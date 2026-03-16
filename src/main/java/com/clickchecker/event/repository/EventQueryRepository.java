@@ -69,6 +69,30 @@ public class EventQueryRepository {
         return result != null ? result : 0L;
     }
 
+    public long countIdentifiedEventsBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
+        QEvent event = QEvent.event;
+
+        Long result = queryFactory
+                .select(event.id.count())
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        eventTypeEq(eventType),
+                        event.eventUser.isNotNull()
+                )
+                .fetchOne();
+
+        return result != null ? result : 0L;
+    }
+
     public List<EventTypeCountProjection> countByEventTypeBetween(
             Instant from,
             Instant to,

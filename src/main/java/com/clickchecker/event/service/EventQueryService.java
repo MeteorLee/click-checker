@@ -45,6 +45,7 @@ public class EventQueryService {
     ) {
         long currentTotalEvents = eventQueryRepository.countBetween(from, to, organizationId, externalUserId, eventType);
         long currentUniqueUsers = eventQueryRepository.countUniqueUsersBetween(from, to, organizationId, externalUserId, eventType);
+        long identifiedEvents = eventQueryRepository.countIdentifiedEventsBetween(from, to, organizationId, externalUserId, eventType);
 
         Instant previousFrom = previousFrom(from, to);
         Instant previousTo = from;
@@ -58,6 +59,7 @@ public class EventQueryService {
                 eventType,
                 currentTotalEvents,
                 currentUniqueUsers,
+                identifiedEventRate(currentTotalEvents, identifiedEvents),
                 toComparison(currentTotalEvents, previousTotalEvents),
                 toRouteSummaries(from, to, organizationId, externalUserId, eventType),
                 toEventTypeSummaries(from, to, organizationId, externalUserId, eventType)
@@ -143,6 +145,13 @@ public class EventQueryService {
                 deltaRate,
                 previous > 0
         );
+    }
+
+    private Double identifiedEventRate(long totalEvents, long identifiedEvents) {
+        if (totalEvents == 0) {
+            return null;
+        }
+        return identifiedEvents / (double) totalEvents;
     }
 
     private List<OverviewResponse.RouteSummary> toRouteSummaries(

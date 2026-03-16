@@ -11,6 +11,7 @@ public record OverviewResponse(
         String eventType,
         long totalEvents,
         Long uniqueUsers,
+        Double identifiedEventRate,
         Comparison comparison,
         List<RouteSummary> topRoutes,
         List<EventTypeSummary> topEventTypes
