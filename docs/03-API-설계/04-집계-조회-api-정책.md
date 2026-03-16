@@ -36,12 +36,16 @@
 - `from`, `to`
   - 필수
   - 기준: `from <= occurredAt < to`
+  - `Instant` 절대시간 범위로 해석한다.
 - `externalUserId`
   - 선택
   - 값이 있으면 해당 외부 사용자 이벤트만 집계한다.
 - `eventType`
   - 선택
   - 값이 있으면 해당 이벤트 타입으로 필터링한다.
+- `timezone`
+  - 시계열 API에서만 사용한다.
+  - `from`, `to` 자체를 다시 해석하는 용도가 아니라, bucket 경계를 어떤 시간대로 자를지 정하는 용도다.
 
 ## path / route 정책
 
@@ -150,9 +154,11 @@
 - routeKey 기준 time-bucket trend 집계
 - raw path를 직접 노출하지 않고, route template 기준으로 정규화한 routeKey의 시간 흐름을 보여준다.
 - 현재 구현은 다음 순서로 계산한다.
-  1. `path + bucketStart` raw 조합별 count를 먼저 구한다.
+  1. `path + occurredAt` raw 조합별 count를 먼저 구한다.
   2. `path -> routeKey`를 적용한다.
-  3. 같은 `(routeKey, bucketStart)` 조합끼리 다시 합산한다.
+  3. `occurredAt -> timezone 기준 bucketStart`를 적용한다.
+  4. 같은 `(routeKey, bucketStart)` 조합끼리 다시 합산한다.
+  5. 요청 구간 안의 빈 bucket은 `0`으로 채운다.
 - 전체 time-buckets와 같은 `bucket` 파라미터를 사용한다.
 - `eventType` 필터가 있으면 해당 raw eventType 집합 안에서 route trend를 계산한다.
 
@@ -160,9 +166,11 @@
 - canonical eventType 기준 time-bucket trend 집계
 - raw eventType을 직접 노출하지 않고, eventType mapping 기준으로 정규화한 canonical eventType의 시간 흐름을 보여준다.
 - 현재 구현은 다음 순서로 계산한다.
-  1. `eventType + bucketStart` raw 조합별 count를 먼저 구한다.
+  1. `eventType + occurredAt` raw 조합별 count를 먼저 구한다.
   2. `rawEventType -> canonicalEventType`를 적용한다.
-  3. 같은 `(canonicalEventType, bucketStart)` 조합끼리 다시 합산한다.
+  3. `occurredAt -> timezone 기준 bucketStart`를 적용한다.
+  4. 같은 `(canonicalEventType, bucketStart)` 조합끼리 다시 합산한다.
+  5. 요청 구간 안의 빈 bucket은 `0`으로 채운다.
 - 전체 time-buckets와 같은 `bucket` 파라미터를 사용한다.
 - 매핑되지 않은 eventType은 `UNMAPPED_EVENT_TYPE`으로 포함한다.
 
@@ -178,8 +186,12 @@
 
 ## time-buckets 정책
 - 시간 구간별 count 집계
+- 현재 구현은 다음 순서로 계산한다.
+  1. `occurredAt` raw 시각별 count를 먼저 구한다.
+  2. `occurredAt -> timezone 기준 bucketStart`를 적용한다.
+  3. 같은 `bucketStart`끼리 다시 합산한다.
+  4. 요청 구간 안의 빈 bucket은 `0`으로 채운다.
 - 현재는 전체 이벤트 기준 집계만 제공한다.
-- route 기준 trend, comparison 확장은 후속 단계에서 검토한다.
 
 ## 식별 사용자 / 익명 이벤트 정책
 - 이번 단계에서는 익명 이벤트와 식별 이벤트를 같은 사용자 흐름으로 연결하지 않는다.
@@ -188,7 +200,6 @@
 - 후속 단계에서 `anonymousId`, `clientId`, `sessionId` 같은 연결 키 도입을 검토한다.
 
 ## 현재 제한
-- timezone 반영은 아직 본격적으로 붙지 않았다.
 - `eventType` 필터가 있는 `overview.topEventTypes`는 아직 raw eventType 축을 그대로 따른다.
 - routeKey × canonical eventType 교차 집계는 추가됐지만, 추가 필터/응답 구조 고도화는 아직 없다.
 - route 기준 time-bucket trend와 canonical eventType 기준 time-bucket trend는 구현됐다.
