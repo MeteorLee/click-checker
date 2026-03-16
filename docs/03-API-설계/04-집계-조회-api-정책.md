@@ -11,6 +11,7 @@
 - `GET /api/events/aggregates/raw-event-types`
 - `GET /api/events/aggregates/event-types`
 - `GET /api/events/aggregates/route-event-types`
+- `GET /api/events/aggregates/route-event-type-time-buckets`
 - `GET /api/events/aggregates/route-time-buckets`
 - `GET /api/events/aggregates/event-type-time-buckets`
 - `GET /api/events/aggregates/paths`
@@ -150,6 +151,17 @@
   4. `top`은 최종 교차 집계 결과에 적용한다.
 - 매핑되지 않은 eventType은 `UNMAPPED_EVENT_TYPE`으로 포함한다.
 
+## route-event-type-time-buckets 정책
+- routeKey × canonical eventType × time bucket 교차 시계열 집계
+- raw path와 raw eventType을 직접 노출하지 않고, 두 축을 각각 정규화한 뒤 시간 흐름까지 함께 보여준다.
+- 현재 구현은 다음 순서로 계산한다.
+  1. `path + eventType + occurredAt` raw 조합별 count를 먼저 구한다.
+  2. `path -> routeKey`, `rawEventType -> canonicalEventType`를 각각 적용한다.
+  3. `occurredAt -> timezone 기준 bucketStart`를 적용한다.
+  4. 같은 `(routeKey, canonicalEventType, bucketStart)` 조합끼리 다시 합산한다.
+  5. 실제로 등장한 `(routeKey, canonicalEventType)` 축 조합에 대해 요청 구간 안의 빈 bucket은 `0`으로 채운다.
+- 매핑되지 않은 eventType은 `UNMAPPED_EVENT_TYPE`으로 포함한다.
+
 ## route-time-buckets 정책
 - routeKey 기준 time-bucket trend 집계
 - raw path를 직접 노출하지 않고, route template 기준으로 정규화한 routeKey의 시간 흐름을 보여준다.
@@ -203,7 +215,7 @@
 - `eventType` 필터가 있는 `overview.topEventTypes`는 아직 raw eventType 축을 그대로 따른다.
 - routeKey × canonical eventType 교차 집계는 추가됐지만, 추가 필터/응답 구조 고도화는 아직 없다.
 - route 기준 time-bucket trend와 canonical eventType 기준 time-bucket trend는 구현됐다.
-- routeKey × canonical eventType 교차 시계열은 아직 없다.
+- routeKey × canonical eventType 교차 시계열도 구현됐다.
 - route template / eventType mapping 변경은 과거 이벤트 해석에도 즉시 영향을 준다.
 - 변경 이력이나 versioning은 아직 없다.
 
