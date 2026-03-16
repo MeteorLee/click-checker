@@ -5,6 +5,7 @@ import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.projection.EventTypeCountProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.DateTimeExpression;
@@ -192,6 +193,34 @@ public class EventQueryRepository {
                 .fetch();
     }
 
+    public List<RawPathEventTypeCountProjection> countRawPathEventTypeBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        RawPathEventTypeCountProjection.class,
+                        event.path,
+                        event.eventType,
+                        event.id.count()
+                ))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        pathExists(),
+                        eventTypeExists()
+                )
+                .groupBy(event.path, event.eventType)
+                .orderBy(event.id.count().desc(), event.path.asc(), event.eventType.asc())
+                .fetch();
+    }
+
     public List<TimeBucketCountProjection> countByTimeBucketBetween(
             Instant from,
             Instant to,
@@ -241,6 +270,11 @@ public class EventQueryRepository {
     private BooleanExpression pathExists() {
         QEvent event = QEvent.event;
         return event.path.isNotNull().and(event.path.isNotEmpty());
+    }
+
+    private BooleanExpression eventTypeExists() {
+        QEvent event = QEvent.event;
+        return event.eventType.isNotNull().and(event.eventType.isNotEmpty());
     }
 
     private DateTimeExpression<Instant> timeBucketStartExpr(TimeBucket bucket) {

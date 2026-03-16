@@ -4,6 +4,7 @@ import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
 import com.clickchecker.event.controller.response.RawEventTypeItem;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
+import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
@@ -164,6 +165,43 @@ public class EventQueryService {
     }
 
     @Transactional(readOnly = true)
+    public List<RouteEventTypeAggregateItem> countByRouteKeyAndCanonicalEventTypeBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            int top
+    ) {
+        Map<RouteEventTypeKey, Long> countsByRouteEventType = eventQueryRepository.countRawPathEventTypeBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId
+                ).stream()
+                .collect(Collectors.groupingBy(
+                        item -> new RouteEventTypeKey(
+                                routeKeyResolver.resolve(organizationId, item.path()),
+                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType())
+                        ),
+                        Collectors.summingLong(item -> item.count())
+                ));
+
+        return countsByRouteEventType.entrySet().stream()
+                .map(entry -> new RouteEventTypeAggregateItem(
+                        entry.getKey().routeKey(),
+                        entry.getKey().canonicalEventType(),
+                        entry.getValue()
+                ))
+                .sorted(Comparator
+                        .comparingLong(RouteEventTypeAggregateItem::count)
+                        .reversed()
+                        .thenComparing(RouteEventTypeAggregateItem::routeKey)
+                        .thenComparing(RouteEventTypeAggregateItem::canonicalEventType))
+                .limit(top)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<TimeBucketCountProjection> countByTimeBucketBetween(
             Instant from,
             Instant to,
@@ -259,5 +297,11 @@ public class EventQueryService {
                 ).stream()
                 .map(item -> new OverviewResponse.EventTypeSummary(item.eventType(), item.count()))
                 .toList();
+    }
+
+    private record RouteEventTypeKey(
+            String routeKey,
+            String canonicalEventType
+    ) {
     }
 }

@@ -7,6 +7,7 @@ import com.clickchecker.event.controller.response.PathAggregateResponse;
 import com.clickchecker.event.controller.response.RawEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteAggregateResponse;
+import com.clickchecker.event.controller.response.RouteEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.TimeBucketAggregateResponse;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.projection.PathCountProjection;
@@ -141,6 +142,31 @@ public class EventQueryController {
 
         List<RouteAggregateItem> routeCounts = eventQueryService.countByRouteKeyBetween(from, to, authOrgId, externalUserId, eventType, top);
         return new RouteAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, routeCounts);
+    }
+
+    @GetMapping("/aggregates/route-event-types")
+    public RouteEventTypeAggregateResponse aggregateRouteEventTypes(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+        if (top < 1 || top > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
+        }
+
+        return new RouteEventTypeAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                top,
+                eventQueryService.countByRouteKeyAndCanonicalEventTypeBetween(from, to, authOrgId, externalUserId, top)
+        );
     }
 
     @GetMapping("/aggregates/time-buckets")

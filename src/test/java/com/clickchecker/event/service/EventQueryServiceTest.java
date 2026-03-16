@@ -3,10 +3,12 @@ package com.clickchecker.event.service;
 import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
+import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
+import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import java.time.Instant;
@@ -130,6 +132,39 @@ class EventQueryServiceTest {
         assertThat(result).containsExactly(
                 new CanonicalEventTypeItem("click", 9),
                 new CanonicalEventTypeItem(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, 3)
+        );
+    }
+
+    @Test
+    void countByRouteKeyAndCanonicalEventTypeBetween_aggregatesByBothResolvedAxes_beforeApplyingTopLimit() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+
+        when(eventQueryRepository.countRawPathEventTypeBetween(from, to, 1L, null))
+                .thenReturn(List.of(
+                        new RawPathEventTypeCountProjection("/posts/1", "button_click", 5),
+                        new RawPathEventTypeCountProjection("/posts/2", "post_click", 4),
+                        new RawPathEventTypeCountProjection("/landing", "page_view", 3),
+                        new RawPathEventTypeCountProjection("/landing", "mystery_event", 2)
+                ));
+
+        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/posts/2")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
+
+        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
+        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
+                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+
+        List<RouteEventTypeAggregateItem> result =
+                eventQueryService.countByRouteKeyAndCanonicalEventTypeBetween(from, to, 1L, null, 3);
+
+        assertThat(result).containsExactly(
+                new RouteEventTypeAggregateItem("/posts/{id}", "click", 9),
+                new RouteEventTypeAggregateItem("/landing", "view", 3),
+                new RouteEventTypeAggregateItem("/landing", CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, 2)
         );
     }
 }
