@@ -2,21 +2,25 @@ package com.clickchecker.event.service;
 
 import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
 import com.clickchecker.event.controller.response.CanonicalEventTypeTimeBucketItem;
+import com.clickchecker.event.controller.response.CanonicalEventTypeUniqueUserItem;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketItem;
 import com.clickchecker.event.controller.response.RouteTimeBucketItem;
+import com.clickchecker.event.controller.response.RouteUniqueUserItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeUserCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
+import com.clickchecker.event.repository.projection.RawPathUserCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
@@ -145,6 +149,31 @@ class EventQueryServiceTest {
     }
 
     @Test
+    void countUniqueUsersByCanonicalEventTypeBetween_aggregatesDistinctUsersAfterResolvingCanonicalEventType() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+
+        when(eventQueryRepository.countRawEventTypeUserBetween(from, to, 1L, null))
+                .thenReturn(List.of(
+                        new RawEventTypeUserCountProjection("button_click", 101L, 2L),
+                        new RawEventTypeUserCountProjection("post_click", 102L, 1L),
+                        new RawEventTypeUserCountProjection("page_view", 201L, 3L)
+                ));
+
+        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
+
+        List<CanonicalEventTypeUniqueUserItem> result =
+                eventQueryService.countUniqueUsersByCanonicalEventTypeBetween(from, to, 1L, null, 10);
+
+        assertThat(result).containsExactly(
+                new CanonicalEventTypeUniqueUserItem("click", 2),
+                new CanonicalEventTypeUniqueUserItem("view", 1)
+        );
+    }
+
+    @Test
     void countByRouteKeyAndCanonicalEventTypeBetween_aggregatesByBothResolvedAxes_beforeApplyingTopLimit() {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
@@ -174,6 +203,31 @@ class EventQueryServiceTest {
                 new RouteEventTypeAggregateItem("/posts/{id}", "click", 9),
                 new RouteEventTypeAggregateItem("/landing", "view", 3),
                 new RouteEventTypeAggregateItem("/landing", CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, 2)
+        );
+    }
+
+    @Test
+    void countUniqueUsersByRouteKeyBetween_aggregatesDistinctUsersAfterResolvingRouteKey() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+
+        when(eventQueryRepository.countRawPathUserBetween(from, to, 1L, null, "click"))
+                .thenReturn(List.of(
+                        new RawPathUserCountProjection("/posts/1", 101L, 2L),
+                        new RawPathUserCountProjection("/posts/2", 102L, 1L),
+                        new RawPathUserCountProjection("/landing", 201L, 3L)
+                ));
+
+        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/posts/2")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
+
+        List<RouteUniqueUserItem> result =
+                eventQueryService.countUniqueUsersByRouteKeyBetween(from, to, 1L, null, "click", 10);
+
+        assertThat(result).containsExactly(
+                new RouteUniqueUserItem("/posts/{id}", 2),
+                new RouteUniqueUserItem("/landing", 1)
         );
     }
 

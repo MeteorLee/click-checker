@@ -3,22 +3,26 @@ package com.clickchecker.event.service;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
 import com.clickchecker.event.controller.response.CanonicalEventTypeTimeBucketItem;
+import com.clickchecker.event.controller.response.CanonicalEventTypeUniqueUserItem;
 import com.clickchecker.event.controller.response.RawEventTypeItem;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketItem;
 import com.clickchecker.event.controller.response.RouteTimeBucketItem;
+import com.clickchecker.event.controller.response.RouteUniqueUserItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeUserCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
+import com.clickchecker.event.repository.projection.RawPathUserCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import lombok.RequiredArgsConstructor;
@@ -206,6 +210,72 @@ public class EventQueryService {
                         .reversed()
                         .thenComparing(RouteEventTypeAggregateItem::routeKey)
                         .thenComparing(RouteEventTypeAggregateItem::canonicalEventType))
+                .limit(top)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RouteUniqueUserItem> countUniqueUsersByRouteKeyBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType,
+            int top
+    ) {
+        Map<String, Long> uniqueUsersByRouteKey = eventQueryRepository.countRawPathUserBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
+                        eventType
+                ).stream()
+                .collect(Collectors.groupingBy(
+                        item -> routeKeyResolver.resolve(organizationId, item.path()),
+                        Collectors.mapping(
+                                RawPathUserCountProjection::eventUserId,
+                                Collectors.collectingAndThen(Collectors.toSet(), userIds -> (long) userIds.size())
+                        )
+                ));
+
+        return uniqueUsersByRouteKey.entrySet().stream()
+                .map(entry -> new RouteUniqueUserItem(entry.getKey(), entry.getValue()))
+                .sorted(Comparator
+                        .comparingLong(RouteUniqueUserItem::uniqueUsers)
+                        .reversed()
+                        .thenComparing(RouteUniqueUserItem::routeKey))
+                .limit(top)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CanonicalEventTypeUniqueUserItem> countUniqueUsersByCanonicalEventTypeBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            int top
+    ) {
+        Map<String, Long> uniqueUsersByCanonicalEventType = eventQueryRepository.countRawEventTypeUserBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId
+                ).stream()
+                .collect(Collectors.groupingBy(
+                        item -> canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                        Collectors.mapping(
+                                RawEventTypeUserCountProjection::eventUserId,
+                                Collectors.collectingAndThen(Collectors.toSet(), userIds -> (long) userIds.size())
+                        )
+                ));
+
+        return uniqueUsersByCanonicalEventType.entrySet().stream()
+                .map(entry -> new CanonicalEventTypeUniqueUserItem(entry.getKey(), entry.getValue()))
+                .sorted(Comparator
+                        .comparingLong(CanonicalEventTypeUniqueUserItem::uniqueUsers)
+                        .reversed()
+                        .thenComparing(CanonicalEventTypeUniqueUserItem::canonicalEventType))
                 .limit(top)
                 .toList();
     }

@@ -315,6 +315,40 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
+    void aggregateRouteUniqueUsers_groupsDistinctUsersByResolvedRouteKey() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+        EventUser eventUserA = saveEventUser(organization, "u-1001");
+        EventUser eventUserB = saveEventUser(organization, "u-1002");
+        EventUser eventUserC = saveEventUser(organization, "u-1003");
+
+        saveRouteTemplate(organization, "/posts/{id}", "/posts/{id}", 100);
+        saveRouteTemplate(organization, "/landing", "/landing", 10);
+
+        eventRepository.save(Event.builder().eventType("click").path("/posts/1").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("click").path("/posts/2").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
+        eventRepository.save(Event.builder().eventType("click").path("/posts/3").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
+        eventRepository.save(Event.builder().eventType("click").path("/landing").organization(organization).eventUser(eventUserC).occurredAt(Instant.parse("2026-02-13T00:40:00Z")).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/routes/unique-users")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("eventType", "click")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.eventType").value("click"))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].routeKey").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items[0].uniqueUsers").value(2))
+                .andExpect(jsonPath("$.items[1].routeKey").value("/landing"))
+                .andExpect(jsonPath("$.items[1].uniqueUsers").value(1));
+    }
+
+    @Test
     void aggregateOverview_returnsSummaryWithComparisonAndTopBreakdowns() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");
@@ -419,6 +453,41 @@ class EventQueryControllerIntegrationTest {
                 .andExpect(jsonPath("$.items[0].count").value(2))
                 .andExpect(jsonPath("$.items[1].canonicalEventType").value("UNMAPPED_EVENT_TYPE"))
                 .andExpect(jsonPath("$.items[1].count").value(1));
+    }
+
+    @Test
+    void aggregateCanonicalEventTypeUniqueUsers_groupsDistinctUsersByResolvedCanonicalEventType() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        saveEventTypeMapping(organization, "button_click", "click");
+        saveEventTypeMapping(organization, "post_click", "click");
+        saveEventTypeMapping(organization, "page_view", "view");
+
+        EventUser eventUserA = saveEventUser(organization, "u-1001");
+        EventUser eventUserB = saveEventUser(organization, "u-1002");
+        EventUser eventUserC = saveEventUser(organization, "u-1003");
+
+        eventRepository.save(Event.builder().eventType("button_click").path("/landing").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("post_click").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
+        eventRepository.save(Event.builder().eventType("button_click").path("/landing").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
+        eventRepository.save(Event.builder().eventType("page_view").path("/landing").organization(organization).eventUser(eventUserC).occurredAt(Instant.parse("2026-02-13T00:40:00Z")).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/event-types/unique-users")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.top").value(10))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].canonicalEventType").value("click"))
+                .andExpect(jsonPath("$.items[0].uniqueUsers").value(2))
+                .andExpect(jsonPath("$.items[1].canonicalEventType").value("view"))
+                .andExpect(jsonPath("$.items[1].uniqueUsers").value(1));
     }
 
     @Test

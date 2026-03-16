@@ -2,6 +2,7 @@ package com.clickchecker.event.controller;
 
 import com.clickchecker.event.controller.response.CanonicalEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.CanonicalEventTypeTimeBucketAggregateResponse;
+import com.clickchecker.event.controller.response.CanonicalEventTypeUniqueUserAggregateResponse;
 import com.clickchecker.event.controller.response.CountResponse;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.PathAggregateResponse;
@@ -11,6 +12,7 @@ import com.clickchecker.event.controller.response.RouteAggregateResponse;
 import com.clickchecker.event.controller.response.RouteEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketAggregateResponse;
 import com.clickchecker.event.controller.response.RouteTimeBucketAggregateResponse;
+import com.clickchecker.event.controller.response.RouteUniqueUserAggregateResponse;
 import com.clickchecker.event.controller.response.TimeBucketAggregateResponse;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.projection.PathCountProjection;
@@ -102,6 +104,33 @@ public class EventQueryController {
         );
     }
 
+    @GetMapping("/aggregates/event-types/unique-users")
+    public CanonicalEventTypeUniqueUserAggregateResponse aggregateCanonicalEventTypeUniqueUsers(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        validateTimeRange(from, to);
+        validateTop(top);
+
+        return new CanonicalEventTypeUniqueUserAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                top,
+                eventQueryService.countUniqueUsersByCanonicalEventTypeBetween(
+                        from,
+                        to,
+                        authOrgId,
+                        externalUserId,
+                        top
+                )
+        );
+    }
+
     @GetMapping("/aggregates/paths")
     public PathAggregateResponse aggregatePaths(
             @CurrentOrganizationId Long authOrgId,
@@ -132,6 +161,36 @@ public class EventQueryController {
 
         List<RouteAggregateItem> routeCounts = eventQueryService.countByRouteKeyBetween(from, to, authOrgId, externalUserId, eventType, top);
         return new RouteAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, routeCounts);
+    }
+
+    @GetMapping("/aggregates/routes/unique-users")
+    public RouteUniqueUserAggregateResponse aggregateRouteUniqueUsers(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(required = false) String eventType,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        validateTimeRange(from, to);
+        validateTop(top);
+
+        return new RouteUniqueUserAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                eventType,
+                top,
+                eventQueryService.countUniqueUsersByRouteKeyBetween(
+                        from,
+                        to,
+                        authOrgId,
+                        externalUserId,
+                        eventType,
+                        top
+                )
+        );
     }
 
     @GetMapping("/aggregates/route-event-types")
