@@ -1,20 +1,14 @@
 package com.clickchecker.event.repository;
 
 import com.clickchecker.event.entity.QEvent;
-import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.projection.EventTypeCountProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawPathTimeBucketCountProjection;
-import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.querydsl.core.types.Projections;
-import com.querydsl.core.types.dsl.DateTimeExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -226,43 +220,6 @@ public class EventQueryRepository {
                 .fetch();
     }
 
-    public List<TimeBucketCountProjection> countByTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            String eventType,
-            TimeBucket bucket
-    ) {
-        return countByTimeBucketBetween(from, to, organizationId, externalUserId, eventType, bucket, "UTC");
-    }
-
-    public List<TimeBucketCountProjection> countByTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            String eventType,
-            TimeBucket bucket,
-            String timezone
-    ) {
-        QEvent event = QEvent.event;
-        DateTimeExpression<Instant> bucketStart = timeBucketStartExpr(bucket, timezone);
-
-        return queryFactory
-                .select(Projections.constructor(TimeBucketCountProjection.class, bucketStart, event.id.count()))
-                .from(event)
-                .where(
-                        occurredAtBetween(from, to),
-                        eventTypeEq(eventType),
-                        organizationIdEq(organizationId),
-                        externalUserIdEq(externalUserId)
-                )
-                .groupBy(bucketStart)
-                .orderBy(bucketStart.asc())
-                .fetch();
-    }
-
     public List<RawOccurredAtCountProjection> countRawOccurredAtBetween(
             Instant from,
             Instant to,
@@ -287,49 +244,6 @@ public class EventQueryRepository {
                 )
                 .groupBy(event.occurredAt)
                 .orderBy(event.occurredAt.asc())
-                .fetch();
-    }
-
-    public List<RawPathTimeBucketCountProjection> countRawPathTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            String eventType,
-            TimeBucket bucket
-    ) {
-        return countRawPathTimeBucketBetween(from, to, organizationId, externalUserId, eventType, bucket, "UTC");
-    }
-
-    public List<RawPathTimeBucketCountProjection> countRawPathTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            String eventType,
-            TimeBucket bucket,
-            String timezone
-    ) {
-        QEvent event = QEvent.event;
-        DateTimeExpression<Instant> bucketStart = timeBucketStartExpr(bucket, timezone);
-
-        return queryFactory
-                .select(Projections.constructor(
-                        RawPathTimeBucketCountProjection.class,
-                        event.path,
-                        bucketStart,
-                        event.id.count()
-                ))
-                .from(event)
-                .where(
-                        occurredAtBetween(from, to),
-                        organizationIdEq(organizationId),
-                        externalUserIdEq(externalUserId),
-                        eventTypeEq(eventType),
-                        pathExists()
-                )
-                .groupBy(event.path, bucketStart)
-                .orderBy(bucketStart.asc(), event.path.asc())
                 .fetch();
     }
 
@@ -359,46 +273,6 @@ public class EventQueryRepository {
                 )
                 .groupBy(event.path, event.occurredAt)
                 .orderBy(event.occurredAt.asc(), event.path.asc())
-                .fetch();
-    }
-
-    public List<RawEventTypeTimeBucketCountProjection> countRawEventTypeTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            TimeBucket bucket
-    ) {
-        return countRawEventTypeTimeBucketBetween(from, to, organizationId, externalUserId, bucket, "UTC");
-    }
-
-    public List<RawEventTypeTimeBucketCountProjection> countRawEventTypeTimeBucketBetween(
-            Instant from,
-            Instant to,
-            Long organizationId,
-            String externalUserId,
-            TimeBucket bucket,
-            String timezone
-    ) {
-        QEvent event = QEvent.event;
-        DateTimeExpression<Instant> bucketStart = timeBucketStartExpr(bucket, timezone);
-
-        return queryFactory
-                .select(Projections.constructor(
-                        RawEventTypeTimeBucketCountProjection.class,
-                        event.eventType,
-                        bucketStart,
-                        event.id.count()
-                ))
-                .from(event)
-                .where(
-                        occurredAtBetween(from, to),
-                        organizationIdEq(organizationId),
-                        externalUserIdEq(externalUserId),
-                        eventTypeExists()
-                )
-                .groupBy(event.eventType, bucketStart)
-                .orderBy(bucketStart.asc(), event.eventType.asc())
                 .fetch();
     }
 
@@ -458,22 +332,5 @@ public class EventQueryRepository {
     private BooleanExpression eventTypeExists() {
         QEvent event = QEvent.event;
         return event.eventType.isNotNull().and(event.eventType.isNotEmpty());
-    }
-
-    private DateTimeExpression<Instant> timeBucketStartExpr(TimeBucket bucket, String timezone) {
-        QEvent event = QEvent.event;
-        String timezoneLiteral = "'" + timezone.replace("'", "''") + "'";
-        return switch (bucket) {
-            case HOUR -> Expressions.dateTimeTemplate(
-                    Instant.class,
-                    "date_trunc('hour', {0} AT TIME ZONE " + timezoneLiteral + ") AT TIME ZONE " + timezoneLiteral,
-                    event.occurredAt
-            );
-            case DAY -> Expressions.dateTimeTemplate(
-                    Instant.class,
-                    "date_trunc('day', {0} AT TIME ZONE " + timezoneLiteral + ") AT TIME ZONE " + timezoneLiteral,
-                    event.occurredAt
-            );
-        };
     }
 }

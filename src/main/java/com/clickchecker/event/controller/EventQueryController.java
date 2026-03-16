@@ -33,6 +33,9 @@ import java.util.List;
 @RequestMapping("/api/events")
 public class EventQueryController {
 
+    private static final int MIN_TOP = 1;
+    private static final int MAX_TOP = 100;
+
     private final EventQueryService eventQueryService;
 
     // 개발용
@@ -50,9 +53,7 @@ public class EventQueryController {
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
+        validateTimeRange(from, to);
 
         return eventQueryService.getOverview(from, to, authOrgId, externalUserId, eventType);
     }
@@ -65,12 +66,8 @@ public class EventQueryController {
             @RequestParam Instant to,
             @RequestParam(defaultValue = "10") int top
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
-        if (top < 1 || top > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
-        }
+        validateTimeRange(from, to);
+        validateTop(top);
 
         return new RawEventTypeAggregateResponse(
                 authOrgId,
@@ -90,12 +87,8 @@ public class EventQueryController {
             @RequestParam Instant to,
             @RequestParam(defaultValue = "10") int top
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
-        if (top < 1 || top > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
-        }
+        validateTimeRange(from, to);
+        validateTop(top);
 
         return new CanonicalEventTypeAggregateResponse(
                 authOrgId,
@@ -116,12 +109,8 @@ public class EventQueryController {
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
-        if (top < 1 || top > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
-        }
+        validateTimeRange(from, to);
+        validateTop(top);
 
         List<PathCountProjection> pathCounts = eventQueryService.countByPathBetween(from, to, authOrgId, externalUserId, eventType, top);
         return new PathAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, pathCounts);
@@ -136,12 +125,8 @@ public class EventQueryController {
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
-        if (top < 1 || top > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
-        }
+        validateTimeRange(from, to);
+        validateTop(top);
 
         List<RouteAggregateItem> routeCounts = eventQueryService.countByRouteKeyBetween(from, to, authOrgId, externalUserId, eventType, top);
         return new RouteAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, routeCounts);
@@ -155,12 +140,8 @@ public class EventQueryController {
             @RequestParam Instant to,
             @RequestParam(defaultValue = "10") int top
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
-        if (top < 1 || top > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
-        }
+        validateTimeRange(from, to);
+        validateTop(top);
 
         return new RouteEventTypeAggregateResponse(
                 authOrgId,
@@ -182,9 +163,7 @@ public class EventQueryController {
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
+        validateTimeRange(from, to);
         validateTimezone(timezone);
 
         return new RouteTimeBucketAggregateResponse(
@@ -216,9 +195,7 @@ public class EventQueryController {
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
+        validateTimeRange(from, to);
         validateTimezone(timezone);
 
         return new CanonicalEventTypeTimeBucketAggregateResponse(
@@ -249,9 +226,7 @@ public class EventQueryController {
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
-        if (!from.isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
-        }
+        validateTimeRange(from, to);
         validateTimezone(timezone);
 
         List<TimeBucketCountProjection> items = eventQueryService.countByTimeBucketBetween(
@@ -274,6 +249,21 @@ public class EventQueryController {
                 bucket,
                 items
         );
+    }
+
+    private void validateTimeRange(Instant from, Instant to) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+    }
+
+    private void validateTop(int top) {
+        if (top < MIN_TOP || top > MAX_TOP) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "`top` must be between " + MIN_TOP + " and " + MAX_TOP + "."
+            );
+        }
     }
 
     private void validateTimezone(String timezone) {

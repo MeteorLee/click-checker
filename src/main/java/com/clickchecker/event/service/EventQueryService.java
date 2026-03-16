@@ -13,7 +13,6 @@ import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.EventTypeCountProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
-import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
@@ -216,13 +215,14 @@ public class EventQueryService {
             String eventType,
             TimeBucket bucket
     ) {
-        return eventQueryRepository.countByTimeBucketBetween(
+        return countByTimeBucketBetween(
                 from,
                 to,
                 organizationId,
                 externalUserId,
                 eventType,
-                bucket
+                bucket,
+                "UTC"
         );
     }
 
@@ -266,32 +266,15 @@ public class EventQueryService {
             String eventType,
             TimeBucket bucket
     ) {
-        Map<RouteTimeBucketKey, Long> countsByRouteBucket = eventQueryRepository.countRawPathTimeBucketBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId,
-                        eventType,
-                        bucket
-                ).stream()
-                .collect(Collectors.groupingBy(
-                        item -> new RouteTimeBucketKey(
-                                routeKeyResolver.resolve(organizationId, item.path()),
-                                item.bucketStart()
-                        ),
-                        Collectors.summingLong(item -> item.count())
-                ));
-
-        return countsByRouteBucket.entrySet().stream()
-                .map(entry -> new RouteTimeBucketItem(
-                        entry.getKey().routeKey(),
-                        entry.getKey().bucketStart(),
-                        entry.getValue()
-                ))
-                .sorted(Comparator
-                        .comparing(RouteTimeBucketItem::bucketStart)
-                        .thenComparing(RouteTimeBucketItem::routeKey))
-                .toList();
+        return countByRouteKeyTimeBucketBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType,
+                bucket,
+                "UTC"
+        );
     }
 
     @Transactional(readOnly = true)
@@ -351,31 +334,14 @@ public class EventQueryService {
             String externalUserId,
             TimeBucket bucket
     ) {
-        Map<CanonicalEventTypeTimeBucketKey, Long> countsByEventTypeBucket = eventQueryRepository.countRawEventTypeTimeBucketBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId,
-                        bucket
-                ).stream()
-                .collect(Collectors.groupingBy(
-                        item -> new CanonicalEventTypeTimeBucketKey(
-                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
-                                item.bucketStart()
-                        ),
-                        Collectors.summingLong(RawEventTypeTimeBucketCountProjection::count)
-                ));
-
-        return countsByEventTypeBucket.entrySet().stream()
-                .map(entry -> new CanonicalEventTypeTimeBucketItem(
-                        entry.getKey().canonicalEventType(),
-                        entry.getKey().bucketStart(),
-                        entry.getValue()
-                ))
-                .sorted(Comparator
-                        .comparing(CanonicalEventTypeTimeBucketItem::bucketStart)
-                        .thenComparing(CanonicalEventTypeTimeBucketItem::canonicalEventType))
-                .toList();
+        return countByCanonicalEventTypeTimeBucketBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                bucket,
+                "UTC"
+        );
     }
 
     @Transactional(readOnly = true)

@@ -12,11 +12,9 @@ import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawPathTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
@@ -179,16 +177,16 @@ class EventQueryServiceTest {
 
     @Test
     void countByRouteKeyTimeBucketBetween_aggregatesByResolvedRouteKey_withinEachBucket() {
-        Instant from = Instant.parse("2026-03-01T00:00:00Z");
-        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+        Instant from = Instant.parse("2026-03-01T10:00:00Z");
+        Instant to = Instant.parse("2026-03-01T12:00:00Z");
         Instant bucket10 = Instant.parse("2026-03-01T10:00:00Z");
         Instant bucket11 = Instant.parse("2026-03-01T11:00:00Z");
 
-        when(eventQueryRepository.countRawPathTimeBucketBetween(from, to, 1L, null, "click", TimeBucket.HOUR))
+        when(eventQueryRepository.countRawPathOccurredAtBetween(from, to, 1L, null, "click"))
                 .thenReturn(List.of(
-                        new RawPathTimeBucketCountProjection("/posts/1", bucket10, 5),
-                        new RawPathTimeBucketCountProjection("/posts/2", bucket10, 4),
-                        new RawPathTimeBucketCountProjection("/landing", bucket11, 3)
+                        new RawPathOccurredAtCountProjection("/posts/1", Instant.parse("2026-03-01T10:10:00Z"), 5),
+                        new RawPathOccurredAtCountProjection("/posts/2", Instant.parse("2026-03-01T10:20:00Z"), 4),
+                        new RawPathOccurredAtCountProjection("/landing", Instant.parse("2026-03-01T11:05:00Z"), 3)
                 ));
 
         when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
@@ -199,24 +197,26 @@ class EventQueryServiceTest {
                 eventQueryService.countByRouteKeyTimeBucketBetween(from, to, 1L, null, "click", TimeBucket.HOUR);
 
         assertThat(result).containsExactly(
+                new RouteTimeBucketItem("/landing", bucket10, 0),
                 new RouteTimeBucketItem("/posts/{id}", bucket10, 9),
-                new RouteTimeBucketItem("/landing", bucket11, 3)
+                new RouteTimeBucketItem("/landing", bucket11, 3),
+                new RouteTimeBucketItem("/posts/{id}", bucket11, 0)
         );
     }
 
     @Test
     void countByCanonicalEventTypeTimeBucketBetween_aggregatesByResolvedCanonicalEventType_withinEachBucket() {
-        Instant from = Instant.parse("2026-03-01T00:00:00Z");
-        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+        Instant from = Instant.parse("2026-03-01T10:00:00Z");
+        Instant to = Instant.parse("2026-03-01T12:00:00Z");
         Instant bucket10 = Instant.parse("2026-03-01T10:00:00Z");
         Instant bucket11 = Instant.parse("2026-03-01T11:00:00Z");
 
-        when(eventQueryRepository.countRawEventTypeTimeBucketBetween(from, to, 1L, null, TimeBucket.HOUR))
+        when(eventQueryRepository.countRawEventTypeOccurredAtBetween(from, to, 1L, null))
                 .thenReturn(List.of(
-                        new RawEventTypeTimeBucketCountProjection("button_click", bucket10, 5),
-                        new RawEventTypeTimeBucketCountProjection("post_click", bucket10, 4),
-                        new RawEventTypeTimeBucketCountProjection("page_view", bucket11, 3),
-                        new RawEventTypeTimeBucketCountProjection("mystery_event", bucket11, 1)
+                        new RawEventTypeOccurredAtCountProjection("button_click", Instant.parse("2026-03-01T10:10:00Z"), 5),
+                        new RawEventTypeOccurredAtCountProjection("post_click", Instant.parse("2026-03-01T10:20:00Z"), 4),
+                        new RawEventTypeOccurredAtCountProjection("page_view", Instant.parse("2026-03-01T11:05:00Z"), 3),
+                        new RawEventTypeOccurredAtCountProjection("mystery_event", Instant.parse("2026-03-01T11:15:00Z"), 1)
                 ));
 
         when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
@@ -229,8 +229,11 @@ class EventQueryServiceTest {
                 eventQueryService.countByCanonicalEventTypeTimeBucketBetween(from, to, 1L, null, TimeBucket.HOUR);
 
         assertThat(result).containsExactly(
+                new CanonicalEventTypeTimeBucketItem(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, bucket10, 0),
                 new CanonicalEventTypeTimeBucketItem("click", bucket10, 9),
+                new CanonicalEventTypeTimeBucketItem("view", bucket10, 0),
                 new CanonicalEventTypeTimeBucketItem(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, bucket11, 1),
+                new CanonicalEventTypeTimeBucketItem("click", bucket11, 0),
                 new CanonicalEventTypeTimeBucketItem("view", bucket11, 3)
         );
     }
