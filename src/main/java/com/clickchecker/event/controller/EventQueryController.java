@@ -14,6 +14,7 @@ import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketAggreg
 import com.clickchecker.event.controller.response.RouteTimeBucketAggregateResponse;
 import com.clickchecker.event.controller.response.RouteUniqueUserAggregateResponse;
 import com.clickchecker.event.controller.response.TimeBucketAggregateResponse;
+import com.clickchecker.event.controller.response.UnmatchedPathAggregateResponse;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
@@ -161,6 +162,36 @@ public class EventQueryController {
 
         List<RouteAggregateItem> routeCounts = eventQueryService.countByRouteKeyBetween(from, to, authOrgId, externalUserId, eventType, top);
         return new RouteAggregateResponse(authOrgId, externalUserId, from, to, eventType, top, routeCounts);
+    }
+
+    @GetMapping("/aggregates/routes/unmatched-paths")
+    public UnmatchedPathAggregateResponse aggregateUnmatchedPaths(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(required = false) String eventType,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        validateTimeRange(from, to);
+        validateTop(top);
+
+        return new UnmatchedPathAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                eventType,
+                top,
+                eventQueryService.countUnmatchedPathsBetween(
+                        from,
+                        to,
+                        authOrgId,
+                        externalUserId,
+                        eventType,
+                        top
+                )
+        );
     }
 
     @GetMapping("/aggregates/routes/unique-users")

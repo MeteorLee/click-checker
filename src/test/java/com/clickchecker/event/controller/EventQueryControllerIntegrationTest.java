@@ -349,6 +349,36 @@ class EventQueryControllerIntegrationTest {
     }
 
     @Test
+    void aggregateUnmatchedPaths_returnsOnlyRawPathsResolvedAsUnmatchedRoute() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        saveRouteTemplate(organization, "/posts/{id}", "/posts/{id}", 100);
+
+        eventRepository.save(Event.builder().eventType("click").path("/posts/1").organization(organization).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("click").path("/unknown/b").organization(organization).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
+        eventRepository.save(Event.builder().eventType("click").path("/unknown/a").organization(organization).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
+        eventRepository.save(Event.builder().eventType("click").path("/unknown/b").organization(organization).occurredAt(Instant.parse("2026-02-13T00:40:00Z")).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/routes/unmatched-paths")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("eventType", "click")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.eventType").value("click"))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].path").value("/unknown/b"))
+                .andExpect(jsonPath("$.items[0].count").value(2))
+                .andExpect(jsonPath("$.items[1].path").value("/unknown/a"))
+                .andExpect(jsonPath("$.items[1].count").value(1));
+    }
+
+    @Test
     void aggregateOverview_returnsSummaryWithComparisonAndTopBreakdowns() throws Exception {
         cleanup();
         Organization organization = saveOrganization("acme");

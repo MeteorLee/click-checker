@@ -9,6 +9,7 @@ import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketItem;
 import com.clickchecker.event.controller.response.RouteTimeBucketItem;
 import com.clickchecker.event.controller.response.RouteUniqueUserItem;
+import com.clickchecker.event.controller.response.UnmatchedPathItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
@@ -68,6 +69,31 @@ class EventQueryServiceTest {
 
         assertThat(result)
                 .containsExactly(new RouteAggregateItem("/posts/{id}", 9));
+    }
+
+    @Test
+    void countUnmatchedPathsBetween_returnsOnlyRawPathsResolvedAsUnmatchedRoute() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+
+        when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, "click"))
+                .thenReturn(List.of(
+                        new PathCountProjection("/posts/1", 5),
+                        new PathCountProjection("/unknown/a", 4),
+                        new PathCountProjection("/unknown/b", 6)
+                ));
+
+        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/unknown/a")).thenReturn(RouteKeyResolver.UNMATCHED_ROUTE);
+        when(routeKeyResolver.resolve(1L, "/unknown/b")).thenReturn(RouteKeyResolver.UNMATCHED_ROUTE);
+
+        List<UnmatchedPathItem> result =
+                eventQueryService.countUnmatchedPathsBetween(from, to, 1L, null, "click", 10);
+
+        assertThat(result).containsExactly(
+                new UnmatchedPathItem("/unknown/b", 6),
+                new UnmatchedPathItem("/unknown/a", 4)
+        );
     }
 
     @Test

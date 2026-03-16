@@ -10,6 +10,7 @@ import com.clickchecker.event.controller.response.RouteEventTypeAggregateItem;
 import com.clickchecker.event.controller.response.RouteEventTypeTimeBucketItem;
 import com.clickchecker.event.controller.response.RouteTimeBucketItem;
 import com.clickchecker.event.controller.response.RouteUniqueUserItem;
+import com.clickchecker.event.controller.response.UnmatchedPathItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
@@ -245,6 +246,34 @@ public class EventQueryService {
                         .comparingLong(RouteAggregateItem::count)
                         .reversed()
                         .thenComparing(RouteAggregateItem::routeKey))
+                .limit(top)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UnmatchedPathItem> countUnmatchedPathsBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType,
+            int top
+    ) {
+        return eventQueryRepository.countRawPathBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
+                        eventType
+                ).stream()
+                .filter(item -> RouteKeyResolver.UNMATCHED_ROUTE.equals(
+                        routeKeyResolver.resolve(organizationId, item.path())
+                ))
+                .map(item -> new UnmatchedPathItem(item.path(), item.count()))
+                .sorted(Comparator
+                        .comparingLong(UnmatchedPathItem::count)
+                        .reversed()
+                        .thenComparing(UnmatchedPathItem::path))
                 .limit(top)
                 .toList();
     }
