@@ -59,6 +59,8 @@ class EventQueryServiceTest {
                 .thenReturn(0L);
         when(eventQueryRepository.countUniqueUsersBetween(from, to, 1L, null, null))
                 .thenReturn(2L);
+        when(eventQueryRepository.countIdentifiedEventsBetween(from, to, 1L, null, null))
+                .thenReturn(2L);
         when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, null))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 2),
@@ -77,6 +79,7 @@ class EventQueryServiceTest {
 
         assertThat(result.totalEvents()).isEqualTo(3);
         assertThat(result.uniqueUsers()).isEqualTo(2);
+        assertThat(result.identifiedEventRate()).isEqualTo(2.0 / 3.0);
         assertThat(result.comparison().current()).isEqualTo(3);
         assertThat(result.comparison().previous()).isZero();
         assertThat(result.comparison().delta()).isEqualTo(3);

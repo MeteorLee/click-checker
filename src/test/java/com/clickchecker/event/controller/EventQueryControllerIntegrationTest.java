@@ -335,6 +335,7 @@ class EventQueryControllerIntegrationTest {
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
                 .andExpect(jsonPath("$.totalEvents").value(3))
                 .andExpect(jsonPath("$.uniqueUsers").value(2))
+                .andExpect(jsonPath("$.identifiedEventRate").isNumber())
                 .andExpect(jsonPath("$.comparison.current").value(3))
                 .andExpect(jsonPath("$.comparison.previous").value(1))
                 .andExpect(jsonPath("$.comparison.delta").value(2))
