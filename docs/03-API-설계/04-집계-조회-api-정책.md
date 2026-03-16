@@ -85,6 +85,7 @@
 - `uniqueUsers`
 - `identifiedEventRate`
 - `eventTypeMappingCoverage`
+- `routeMatchCoverage`
 - `comparison`
 - `topRoutes`
 - `topEventTypes`
@@ -102,6 +103,10 @@
   - raw eventType이 있는 이벤트 중 canonical eventType으로 정상 매핑된 이벤트 비율
   - `topEventTypes`와 eventType 기반 집계 숫자의 해석 보조 지표
   - 현재는 `eventType` 필터가 없는 overview에서만 계산하고, raw eventType으로 이미 좁힌 overview에서는 `null`로 둔다
+- `routeMatchCoverage`
+  - raw path가 있는 이벤트 중 route template에 정상 매칭된 이벤트 비율
+  - `topRoutes`와 route 기반 집계 숫자의 해석 보조 지표
+  - 현재는 `eventType` 필터가 있어도 그대로 계산한다
 - `comparison`
   - 직전 같은 길이 구간과 비교
   - `delta = current - previous`
