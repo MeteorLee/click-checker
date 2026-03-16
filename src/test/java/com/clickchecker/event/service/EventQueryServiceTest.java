@@ -86,6 +86,8 @@ class EventQueryServiceTest {
                 .thenReturn(2L);
         when(eventQueryRepository.countEventsWithEventTypeBetween(from, to, 1L, null))
                 .thenReturn(3L);
+        when(eventQueryRepository.countEventsWithPathBetween(from, to, 1L, null, null))
+                .thenReturn(3L);
         when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, null))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 2),
@@ -108,6 +110,7 @@ class EventQueryServiceTest {
         assertThat(result.uniqueUsers()).isEqualTo(2);
         assertThat(result.identifiedEventRate()).isEqualTo(2.0 / 3.0);
         assertThat(result.eventTypeMappingCoverage()).isEqualTo(1.0);
+        assertThat(result.routeMatchCoverage()).isEqualTo(1.0);
         assertThat(result.comparison().current()).isEqualTo(3);
         assertThat(result.comparison().previous()).isZero();
         assertThat(result.comparison().delta()).isEqualTo(3);
@@ -194,6 +197,27 @@ class EventQueryServiceTest {
                 .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
 
         Double result = eventQueryService.eventTypeMappingCoverageBetween(from, to, 1L, null);
+
+        assertThat(result).isEqualTo(0.6);
+    }
+
+    @Test
+    void routeMatchCoverageBetween_returnsMatchedRouteRatio() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+
+        when(eventQueryRepository.countEventsWithPathBetween(from, to, 1L, null, "click"))
+                .thenReturn(10L);
+        when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, "click"))
+                .thenReturn(List.of(
+                        new PathCountProjection("/posts/1", 6),
+                        new PathCountProjection("/unknown/1", 4)
+                ));
+
+        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolve(1L, "/unknown/1")).thenReturn(RouteKeyResolver.UNMATCHED_ROUTE);
+
+        Double result = eventQueryService.routeMatchCoverageBetween(from, to, 1L, null, "click");
 
         assertThat(result).isEqualTo(0.6);
     }

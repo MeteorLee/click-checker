@@ -13,6 +13,7 @@ public record OverviewResponse(
         Long uniqueUsers,
         Double identifiedEventRate,
         Double eventTypeMappingCoverage,
+        Double routeMatchCoverage,
         Comparison comparison,
         List<RouteSummary> topRoutes,
         List<EventTypeSummary> topEventTypes

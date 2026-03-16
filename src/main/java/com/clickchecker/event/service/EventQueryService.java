@@ -80,6 +80,7 @@ public class EventQueryService {
                 currentUniqueUsers,
                 identifiedEventRate(currentTotalEvents, identifiedEvents),
                 eventTypeMappingCoverage(from, to, organizationId, externalUserId, eventType),
+                routeMatchCoverageBetween(from, to, organizationId, externalUserId, eventType),
                 toComparison(currentTotalEvents, previousTotalEvents),
                 toRouteSummaries(from, to, organizationId, externalUserId, eventType),
                 toEventTypeSummaries(from, to, organizationId, externalUserId, eventType)
@@ -179,6 +180,42 @@ public class EventQueryService {
                 .sum();
 
         return mappedEvents / (double) totalEventsWithEventType;
+    }
+
+    @Transactional(readOnly = true)
+    public Double routeMatchCoverageBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
+        long totalEventsWithPath = eventQueryRepository.countEventsWithPathBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType
+        );
+
+        if (totalEventsWithPath == 0) {
+            return null;
+        }
+
+        long matchedEvents = eventQueryRepository.countRawPathBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
+                        eventType
+                ).stream()
+                .filter(item -> !RouteKeyResolver.UNMATCHED_ROUTE.equals(
+                        routeKeyResolver.resolve(organizationId, item.path())
+                ))
+                .mapToLong(PathCountProjection::count)
+                .sum();
+
+        return matchedEvents / (double) totalEventsWithPath;
     }
 
     @Transactional(readOnly = true)
