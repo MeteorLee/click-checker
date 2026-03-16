@@ -6,6 +6,8 @@ import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeUserCountProjection;
+import com.clickchecker.event.repository.projection.IdentifiedUserFirstSeenProjection;
+import com.clickchecker.event.repository.projection.IdentifiedUserEventCountProjection;
 import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
@@ -436,6 +438,55 @@ public class EventQueryRepository {
                 )
                 .groupBy(event.eventType, event.eventUser.id)
                 .orderBy(event.id.count().desc(), event.eventType.asc(), event.eventUser.id.asc())
+                .fetch();
+    }
+
+    public List<IdentifiedUserEventCountProjection> countIdentifiedUserEventBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        IdentifiedUserEventCountProjection.class,
+                        event.eventUser.id,
+                        event.id.count()
+                ))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        event.eventUser.isNotNull()
+                )
+                .groupBy(event.eventUser.id)
+                .orderBy(event.eventUser.id.asc())
+                .fetch();
+    }
+
+    public List<IdentifiedUserFirstSeenProjection> findIdentifiedUserFirstSeen(
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        IdentifiedUserFirstSeenProjection.class,
+                        event.eventUser.id,
+                        event.occurredAt.min()
+                ))
+                .from(event)
+                .where(
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        event.eventUser.isNotNull()
+                )
+                .groupBy(event.eventUser.id)
+                .orderBy(event.eventUser.id.asc())
                 .fetch();
     }
 
