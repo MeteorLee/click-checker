@@ -1,13 +1,17 @@
 package com.clickchecker.event.service;
 
 import com.clickchecker.event.controller.response.OverviewResponse;
+import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
+import com.clickchecker.event.controller.response.RawEventTypeItem;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.EventTypeCountProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
+import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +33,7 @@ public class EventQueryService {
     private final EventRepository eventRepository;
     private final EventQueryRepository eventQueryRepository;
     private final RouteKeyResolver routeKeyResolver;
+    private final CanonicalEventTypeResolver canonicalEventTypeResolver;
 
     @Transactional(readOnly = true)
     public long countByEventType(String eventType) {
@@ -76,6 +81,55 @@ public class EventQueryService {
             int top
     ) {
         return eventQueryRepository.countByPathBetween(from, to, organizationId, externalUserId, eventType, top);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RawEventTypeItem> countRawEventTypeBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            int top
+    ) {
+        return eventQueryRepository.countRawEventTypeBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
+                        top
+                ).stream()
+                .map(item -> new RawEventTypeItem(item.rawEventType(), item.count()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CanonicalEventTypeItem> countByCanonicalEventTypeBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            int top
+    ) {
+        Map<String, Long> countsByCanonicalEventType = eventQueryRepository.countRawEventTypeBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
+                        Integer.MAX_VALUE
+                ).stream()
+                .collect(Collectors.groupingBy(
+                        item -> canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                        Collectors.summingLong(RawEventTypeCountProjection::count)
+                ));
+
+        return countsByCanonicalEventType.entrySet().stream()
+                .map(entry -> new CanonicalEventTypeItem(entry.getKey(), entry.getValue()))
+                .sorted(Comparator
+                        .comparingLong(CanonicalEventTypeItem::count)
+                        .reversed()
+                        .thenComparing(CanonicalEventTypeItem::canonicalEventType))
+                .limit(top)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -180,6 +234,21 @@ public class EventQueryService {
             String externalUserId,
             String eventType
     ) {
+        if (eventType == null || eventType.isBlank()) {
+            return countByCanonicalEventTypeBetween(
+                    from,
+                    to,
+                    organizationId,
+                    externalUserId,
+                    OVERVIEW_SUMMARY_LIMIT
+            ).stream()
+                    .map(item -> new OverviewResponse.EventTypeSummary(
+                            item.canonicalEventType(),
+                            item.count()
+                    ))
+                    .toList();
+        }
+
         return eventQueryRepository.countByEventTypeBetween(
                         from,
                         to,

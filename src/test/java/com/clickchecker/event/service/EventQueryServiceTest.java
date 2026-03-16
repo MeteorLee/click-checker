@@ -1,11 +1,13 @@
 package com.clickchecker.event.service;
 
+import com.clickchecker.event.controller.response.CanonicalEventTypeItem;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.EventRepository;
-import com.clickchecker.event.repository.projection.EventTypeCountProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
+import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import java.time.Instant;
 import java.util.List;
@@ -20,9 +22,15 @@ class EventQueryServiceTest {
     private final EventRepository eventRepository = mock(EventRepository.class);
     private final EventQueryRepository eventQueryRepository = mock(EventQueryRepository.class);
     private final RouteKeyResolver routeKeyResolver = mock(RouteKeyResolver.class);
+    private final CanonicalEventTypeResolver canonicalEventTypeResolver = mock(CanonicalEventTypeResolver.class);
 
     private final EventQueryService eventQueryService =
-            new EventQueryService(eventRepository, eventQueryRepository, routeKeyResolver);
+            new EventQueryService(
+                    eventRepository,
+                    eventQueryRepository,
+                    routeKeyResolver,
+                    canonicalEventTypeResolver
+            );
 
     @Test
     void countByRouteKeyBetween_aggregatesByResolvedRouteKey_beforeApplyingTopLimit() {
@@ -66,14 +74,16 @@ class EventQueryServiceTest {
                         new PathCountProjection("/posts/1", 2),
                         new PathCountProjection("/landing", 1)
                 ));
-        when(eventQueryRepository.countByEventTypeBetween(from, to, 1L, null, null, 3))
+        when(eventQueryRepository.countRawEventTypeBetween(from, to, 1L, null, Integer.MAX_VALUE))
                 .thenReturn(List.of(
-                        new EventTypeCountProjection("click", 2),
-                        new EventTypeCountProjection("view", 1)
+                        new RawEventTypeCountProjection("button_click", 2),
+                        new RawEventTypeCountProjection("page_view", 1)
                 ));
 
         when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
         when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
+        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
 
         OverviewResponse result = eventQueryService.getOverview(from, to, 1L, null, null);
 
@@ -95,5 +105,31 @@ class EventQueryServiceTest {
                         new OverviewResponse.EventTypeSummary("click", 2),
                         new OverviewResponse.EventTypeSummary("view", 1)
                 );
+    }
+
+    @Test
+    void countByCanonicalEventTypeBetween_aggregatesByResolvedCanonicalEventType_beforeApplyingTopLimit() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-02T00:00:00Z");
+
+        when(eventQueryRepository.countRawEventTypeBetween(from, to, 1L, null, Integer.MAX_VALUE))
+                .thenReturn(List.of(
+                        new RawEventTypeCountProjection("button_click", 5),
+                        new RawEventTypeCountProjection("post_click", 4),
+                        new RawEventTypeCountProjection("mystery_event", 3)
+                ));
+
+        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
+                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+
+        List<CanonicalEventTypeItem> result =
+                eventQueryService.countByCanonicalEventTypeBetween(from, to, 1L, null, 2);
+
+        assertThat(result).containsExactly(
+                new CanonicalEventTypeItem("click", 9),
+                new CanonicalEventTypeItem(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE, 3)
+        );
     }
 }

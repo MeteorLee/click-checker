@@ -4,6 +4,8 @@ import com.clickchecker.event.entity.Event;
 import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.eventuser.entity.EventUser;
 import com.clickchecker.eventuser.repository.EventUserRepository;
+import com.clickchecker.eventtype.entity.EventTypeMapping;
+import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
@@ -48,6 +50,9 @@ class EventQueryControllerIntegrationTest {
 
     @Autowired
     private RouteTemplateRepository routeTemplateRepository;
+
+    @Autowired
+    private EventTypeMappingRepository eventTypeMappingRepository;
 
     @Test
     void aggregatePaths_returnsTopNPaths_withoutEventTypeFilter() throws Exception {
@@ -319,12 +324,14 @@ class EventQueryControllerIntegrationTest {
 
         saveRouteTemplate(organization, "/posts/{id}", "/posts/{id}", 100);
         saveRouteTemplate(organization, "/landing", "/landing", 10);
+        saveEventTypeMapping(organization, "button_click", "click");
+        saveEventTypeMapping(organization, "page_view", "view");
 
-        eventRepository.save(Event.builder().eventType("click").path("/posts/1").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
-        eventRepository.save(Event.builder().eventType("click").path("/posts/2").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
-        eventRepository.save(Event.builder().eventType("view").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
+        eventRepository.save(Event.builder().eventType("button_click").path("/posts/1").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("button_click").path("/posts/2").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
+        eventRepository.save(Event.builder().eventType("page_view").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
 
-        eventRepository.save(Event.builder().eventType("click").path("/posts/3").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-12T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("button_click").path("/posts/3").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-12T00:10:00Z")).build());
 
         mockMvc.perform(
                         authorizedGet(apiKey, "/api/events/aggregates/overview")
@@ -351,6 +358,67 @@ class EventQueryControllerIntegrationTest {
                 .andExpect(jsonPath("$.topEventTypes[0].count").value(2))
                 .andExpect(jsonPath("$.topEventTypes[1].eventType").value("view"))
                 .andExpect(jsonPath("$.topEventTypes[1].count").value(1));
+    }
+
+    @Test
+    void aggregateRawEventTypes_returnsTopRawEventTypes() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        EventUser eventUserA = saveEventUser(organization, "u-1001");
+        EventUser eventUserB = saveEventUser(organization, "u-1002");
+
+        eventRepository.save(Event.builder().eventType("button_click").path("/landing").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("button_click").path("/landing").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
+        eventRepository.save(Event.builder().eventType("page_view").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/raw-event-types")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.top").value(10))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].rawEventType").value("button_click"))
+                .andExpect(jsonPath("$.items[0].count").value(2))
+                .andExpect(jsonPath("$.items[1].rawEventType").value("page_view"))
+                .andExpect(jsonPath("$.items[1].count").value(1));
+    }
+
+    @Test
+    void aggregateCanonicalEventTypes_groupsRawEventTypesByMappingAndFallback() throws Exception {
+        cleanup();
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        saveEventTypeMapping(organization, "button_click", "click");
+        saveEventTypeMapping(organization, "post_click", "click");
+
+        EventUser eventUserA = saveEventUser(organization, "u-1001");
+        EventUser eventUserB = saveEventUser(organization, "u-1002");
+
+        eventRepository.save(Event.builder().eventType("button_click").path("/landing").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:10:00Z")).build());
+        eventRepository.save(Event.builder().eventType("post_click").path("/landing").organization(organization).eventUser(eventUserA).occurredAt(Instant.parse("2026-02-13T00:20:00Z")).build());
+        eventRepository.save(Event.builder().eventType("mystery_event").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/events/aggregates/event-types")
+                                .param("from", "2026-02-13T00:00:00Z")
+                                .param("to", "2026-02-14T00:00:00Z")
+                                .param("top", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.top").value(10))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].canonicalEventType").value("click"))
+                .andExpect(jsonPath("$.items[0].count").value(2))
+                .andExpect(jsonPath("$.items[1].canonicalEventType").value("UNMAPPED_EVENT_TYPE"))
+                .andExpect(jsonPath("$.items[1].count").value(1));
     }
 
     @Test
@@ -450,6 +518,7 @@ class EventQueryControllerIntegrationTest {
     private void cleanup() {
         eventRepository.deleteAll();
         eventUserRepository.deleteAll();
+        eventTypeMappingRepository.deleteAll();
         routeTemplateRepository.deleteAll();
         organizationRepository.deleteAll();
     }
@@ -482,6 +551,21 @@ class EventQueryControllerIntegrationTest {
                         .template(template)
                         .routeKey(routeKey)
                         .priority(priority)
+                        .active(true)
+                        .build()
+        );
+    }
+
+    private EventTypeMapping saveEventTypeMapping(
+            Organization organization,
+            String rawEventType,
+            String canonicalEventType
+    ) {
+        return eventTypeMappingRepository.save(
+                EventTypeMapping.builder()
+                        .organization(organization)
+                        .rawEventType(rawEventType)
+                        .canonicalEventType(canonicalEventType)
                         .active(true)
                         .build()
         );

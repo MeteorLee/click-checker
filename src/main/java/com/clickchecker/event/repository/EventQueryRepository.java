@@ -4,6 +4,7 @@ import com.clickchecker.event.entity.QEvent;
 import com.clickchecker.event.model.TimeBucket;
 import com.clickchecker.event.repository.projection.EventTypeCountProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.DateTimeExpression;
@@ -111,6 +112,29 @@ public class EventQueryRepository {
                         organizationIdEq(organizationId),
                         externalUserIdEq(externalUserId),
                         eventTypeEq(eventType)
+                )
+                .groupBy(event.eventType)
+                .orderBy(event.id.count().desc(), event.eventType.asc())
+                .limit(top)
+                .fetch();
+    }
+
+    public List<RawEventTypeCountProjection> countRawEventTypeBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            int top
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(RawEventTypeCountProjection.class, event.eventType, event.id.count()))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId)
                 )
                 .groupBy(event.eventType)
                 .orderBy(event.id.count().desc(), event.eventType.asc())

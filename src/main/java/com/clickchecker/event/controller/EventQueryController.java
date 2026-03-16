@@ -1,8 +1,10 @@
 package com.clickchecker.event.controller;
 
+import com.clickchecker.event.controller.response.CanonicalEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.CountResponse;
 import com.clickchecker.event.controller.response.OverviewResponse;
 import com.clickchecker.event.controller.response.PathAggregateResponse;
+import com.clickchecker.event.controller.response.RawEventTypeAggregateResponse;
 import com.clickchecker.event.controller.response.RouteAggregateItem;
 import com.clickchecker.event.controller.response.RouteAggregateResponse;
 import com.clickchecker.event.controller.response.TimeBucketAggregateResponse;
@@ -49,6 +51,56 @@ public class EventQueryController {
         }
 
         return eventQueryService.getOverview(from, to, authOrgId, externalUserId, eventType);
+    }
+
+    @GetMapping("/aggregates/raw-event-types")
+    public RawEventTypeAggregateResponse aggregateRawEventTypes(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+        if (top < 1 || top > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
+        }
+
+        return new RawEventTypeAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                top,
+                eventQueryService.countRawEventTypeBetween(from, to, authOrgId, externalUserId, top)
+        );
+    }
+
+    @GetMapping("/aggregates/event-types")
+    public CanonicalEventTypeAggregateResponse aggregateCanonicalEventTypes(
+            @CurrentOrganizationId Long authOrgId,
+            @RequestParam(required = false) String externalUserId,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        if (!from.isBefore(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+        if (top < 1 || top > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`top` must be between 1 and 100.");
+        }
+
+        return new CanonicalEventTypeAggregateResponse(
+                authOrgId,
+                externalUserId,
+                from,
+                to,
+                top,
+                eventQueryService.countByCanonicalEventTypeBetween(from, to, authOrgId, externalUserId, top)
+        );
     }
 
     @GetMapping("/aggregates/paths")
