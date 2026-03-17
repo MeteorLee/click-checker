@@ -14,7 +14,7 @@ set -euo pipefail
 # 8. rollback nginx/containers on failure
 #
 # Shared low-level helpers are sourced from:
-# - ./scripts/blue-green-prod-lib.sh
+# - ./scripts/deploy/blue-green-prod-lib.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/blue-green-prod-lib.sh"
