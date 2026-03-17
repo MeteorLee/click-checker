@@ -1,5 +1,6 @@
 package com.clickchecker.config;
 
+import com.clickchecker.web.error.ApiErrorMessages;
 import io.sentry.Sentry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -112,12 +113,27 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
-        if (!(ex instanceof NoResourceFoundException)
-                || shouldCaptureNoResourceFound(request)) {
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex,
+                                                                        HttpServletRequest request) {
+        if (shouldCaptureNoResourceFound(request)) {
             Sentry.captureException(ex);
         }
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(
+                        status.value(),
+                        status.getReasonPhrase(),
+                        ApiErrorMessages.RESOURCE_NOT_FOUND,
+                        request.getRequestURI(),
+                        List.of()
+                )
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
+        Sentry.captureException(ex);
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), "Internal server error", request.getRequestURI(), List.of())

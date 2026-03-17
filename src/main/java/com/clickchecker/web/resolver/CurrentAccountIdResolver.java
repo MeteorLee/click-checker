@@ -2,6 +2,7 @@ package com.clickchecker.web.resolver;
 
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+import com.clickchecker.web.error.ApiErrorMessages;
 import com.clickchecker.web.filter.JwtAuthFilter;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,6 @@ public class CurrentAccountIdResolver implements HandlerMethodArgumentResolver {
         if (value instanceof Long accountId) {
             return accountId;
         }
-        throw new ResponseStatusException(UNAUTHORIZED, "Unauthorized.");
+        throw new ResponseStatusException(UNAUTHORIZED, ApiErrorMessages.UNAUTHORIZED);
     }
 }

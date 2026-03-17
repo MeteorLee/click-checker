@@ -1,5 +1,7 @@
 package com.clickchecker.eventtype.service;
 
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
 import com.clickchecker.eventtype.controller.request.EventTypeMappingCreateRequest;
 import com.clickchecker.eventtype.controller.request.EventTypeMappingActiveUpdateRequest;
 import com.clickchecker.eventtype.controller.request.EventTypeMappingUpdateRequest;
@@ -8,12 +10,12 @@ import com.clickchecker.eventtype.entity.EventTypeMapping;
 import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.clickchecker.web.error.ApiErrorMessages;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +27,7 @@ public class EventTypeMappingService {
     @Transactional
     public EventTypeMapping create(Long organizationId, EventTypeMappingCreateRequest request) {
         Organization organization = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new EntityNotFoundException("Organization not found: " + organizationId));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.ORGANIZATION_NOT_FOUND));
 
         EventTypeMapping eventTypeMapping = EventTypeMapping.builder()
                 .organization(organization)
@@ -40,7 +42,7 @@ public class EventTypeMappingService {
     @Transactional
     public EventTypeMapping update(Long organizationId, Long eventTypeMappingId, EventTypeMappingUpdateRequest request) {
         EventTypeMapping eventTypeMapping = eventTypeMappingRepository.findByIdAndOrganizationId(eventTypeMappingId, organizationId)
-                .orElseThrow(() -> new EntityNotFoundException("EventTypeMapping not found: " + eventTypeMappingId));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.EVENT_TYPE_MAPPING_NOT_FOUND));
 
         eventTypeMapping.update(
                 request.rawEventType(),
@@ -57,7 +59,7 @@ public class EventTypeMappingService {
             EventTypeMappingActiveUpdateRequest request
     ) {
         EventTypeMapping eventTypeMapping = eventTypeMappingRepository.findByIdAndOrganizationId(eventTypeMappingId, organizationId)
-                .orElseThrow(() -> new EntityNotFoundException("EventTypeMapping not found: " + eventTypeMappingId));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.EVENT_TYPE_MAPPING_NOT_FOUND));
 
         if (Boolean.TRUE.equals(request.active())) {
             eventTypeMapping.activate();
@@ -71,7 +73,7 @@ public class EventTypeMappingService {
     @Transactional
     public void delete(Long organizationId, Long eventTypeMappingId) {
         EventTypeMapping eventTypeMapping = eventTypeMappingRepository.findByIdAndOrganizationId(eventTypeMappingId, organizationId)
-                .orElseThrow(() -> new EntityNotFoundException("EventTypeMapping not found: " + eventTypeMappingId));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.EVENT_TYPE_MAPPING_NOT_FOUND));
 
         eventTypeMappingRepository.delete(eventTypeMapping);
     }

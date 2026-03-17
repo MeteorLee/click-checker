@@ -7,6 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.entity.AccountStatus;
 import com.clickchecker.account.repository.AccountRepository;
+import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
+import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.auth.service.JwtTokenProvider;
 import com.clickchecker.auth.repository.RefreshTokenRepository;
 import com.clickchecker.organization.entity.Organization;
@@ -14,6 +17,7 @@ import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organizationmember.entity.OrganizationMember;
 import com.clickchecker.organizationmember.entity.OrganizationRole;
 import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
+import com.clickchecker.route.repository.RouteTemplateRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -35,6 +39,15 @@ class AdminOrganizationMemberControllerIntegrationTest {
     private AccountRepository accountRepository;
 
     @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private EventTypeMappingRepository eventTypeMappingRepository;
+
+    @Autowired
+    private EventUserRepository eventUserRepository;
+
+    @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
@@ -42,6 +55,9 @@ class AdminOrganizationMemberControllerIntegrationTest {
 
     @Autowired
     private OrganizationMemberRepository organizationMemberRepository;
+
+    @Autowired
+    private RouteTemplateRepository routeTemplateRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -179,6 +195,10 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     private void cleanup() {
+        eventRepository.deleteAll();
+        eventTypeMappingRepository.deleteAll();
+        routeTemplateRepository.deleteAll();
+        eventUserRepository.deleteAll();
         organizationMemberRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         accountRepository.deleteAll();

@@ -6,6 +6,7 @@ import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.account.service.result.AccountMembershipResult;
 import com.clickchecker.organizationmember.repository.OrganizationMemberQueryRepository;
+import com.clickchecker.web.error.ApiErrorMessages;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ public class AccountQueryService {
     @Transactional(readOnly = true)
     public Account getById(Long accountId) {
         return accountRepository.findById(accountId)
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Unauthorized."));
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, ApiErrorMessages.UNAUTHORIZED));
     }
 
     @Transactional(readOnly = true)

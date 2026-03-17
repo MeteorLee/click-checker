@@ -9,6 +9,7 @@ import com.clickchecker.organizationmember.entity.OrganizationRole;
 import com.clickchecker.organizationmember.repository.OrganizationMemberQueryRepository;
 import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.organizationmember.service.result.OrganizationMemberResult;
+import com.clickchecker.web.error.ApiErrorMessages;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,14 +42,14 @@ public class OrganizationMemberQueryService {
 
     private void requireMemberWithAtLeastAdminRole(Long accountId, Long organizationId) {
         if (!organizationRepository.existsById(organizationId)) {
-            throw new ResponseStatusException(NOT_FOUND, "Organization not found.");
+            throw new ResponseStatusException(NOT_FOUND, ApiErrorMessages.ORGANIZATION_NOT_FOUND);
         }
 
         OrganizationMember membership = organizationMemberRepository.findByAccountIdAndOrganizationId(accountId, organizationId)
-                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Forbidden."));
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, ApiErrorMessages.FORBIDDEN));
 
         if (!membership.hasRoleAtLeast(OrganizationRole.ADMIN)) {
-            throw new ResponseStatusException(FORBIDDEN, "Forbidden.");
+            throw new ResponseStatusException(FORBIDDEN, ApiErrorMessages.FORBIDDEN);
         }
     }
 }
