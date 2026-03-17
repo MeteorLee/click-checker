@@ -2,6 +2,9 @@ package com.clickchecker.analytics.retention.service;
 
 import com.clickchecker.analytics.retention.controller.response.DailyRetentionItem;
 import com.clickchecker.analytics.retention.controller.response.DailyRetentionResponse;
+import com.clickchecker.analytics.retention.controller.response.RetentionMatrixResponse;
+import com.clickchecker.analytics.retention.controller.response.RetentionMatrixRow;
+import com.clickchecker.analytics.retention.controller.response.RetentionMatrixValue;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.projection.IdentifiedUserFirstSeenProjection;
 import com.clickchecker.event.repository.projection.IdentifiedUserOccurredAtProjection;
@@ -33,12 +36,112 @@ public class RetentionAnalyticsService {
             Long organizationId,
             String externalUserId
     ) {
+        RetentionContext context = buildContext(from, to, zoneId, organizationId, externalUserId, 30);
+
+        List<DailyRetentionItem> items = context.cohortUserIdsByDate().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> buildItem(entry.getKey(), entry.getValue(), context.activeDatesByUserId()))
+                .toList();
+
+        return new DailyRetentionResponse(
+                organizationId,
+                externalUserId,
+                from,
+                to,
+                zoneId.getId(),
+                items
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public RetentionMatrixResponse getRetentionMatrix(
+            Instant from,
+            Instant to,
+            ZoneId zoneId,
+            Long organizationId,
+            String externalUserId,
+            List<Integer> days
+    ) {
+        int maxDay = days.stream().mapToInt(Integer::intValue).max().orElse(30);
+        RetentionContext context = buildContext(from, to, zoneId, organizationId, externalUserId, maxDay);
+
+        List<RetentionMatrixRow> items = context.cohortUserIdsByDate().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> buildMatrixRow(entry.getKey(), entry.getValue(), context.activeDatesByUserId(), days))
+                .toList();
+
+        return new RetentionMatrixResponse(
+                organizationId,
+                externalUserId,
+                from,
+                to,
+                zoneId.getId(),
+                days,
+                items
+        );
+    }
+
+    private DailyRetentionItem buildItem(
+            LocalDate cohortDate,
+            List<Long> cohortUserIds,
+            Map<Long, Set<LocalDate>> activeDatesByUserId
+    ) {
+        long cohortUsers = cohortUserIds.size();
+        long day1Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(1));
+        long day7Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(7));
+        long day30Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(30));
+
+        return new DailyRetentionItem(
+                cohortDate,
+                cohortUsers,
+                day1Users,
+                retentionRate(day1Users, cohortUsers),
+                day7Users,
+                retentionRate(day7Users, cohortUsers),
+                day30Users,
+                retentionRate(day30Users, cohortUsers)
+        );
+    }
+
+    private RetentionMatrixRow buildMatrixRow(
+            LocalDate cohortDate,
+            List<Long> cohortUserIds,
+            Map<Long, Set<LocalDate>> activeDatesByUserId,
+            List<Integer> days
+    ) {
+        long cohortUsers = cohortUserIds.size();
+        List<RetentionMatrixValue> values = days.stream()
+                .map(day -> {
+                    long retainedUsers = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(day));
+                    return new RetentionMatrixValue(
+                            day,
+                            retainedUsers,
+                            retentionRate(retainedUsers, cohortUsers)
+                    );
+                })
+                .toList();
+
+        return new RetentionMatrixRow(
+                cohortDate,
+                cohortUsers,
+                values
+        );
+    }
+
+    private RetentionContext buildContext(
+            Instant from,
+            Instant to,
+            ZoneId zoneId,
+            Long organizationId,
+            String externalUserId,
+            int maxRetentionDay
+    ) {
         List<IdentifiedUserFirstSeenProjection> firstSeenRows = eventQueryRepository.findIdentifiedUserFirstSeen(
                 organizationId,
                 externalUserId
         );
 
-        Instant activityTo = to.plusSeconds(31L * 24 * 60 * 60);
+        Instant activityTo = to.plusSeconds((long) (maxRetentionDay + 1) * 24 * 60 * 60);
         Map<Long, Set<LocalDate>> activeDatesByUserId = eventQueryRepository.findIdentifiedUserOccurredAtBetween(
                         from,
                         activityTo,
@@ -66,41 +169,7 @@ public class RetentionAnalyticsService {
                     .add(firstSeenRow.eventUserId());
         }
 
-        List<DailyRetentionItem> items = cohortUserIdsByDate.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> buildItem(entry.getKey(), entry.getValue(), activeDatesByUserId))
-                .toList();
-
-        return new DailyRetentionResponse(
-                organizationId,
-                externalUserId,
-                from,
-                to,
-                zoneId.getId(),
-                items
-        );
-    }
-
-    private DailyRetentionItem buildItem(
-            LocalDate cohortDate,
-            List<Long> cohortUserIds,
-            Map<Long, Set<LocalDate>> activeDatesByUserId
-    ) {
-        long cohortUsers = cohortUserIds.size();
-        long day1Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(1));
-        long day7Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(7));
-        long day30Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(30));
-
-        return new DailyRetentionItem(
-                cohortDate,
-                cohortUsers,
-                day1Users,
-                retentionRate(day1Users, cohortUsers),
-                day7Users,
-                retentionRate(day7Users, cohortUsers),
-                day30Users,
-                retentionRate(day30Users, cohortUsers)
-        );
+        return new RetentionContext(activeDatesByUserId, cohortUserIdsByDate);
     }
 
     private long retainedUsers(
@@ -118,5 +187,11 @@ public class RetentionAnalyticsService {
             return null;
         }
         return retainedUsers / (double) cohortUsers;
+    }
+
+    private record RetentionContext(
+            Map<Long, Set<LocalDate>> activeDatesByUserId,
+            Map<LocalDate, List<Long>> cohortUserIdsByDate
+    ) {
     }
 }
