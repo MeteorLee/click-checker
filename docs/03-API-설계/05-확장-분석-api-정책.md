@@ -224,27 +224,12 @@
 ## 응답 구조 정책
 
 ### 현재 상태
-- users/overview는 우선 단순 응답 record를 사용한다.
-- 최소 구현을 빠르게 닫기 위해 `meta / summary / data` 3분할을 즉시 강제하지는 않는다.
-
-### 목표 방향
-- 확장 분석 API는 점진적으로 아래 구조를 공통 틀로 맞춘다.
-  - `meta`
-  - `summary`
-  - `data`
-
-### appliedFilters 예시
-```json
-{
-  "organizationId": 1,
-  "from": "2026-03-01T00:00:00Z",
-  "to": "2026-03-08T00:00:00Z",
-  "timezone": "Asia/Seoul",
-  "externalUserId": null,
-  "canonicalEventTypes": ["SIGN_UP", "PURCHASE"],
-  "routeKey": null
-}
-```
+- 이번 단계에서는 전 API 공통 `meta / summary / data` envelope를 강제하지 않는다.
+- users / funnel / retention은 각 API 의미가 바로 읽히는 현재 응답 구조를 유지한다.
+- 이번 단계의 제품화 우선순위는 응답 형식 통일보다는 아래에 둔다.
+  - 계산 규칙 고정
+  - `/api/v1/events/analytics/...` 공개 URI 일관성
+  - 버저닝 원칙 문서화
 
 ## 버저닝 정책
 - 확장 분석 API는 `/api/v1` 아래에서 시작한다.
@@ -263,7 +248,6 @@
 
 ## 현재 제한
 - `users/overview`는 현재 `externalUserId` 필터만 지원한다.
-- funnel은 현재 `canonicalEventType only` step만 지원한다.
 - funnel은 현재 `canonicalEventType + optional routeKey` step까지 지원한다.
 - funnel의 `conversionWindowDays`는 현재 `1~365` 범위만 지원한다.
 - retention은 현재 daily cohort + Day 1/7/30 exact-day만 지원한다.

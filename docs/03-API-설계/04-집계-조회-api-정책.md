@@ -262,9 +262,13 @@
 - 변경 이력이나 versioning은 아직 없다.
 
 ## 현재 테스트 커버리지
+- `ActivityAnalyticsControllerIntegrationTest`
+- `AggregateAnalyticsControllerIntegrationTest`
+- `TrendAnalyticsControllerIntegrationTest`
+- `ActivityAnalyticsServiceTest`
+- `AggregateAnalyticsServiceTest`
+- `TrendAnalyticsServiceTest`
 - `EventCommandControllerIntegrationTest`
-- `EventQueryControllerIntegrationTest`
-- `EventQueryServiceTest`
 - `RouteTemplateControllerIntegrationTest`
 - `EventTypeMappingControllerIntegrationTest`
 - `CanonicalEventTypeResolverTest`
@@ -272,4 +276,5 @@
 - `RouteKeyResolverTest`
 
 ## 회귀 검증 명령
-- `./gradlew test --tests com.clickchecker.eventtype.service.CanonicalEventTypeResolverTest --tests com.clickchecker.eventtype.controller.EventTypeMappingControllerIntegrationTest --tests com.clickchecker.event.controller.EventQueryControllerIntegrationTest --tests com.clickchecker.event.controller.EventCommandControllerIntegrationTest --tests com.clickchecker.event.service.EventQueryServiceTest --tests com.clickchecker.route.controller.RouteTemplateControllerIntegrationTest --tests com.clickchecker.route.service.RoutePathMatcherTest --tests com.clickchecker.route.service.RouteKeyResolverTest`
+- `./gradlew test`
+- `./gradlew postgresTest`
