@@ -8,7 +8,7 @@ public record FunnelReportResponse(
         String externalUserId,
         Instant from,
         Instant to,
-        List<String> steps,
+        List<FunnelStepDefinition> steps,
         String conversionWindow,
         List<FunnelStepResult> items
 ) {

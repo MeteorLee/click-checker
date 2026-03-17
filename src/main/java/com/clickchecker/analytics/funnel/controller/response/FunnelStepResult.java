@@ -2,7 +2,7 @@ package com.clickchecker.analytics.funnel.controller.response;
 
 public record FunnelStepResult(
         int stepOrder,
-        String canonicalEventType,
+        FunnelStepDefinition step,
         long users,
         Double conversionRateFromFirstStep,
         Long previousStepUsers,

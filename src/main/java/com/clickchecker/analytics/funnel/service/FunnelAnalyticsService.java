@@ -1,9 +1,12 @@
 package com.clickchecker.analytics.funnel.service;
 
+import com.clickchecker.analytics.funnel.controller.request.FunnelStepRequest;
 import com.clickchecker.analytics.funnel.controller.response.FunnelReportResponse;
+import com.clickchecker.analytics.funnel.controller.response.FunnelStepDefinition;
 import com.clickchecker.analytics.funnel.controller.response.FunnelStepResult;
 import com.clickchecker.event.repository.EventQueryRepository;
-import com.clickchecker.event.repository.projection.IdentifiedUserEventTypeOccurredAtProjection;
+import com.clickchecker.event.repository.projection.IdentifiedUserEventStepOccurredAtProjection;
+import com.clickchecker.route.service.RouteKeyResolver;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +28,7 @@ public class FunnelAnalyticsService {
 
     private final EventQueryRepository eventQueryRepository;
     private final CanonicalEventTypeResolver canonicalEventTypeResolver;
+    private final RouteKeyResolver routeKeyResolver;
 
     @Transactional(readOnly = true)
     public FunnelReportResponse report(
@@ -32,14 +36,17 @@ public class FunnelAnalyticsService {
             Instant to,
             Long organizationId,
             String externalUserId,
-            List<String> requestedSteps
+            List<FunnelStepRequest> requestedSteps
     ) {
-        List<String> steps = requestedSteps.stream()
-                .map(String::trim)
+        List<StepCondition> steps = requestedSteps.stream()
+                .map(step -> new StepCondition(
+                        step.canonicalEventType().trim(),
+                        step.routeKey() == null || step.routeKey().isBlank() ? null : step.routeKey().trim()
+                ))
                 .toList();
 
         Instant queryTo = to.plus(DEFAULT_CONVERSION_WINDOW);
-        List<UserEvent> userEvents = eventQueryRepository.findIdentifiedUserEventTypeOccurredAtBetween(
+        List<UserEvent> userEvents = eventQueryRepository.findIdentifiedUserEventStepOccurredAtBetween(
                         from,
                         queryTo,
                         organizationId,
@@ -48,6 +55,7 @@ public class FunnelAnalyticsService {
                 .map(item -> new UserEvent(
                         item.eventUserId(),
                         canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                        routeKeyResolver.resolve(organizationId, item.path()),
                         item.occurredAt()
                 ))
                 .toList();
@@ -72,7 +80,7 @@ public class FunnelAnalyticsService {
             Long previousStepUsers = i == 0 ? null : stepUsers[i - 1];
             items.add(new FunnelStepResult(
                     i + 1,
-                    steps.get(i),
+                    new FunnelStepDefinition(steps.get(i).canonicalEventType(), steps.get(i).routeKey()),
                     stepUsers[i],
                     conversionRateFromFirstStep(stepUsers[i], firstStepUsers),
                     previousStepUsers,
@@ -86,7 +94,9 @@ public class FunnelAnalyticsService {
                 externalUserId,
                 from,
                 to,
-                steps,
+                steps.stream()
+                        .map(step -> new FunnelStepDefinition(step.canonicalEventType(), step.routeKey()))
+                        .toList(),
                 DEFAULT_CONVERSION_WINDOW_LABEL,
                 items
         );
@@ -94,7 +104,7 @@ public class FunnelAnalyticsService {
 
     private int recognizeStepCount(
             List<UserEvent> events,
-            List<String> steps,
+            List<StepCondition> steps,
             Instant from,
             Instant to
     ) {
@@ -121,7 +131,7 @@ public class FunnelAnalyticsService {
 
     private UserEvent findFirstMatching(
             List<UserEvent> events,
-            String expectedCanonicalEventType,
+            StepCondition stepCondition,
             Instant from,
             Instant to,
             boolean inclusiveUpperBound
@@ -133,7 +143,7 @@ public class FunnelAnalyticsService {
             if (isAfterUpperBound(event.occurredAt(), to, inclusiveUpperBound)) {
                 return null;
             }
-            if (event.canonicalEventType().equals(expectedCanonicalEventType)) {
+            if (matches(event, stepCondition)) {
                 return event;
             }
         }
@@ -166,10 +176,24 @@ public class FunnelAnalyticsService {
         return previousStepUsers - stepUsers;
     }
 
+    private boolean matches(UserEvent event, StepCondition stepCondition) {
+        if (!event.canonicalEventType().equals(stepCondition.canonicalEventType())) {
+            return false;
+        }
+        return stepCondition.routeKey() == null || stepCondition.routeKey().equals(event.routeKey());
+    }
+
     private record UserEvent(
             Long eventUserId,
             String canonicalEventType,
+            String routeKey,
             Instant occurredAt
+    ) {
+    }
+
+    private record StepCondition(
+            String canonicalEventType,
+            String routeKey
     ) {
     }
 }

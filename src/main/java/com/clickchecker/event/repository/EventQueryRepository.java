@@ -2,7 +2,7 @@ package com.clickchecker.event.repository;
 
 import com.clickchecker.event.entity.QEvent;
 import com.clickchecker.event.repository.projection.EventTypeCountProjection;
-import com.clickchecker.event.repository.projection.IdentifiedUserEventTypeOccurredAtProjection;
+import com.clickchecker.event.repository.projection.IdentifiedUserEventStepOccurredAtProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
@@ -492,7 +492,7 @@ public class EventQueryRepository {
                 .fetch();
     }
 
-    public List<IdentifiedUserEventTypeOccurredAtProjection> findIdentifiedUserEventTypeOccurredAtBetween(
+    public List<IdentifiedUserEventStepOccurredAtProjection> findIdentifiedUserEventStepOccurredAtBetween(
             Instant from,
             Instant to,
             Long organizationId,
@@ -502,9 +502,10 @@ public class EventQueryRepository {
 
         return queryFactory
                 .select(Projections.constructor(
-                        IdentifiedUserEventTypeOccurredAtProjection.class,
+                        IdentifiedUserEventStepOccurredAtProjection.class,
                         event.eventUser.id,
                         event.eventType,
+                        event.path,
                         event.occurredAt
                 ))
                 .from(event)
@@ -515,7 +516,7 @@ public class EventQueryRepository {
                         event.eventUser.isNotNull(),
                         eventTypeExists()
                 )
-                .orderBy(event.eventUser.id.asc(), event.occurredAt.asc(), event.eventType.asc())
+                .orderBy(event.eventUser.id.asc(), event.occurredAt.asc(), event.eventType.asc(), event.path.asc())
                 .fetch();
     }
 

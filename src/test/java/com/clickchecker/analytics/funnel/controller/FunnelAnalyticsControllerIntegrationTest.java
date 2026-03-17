@@ -9,6 +9,8 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.route.entity.RouteTemplate;
+import com.clickchecker.route.repository.RouteTemplateRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,9 @@ class FunnelAnalyticsControllerIntegrationTest {
     private EventTypeMappingRepository eventTypeMappingRepository;
 
     @Autowired
+    private RouteTemplateRepository routeTemplateRepository;
+
+    @Autowired
     private EventUserRepository eventUserRepository;
 
     @Autowired
@@ -57,18 +62,22 @@ class FunnelAnalyticsControllerIntegrationTest {
 
         saveEventTypeMapping(organization, "signup_button_click", "SIGN_UP");
         saveEventTypeMapping(organization, "purchase_complete", "PURCHASE");
+        saveEventTypeMapping(organization, "page_view", "PAGE_VIEW");
+        saveRouteTemplate(organization, "/pricing", "/pricing", 100);
 
         EventUser user1 = saveEventUser(organization, "user-1");
         EventUser user2 = saveEventUser(organization, "user-2");
         EventUser user3 = saveEventUser(organization, "user-3");
 
+        saveEvent(organization, user1, "page_view", "/pricing", "2026-03-07T09:00:00Z");
         saveEvent(organization, user1, "signup_button_click", "/signup", "2026-03-07T10:00:00Z");
         saveEvent(organization, user1, "purchase_complete", "/purchase", "2026-03-10T09:00:00Z");
 
+        saveEvent(organization, user2, "page_view", "/home", "2026-03-07T08:00:00Z");
         saveEvent(organization, user2, "signup_button_click", "/signup", "2026-03-07T12:00:00Z");
         saveEvent(organization, user2, "purchase_complete", "/purchase", "2026-03-07T13:00:00Z");
 
-        saveEvent(organization, user3, "signup_button_click", "/signup", "2026-03-07T14:00:00Z");
+        saveEvent(organization, user3, "page_view", "/pricing", "2026-03-07T14:00:00Z");
         saveEvent(organization, user3, "purchase_complete", "/purchase", "2026-03-16T00:00:00Z");
 
         mockMvc.perform(
@@ -78,30 +87,42 @@ class FunnelAnalyticsControllerIntegrationTest {
                                         {
                                           "from": "2026-03-01T00:00:00Z",
                                           "to": "2026-03-08T00:00:00Z",
-                                          "steps": ["SIGN_UP", "PURCHASE"]
+                                          "steps": [
+                                            { "canonicalEventType": "PAGE_VIEW", "routeKey": "/pricing" },
+                                            { "canonicalEventType": "SIGN_UP" },
+                                            { "canonicalEventType": "PURCHASE" }
+                                          ]
                                         }
                                         """)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
                 .andExpect(jsonPath("$.conversionWindow").value("7d"))
-                .andExpect(jsonPath("$.items[0].canonicalEventType").value("SIGN_UP"))
-                .andExpect(jsonPath("$.items[0].users").value(3))
+                .andExpect(jsonPath("$.items[0].step.canonicalEventType").value("PAGE_VIEW"))
+                .andExpect(jsonPath("$.items[0].step.routeKey").value("/pricing"))
+                .andExpect(jsonPath("$.items[0].users").value(2))
                 .andExpect(jsonPath("$.items[0].conversionRateFromFirstStep").value(1.0))
                 .andExpect(jsonPath("$.items[0].previousStepUsers").doesNotExist())
                 .andExpect(jsonPath("$.items[0].conversionRateFromPreviousStep").doesNotExist())
                 .andExpect(jsonPath("$.items[0].dropOffUsersFromPreviousStep").doesNotExist())
-                .andExpect(jsonPath("$.items[1].canonicalEventType").value("PURCHASE"))
-                .andExpect(jsonPath("$.items[1].users").value(2))
-                .andExpect(jsonPath("$.items[1].conversionRateFromFirstStep").value(2.0 / 3.0))
-                .andExpect(jsonPath("$.items[1].previousStepUsers").value(3))
-                .andExpect(jsonPath("$.items[1].conversionRateFromPreviousStep").value(2.0 / 3.0))
-                .andExpect(jsonPath("$.items[1].dropOffUsersFromPreviousStep").value(1));
+                .andExpect(jsonPath("$.items[1].step.canonicalEventType").value("SIGN_UP"))
+                .andExpect(jsonPath("$.items[1].users").value(1))
+                .andExpect(jsonPath("$.items[1].conversionRateFromFirstStep").value(0.5))
+                .andExpect(jsonPath("$.items[1].previousStepUsers").value(2))
+                .andExpect(jsonPath("$.items[1].conversionRateFromPreviousStep").value(0.5))
+                .andExpect(jsonPath("$.items[1].dropOffUsersFromPreviousStep").value(1))
+                .andExpect(jsonPath("$.items[2].step.canonicalEventType").value("PURCHASE"))
+                .andExpect(jsonPath("$.items[2].users").value(1))
+                .andExpect(jsonPath("$.items[2].conversionRateFromFirstStep").value(0.5))
+                .andExpect(jsonPath("$.items[2].previousStepUsers").value(1))
+                .andExpect(jsonPath("$.items[2].conversionRateFromPreviousStep").value(1.0))
+                .andExpect(jsonPath("$.items[2].dropOffUsersFromPreviousStep").value(0));
     }
 
     private void cleanup() {
         eventRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();
+        routeTemplateRepository.deleteAll();
         eventUserRepository.deleteAll();
         organizationRepository.deleteAll();
     }
@@ -124,6 +145,16 @@ class FunnelAnalyticsControllerIntegrationTest {
                 .organization(organization)
                 .rawEventType(rawEventType)
                 .canonicalEventType(canonicalEventType)
+                .active(true)
+                .build());
+    }
+
+    private void saveRouteTemplate(Organization organization, String template, String routeKey, int priority) {
+        routeTemplateRepository.save(RouteTemplate.builder()
+                .organization(organization)
+                .template(template)
+                .routeKey(routeKey)
+                .priority(priority)
                 .active(true)
                 .build());
     }
