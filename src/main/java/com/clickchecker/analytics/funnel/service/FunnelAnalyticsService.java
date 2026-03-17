@@ -69,11 +69,15 @@ public class FunnelAnalyticsService {
         long firstStepUsers = stepUsers.length == 0 ? 0 : stepUsers[0];
         List<FunnelStepResult> items = new ArrayList<>(steps.size());
         for (int i = 0; i < steps.size(); i++) {
+            Long previousStepUsers = i == 0 ? null : stepUsers[i - 1];
             items.add(new FunnelStepResult(
                     i + 1,
                     steps.get(i),
                     stepUsers[i],
-                    conversionRateFromFirstStep(stepUsers[i], firstStepUsers)
+                    conversionRateFromFirstStep(stepUsers[i], firstStepUsers),
+                    previousStepUsers,
+                    conversionRateFromPreviousStep(stepUsers[i], previousStepUsers),
+                    dropOffUsersFromPreviousStep(stepUsers[i], previousStepUsers)
             ));
         }
 
@@ -146,6 +150,20 @@ public class FunnelAnalyticsService {
             return null;
         }
         return stepUsers / (double) firstStepUsers;
+    }
+
+    private Double conversionRateFromPreviousStep(long stepUsers, Long previousStepUsers) {
+        if (previousStepUsers == null || previousStepUsers == 0) {
+            return null;
+        }
+        return stepUsers / (double) previousStepUsers;
+    }
+
+    private Long dropOffUsersFromPreviousStep(long stepUsers, Long previousStepUsers) {
+        if (previousStepUsers == null) {
+            return null;
+        }
+        return previousStepUsers - stepUsers;
     }
 
     private record UserEvent(

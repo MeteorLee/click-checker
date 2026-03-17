@@ -56,9 +56,18 @@ class FunnelAnalyticsServiceTest {
         assertThat(result.items()).hasSize(3);
         assertThat(result.items().get(0).users()).isEqualTo(3);
         assertThat(result.items().get(0).conversionRateFromFirstStep()).isEqualTo(1.0);
+        assertThat(result.items().get(0).previousStepUsers()).isNull();
+        assertThat(result.items().get(0).conversionRateFromPreviousStep()).isNull();
+        assertThat(result.items().get(0).dropOffUsersFromPreviousStep()).isNull();
         assertThat(result.items().get(1).users()).isEqualTo(1);
         assertThat(result.items().get(1).conversionRateFromFirstStep()).isEqualTo(1.0 / 3.0);
+        assertThat(result.items().get(1).previousStepUsers()).isEqualTo(3);
+        assertThat(result.items().get(1).conversionRateFromPreviousStep()).isEqualTo(1.0 / 3.0);
+        assertThat(result.items().get(1).dropOffUsersFromPreviousStep()).isEqualTo(2);
         assertThat(result.items().get(2).users()).isEqualTo(1);
         assertThat(result.items().get(2).conversionRateFromFirstStep()).isEqualTo(1.0 / 3.0);
+        assertThat(result.items().get(2).previousStepUsers()).isEqualTo(1);
+        assertThat(result.items().get(2).conversionRateFromPreviousStep()).isEqualTo(1.0);
+        assertThat(result.items().get(2).dropOffUsersFromPreviousStep()).isEqualTo(0);
     }
 }

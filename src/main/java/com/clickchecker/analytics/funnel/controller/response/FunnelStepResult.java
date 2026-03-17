@@ -4,6 +4,9 @@ public record FunnelStepResult(
         int stepOrder,
         String canonicalEventType,
         long users,
-        Double conversionRateFromFirstStep
+        Double conversionRateFromFirstStep,
+        Long previousStepUsers,
+        Double conversionRateFromPreviousStep,
+        Long dropOffUsersFromPreviousStep
 ) {
 }

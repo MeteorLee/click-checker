@@ -88,9 +88,15 @@ class FunnelAnalyticsControllerIntegrationTest {
                 .andExpect(jsonPath("$.items[0].canonicalEventType").value("SIGN_UP"))
                 .andExpect(jsonPath("$.items[0].users").value(3))
                 .andExpect(jsonPath("$.items[0].conversionRateFromFirstStep").value(1.0))
+                .andExpect(jsonPath("$.items[0].previousStepUsers").doesNotExist())
+                .andExpect(jsonPath("$.items[0].conversionRateFromPreviousStep").doesNotExist())
+                .andExpect(jsonPath("$.items[0].dropOffUsersFromPreviousStep").doesNotExist())
                 .andExpect(jsonPath("$.items[1].canonicalEventType").value("PURCHASE"))
                 .andExpect(jsonPath("$.items[1].users").value(2))
-                .andExpect(jsonPath("$.items[1].conversionRateFromFirstStep").value(2.0 / 3.0));
+                .andExpect(jsonPath("$.items[1].conversionRateFromFirstStep").value(2.0 / 3.0))
+                .andExpect(jsonPath("$.items[1].previousStepUsers").value(3))
+                .andExpect(jsonPath("$.items[1].conversionRateFromPreviousStep").value(2.0 / 3.0))
+                .andExpect(jsonPath("$.items[1].dropOffUsersFromPreviousStep").value(1));
     }
 
     private void cleanup() {
