@@ -34,6 +34,7 @@ public class FunnelAnalyticsController {
                 request.to(),
                 authOrgId,
                 request.externalUserId(),
+                request.conversionWindowDays(),
                 request.steps()
         );
     }

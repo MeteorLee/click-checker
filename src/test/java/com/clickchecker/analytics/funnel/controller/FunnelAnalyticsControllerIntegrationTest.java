@@ -119,6 +119,48 @@ class FunnelAnalyticsControllerIntegrationTest {
                 .andExpect(jsonPath("$.items[2].dropOffUsersFromPreviousStep").value(0));
     }
 
+    @Test
+    void report_acceptsCustomConversionWindowDays() throws Exception {
+        cleanup();
+
+        Organization organization = saveOrganization();
+        String apiKey = issueApiKey(organization);
+
+        saveEventTypeMapping(organization, "page_view", "PAGE_VIEW");
+        saveEventTypeMapping(organization, "purchase_complete", "PURCHASE");
+        saveRouteTemplate(organization, "/pricing", "/pricing", 100);
+
+        EventUser user1 = saveEventUser(organization, "user-1");
+
+        saveEvent(organization, user1, "page_view", "/pricing", "2026-03-07T09:00:00Z");
+        saveEvent(organization, user1, "purchase_complete", "/purchase", "2026-03-20T09:00:00Z");
+
+        mockMvc.perform(
+                        authorizedPost(apiKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "from": "2026-03-01T00:00:00Z",
+                                          "to": "2026-03-08T00:00:00Z",
+                                          "conversionWindowDays": 30,
+                                          "steps": [
+                                            { "canonicalEventType": "PAGE_VIEW", "routeKey": "/pricing" },
+                                            { "canonicalEventType": "PURCHASE" }
+                                          ]
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.conversionWindow").value("30d"))
+                .andExpect(jsonPath("$.items[0].users").value(1))
+                .andExpect(jsonPath("$.items[1].users").value(1))
+                .andExpect(jsonPath("$.items[1].conversionRateFromFirstStep").value(1.0))
+                .andExpect(jsonPath("$.items[1].previousStepUsers").value(1))
+                .andExpect(jsonPath("$.items[1].conversionRateFromPreviousStep").value(1.0))
+                .andExpect(jsonPath("$.items[1].dropOffUsersFromPreviousStep").value(0));
+    }
+
     private void cleanup() {
         eventRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();

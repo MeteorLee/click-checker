@@ -24,7 +24,6 @@ import java.util.Map;
 public class FunnelAnalyticsService {
 
     private static final Duration DEFAULT_CONVERSION_WINDOW = Duration.ofDays(7);
-    private static final String DEFAULT_CONVERSION_WINDOW_LABEL = "7d";
 
     private final EventQueryRepository eventQueryRepository;
     private final CanonicalEventTypeResolver canonicalEventTypeResolver;
@@ -36,8 +35,10 @@ public class FunnelAnalyticsService {
             Instant to,
             Long organizationId,
             String externalUserId,
+            Integer conversionWindowDays,
             List<FunnelStepRequest> requestedSteps
     ) {
+        Duration conversionWindow = resolveConversionWindow(conversionWindowDays);
         List<StepCondition> steps = requestedSteps.stream()
                 .map(step -> new StepCondition(
                         step.canonicalEventType().trim(),
@@ -45,7 +46,7 @@ public class FunnelAnalyticsService {
                 ))
                 .toList();
 
-        Instant queryTo = to.plus(DEFAULT_CONVERSION_WINDOW);
+        Instant queryTo = to.plus(conversionWindow);
         List<UserEvent> userEvents = eventQueryRepository.findIdentifiedUserEventStepOccurredAtBetween(
                         from,
                         queryTo,
@@ -68,7 +69,7 @@ public class FunnelAnalyticsService {
 
         long[] stepUsers = new long[steps.size()];
         for (List<UserEvent> events : eventsByUser.values()) {
-            int recognizedSteps = recognizeStepCount(events, steps, from, to);
+            int recognizedSteps = recognizeStepCount(events, steps, from, to, conversionWindow);
             for (int i = 0; i < recognizedSteps; i++) {
                 stepUsers[i]++;
             }
@@ -97,7 +98,7 @@ public class FunnelAnalyticsService {
                 steps.stream()
                         .map(step -> new FunnelStepDefinition(step.canonicalEventType(), step.routeKey()))
                         .toList(),
-                DEFAULT_CONVERSION_WINDOW_LABEL,
+                conversionWindowLabel(conversionWindow),
                 items
         );
     }
@@ -106,14 +107,15 @@ public class FunnelAnalyticsService {
             List<UserEvent> events,
             List<StepCondition> steps,
             Instant from,
-            Instant to
+            Instant to,
+            Duration conversionWindow
     ) {
         UserEvent anchor = findFirstMatching(events, steps.getFirst(), from, to, false);
         if (anchor == null) {
             return 0;
         }
 
-        Instant windowEnd = anchor.occurredAt().plus(DEFAULT_CONVERSION_WINDOW);
+        Instant windowEnd = anchor.occurredAt().plus(conversionWindow);
         Instant previousStepTime = anchor.occurredAt();
         int recognizedSteps = 1;
 
@@ -181,6 +183,17 @@ public class FunnelAnalyticsService {
             return false;
         }
         return stepCondition.routeKey() == null || stepCondition.routeKey().equals(event.routeKey());
+    }
+
+    private Duration resolveConversionWindow(Integer conversionWindowDays) {
+        if (conversionWindowDays == null) {
+            return DEFAULT_CONVERSION_WINDOW;
+        }
+        return Duration.ofDays(conversionWindowDays);
+    }
+
+    private String conversionWindowLabel(Duration conversionWindow) {
+        return conversionWindow.toDays() + "d";
     }
 
     private record UserEvent(

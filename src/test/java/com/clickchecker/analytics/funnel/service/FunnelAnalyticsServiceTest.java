@@ -24,7 +24,7 @@ class FunnelAnalyticsServiceTest {
             new FunnelAnalyticsService(eventQueryRepository, canonicalEventTypeResolver, routeKeyResolver);
 
     @Test
-    void report_countsSequentialSteps_usingSevenDayWindowAndOptionalRouteKeyRule() {
+    void report_usesDefaultSevenDayWindow_whenConversionWindowIsMissing() {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-08T00:00:00Z");
 
@@ -57,6 +57,7 @@ class FunnelAnalyticsServiceTest {
                 to,
                 1L,
                 null,
+                null,
                 List.of(
                         new FunnelStepRequest("PAGE_VIEW", "/pricing"),
                         new FunnelStepRequest("SIGN_UP", null),
@@ -83,5 +84,47 @@ class FunnelAnalyticsServiceTest {
         assertThat(result.items().get(2).previousStepUsers()).isEqualTo(1);
         assertThat(result.items().get(2).conversionRateFromPreviousStep()).isEqualTo(1.0);
         assertThat(result.items().get(2).dropOffUsersFromPreviousStep()).isEqualTo(0);
+    }
+
+    @Test
+    void report_usesRequestedConversionWindowDays() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-08T00:00:00Z");
+
+        when(eventQueryRepository.findIdentifiedUserEventStepOccurredAtBetween(
+                from,
+                Instant.parse("2026-04-07T00:00:00Z"),
+                1L,
+                null
+        )).thenReturn(List.of(
+                new IdentifiedUserEventStepOccurredAtProjection(201L, "page_view", "/pricing", Instant.parse("2026-03-07T09:00:00Z")),
+                new IdentifiedUserEventStepOccurredAtProjection(201L, "purchase_complete", "/purchase", Instant.parse("2026-03-20T09:00:00Z"))
+        ));
+
+        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("PAGE_VIEW");
+        when(canonicalEventTypeResolver.resolve(1L, "purchase_complete")).thenReturn("PURCHASE");
+        when(routeKeyResolver.resolve(1L, "/pricing")).thenReturn("/pricing");
+        when(routeKeyResolver.resolve(1L, "/purchase")).thenReturn("/purchase");
+
+        FunnelReportResponse result = funnelAnalyticsService.report(
+                from,
+                to,
+                1L,
+                null,
+                30,
+                List.of(
+                        new FunnelStepRequest("PAGE_VIEW", "/pricing"),
+                        new FunnelStepRequest("PURCHASE", null)
+                )
+        );
+
+        assertThat(result.conversionWindow()).isEqualTo("30d");
+        assertThat(result.items()).hasSize(2);
+        assertThat(result.items().get(0).users()).isEqualTo(1);
+        assertThat(result.items().get(1).users()).isEqualTo(1);
+        assertThat(result.items().get(1).conversionRateFromFirstStep()).isEqualTo(1.0);
+        assertThat(result.items().get(1).previousStepUsers()).isEqualTo(1);
+        assertThat(result.items().get(1).conversionRateFromPreviousStep()).isEqualTo(1.0);
+        assertThat(result.items().get(1).dropOffUsersFromPreviousStep()).isEqualTo(0);
     }
 }
