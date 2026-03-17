@@ -1,4 +1,4 @@
-# 17. 조직 멤버십 / RBAC 계획 (v1.1)
+# 17. 조직 멤버십 / RBAC 계획 (v1.2)
 
 ## 목표
 - 16단계에서 만든 `Account + JWT` 인증 위에, 계정과 조직의 실제 관계를 올린다.
@@ -56,6 +56,8 @@
 # 17.1 범위 정의
 
 ## 포함(in scope)
+- 계정 회원가입 API
+- 조직 생성 API
 - `OrganizationMember` 도메인 도입
 - `OrganizationRole` 도입
 - account와 organization의 다대다 관계 정리
@@ -70,7 +72,7 @@
 ## 제외(out of scope)
 - 플랜 / usage / 429 정책
 - Audit Log
-- 이메일 초대 / 이메일 인증 / 회원가입
+- 이메일 초대 / 이메일 인증
 - 비밀번호 찾기 / 비밀번호 재설정
 - 관리자 콘솔 UI
 - 세밀한 permission matrix
@@ -81,6 +83,8 @@
 # 17.2 완료 기준 (Done)
 
 - 한 account가 하나 이상의 organization에 membership으로 연결될 수 있다.
+- 회원가입은 `Account`만 생성하고, 조직 role은 만들지 않는다.
+- organization 생성 시 creator account가 해당 organization의 `OWNER` membership으로 자동 연결된다.
 - `/api/v1/admin/me`에서 현재 account의 organization membership 목록을 확인할 수 있다.
 - `OWNER / ADMIN / VIEWER` 역할이 코드와 문서에 반영된다.
 - 조직 멤버 목록 조회 / 추가 / role 변경 / 제거가 최소 1차 버전으로 동작한다.
@@ -103,6 +107,7 @@
 - 로그인은 되지만, 어떤 account가 어느 organization에 속하는지 표현할 방법이 없다.
 - 따라서 "이 계정이 이 조직 설정을 수정할 수 있는가"를 설명할 수 없다.
 - 현재 `/api/v1/admin/me`는 account 정보만 보여줄 뿐, membership과 role은 없다.
+- 현재는 회원가입이 없고, organization 생성 시 creator account를 owner로 연결하는 흐름도 없다.
 - 이후 관리자 콘솔이나 조직별 설정 관리도 membership 없이는 확장하기 어렵다.
 
 즉 이번 단계는 "로그인 가능한 계정"을 "조직에 속한 사용자"로 확장하는 단계다.
@@ -142,19 +147,18 @@
 - 조직 단위 관리자 API는 path의 `organizationId`로 스코프를 받는다.
 - 서버는 `accountId + organizationId` membership을 직접 확인한다.
 
-## 최초 membership 생성 방식
-- 1차 버전에서는 organization 생성과 owner membership 연결을 별도 정책으로 둔다.
-- 구현 선택지는 아래 둘 중 하나다.
-  - A. 기존 organization 생성 흐름 뒤에 수동/seed로 최초 owner membership 연결
-  - B. 관리자 경로에서 organization 생성 시 creator account를 owner로 연결
-- 이번 단계 문서에서는 B 방향을 장기 목표로 두되, 실제 첫 구현은 A로 시작해도 허용한다.
+## 회원가입과 organization 생성의 경계
+- 회원가입은 `Account` 생성만 담당한다.
+- 회원가입 시점에는 organization role이나 membership을 만들지 않는다.
+- organization은 별도 API에서 생성한다.
+- organization 생성 시 현재 로그인 account를 creator로 보고, 해당 organization의 첫 `OWNER` membership을 자동 생성한다.
+- 즉 첫 owner 권한은 "회원가입"이 아니라 "organization 생성" 시점에 생긴다.
 
 ## member 추가 방식
 - 1차 버전에서는 이메일 초대/가입 플로우를 만들지 않는다.
-- 1차 버전의 `POST /members`는 self-signup API가 아니다.
-- 1차 버전의 `POST /members`는 invite/accept 플로우도 아니다.
-- 현재 구조를 단순하게 유지하기 위해, `OWNER`가 `loginId`, `초기 비밀번호`, `role`을 지정해 새 `Account`를 만들고 현재 organization의 membership을 함께 생성하는 관리자용 API로 시작한다.
-- 기존 account를 다른 organization에 연결하는 기능은 후속 범위로 둔다.
+- `POST /members`는 기존 `Account`를 현재 organization에 연결하는 membership 생성 API로 본다.
+- 즉 `POST /members`는 새 account를 생성하지 않는다.
+- 새 account 생성은 회원가입 또는 별도 account 생성 흐름에서만 수행한다.
 - 이후 invite 기반 모델로 확장할 수 있다.
 
 ## 에러 정책
@@ -232,7 +236,25 @@
 }
 ```
 
-## 2) 멤버 목록 조회
+## 2) 회원가입
+- `POST /api/v1/admin/auth/signup`
+- 입력:
+  - `loginId`
+  - `password`
+- 동작:
+  - 새 `Account` 생성
+- 제약:
+  - organization이나 role은 생성하지 않는다
+
+## 3) organization 생성
+- `POST /api/v1/admin/organizations`
+- 권한:
+  - 로그인된 account
+- 동작:
+  - 새 `Organization` 생성
+  - 현재 로그인 account를 해당 organization의 첫 `OWNER` membership으로 연결
+
+## 4) 멤버 목록 조회
 - `GET /api/v1/admin/organizations/{organizationId}/members`
 - 권한:
   - `OWNER`
@@ -242,23 +264,21 @@
 - 식별자:
   - 응답의 `memberId`는 `OrganizationMember.id`
 
-## 3) 멤버 추가
+## 5) 멤버 추가
 - `POST /api/v1/admin/organizations/{organizationId}/members`
 - 입력:
-  - `loginId`
-  - `password`
+  - `accountId`
   - `role`
 - 최소 버전 동작:
-  - 새 `Account` 생성
-  - 같은 organization의 `OrganizationMember` 생성
+  - 기존 `Account`를 현재 organization의 `OrganizationMember`로 연결
 - 성격:
-  - public 회원가입 API가 아니다
+  - 새 account 생성 API가 아니다
   - 초대 수락 플로우가 아니다
-  - `OWNER`가 새 계정을 만들면서 현재 organization 멤버로 함께 등록하는 관리자용 단순화 API다
+  - `OWNER`가 이미 존재하는 account를 현재 organization 멤버로 등록하는 1차 관리자용 API다
 - 권한:
   - `OWNER`
 
-## 4) 멤버 role 변경
+## 6) 멤버 role 변경
 - `PUT /api/v1/admin/organizations/{organizationId}/members/{memberId}/role`
 - 대상:
   - `memberId = OrganizationMember.id`
@@ -269,7 +289,7 @@
 - 제약:
   - 마지막 `OWNER`를 `ADMIN/VIEWER`로 강등할 수 없다
 
-## 5) 멤버 제거
+## 7) 멤버 제거
 - `DELETE /api/v1/admin/organizations/{organizationId}/members/{memberId}`
 - 대상:
   - `memberId = OrganizationMember.id`
@@ -278,7 +298,7 @@
 - 제약:
   - 마지막 `OWNER`는 제거할 수 없다
 
-## 6) 이후 role 적용 대상
+## 8) 이후 role 적용 대상
 - 이번 단계 문서에서는 아래 경로를 role 적용 대상 후보로 본다.
   - 멤버 관리 API
   - API Key rotate API
@@ -338,29 +358,35 @@
 ## 1) 정책 고정
 1. organization context 전달 방식 확정
 2. role 모델 확정
-3. 마지막 owner 보호 규칙 확정
+3. organization 생성 시 creator owner 연결 규칙 확정
+4. 마지막 owner 보호 규칙 확정
 
 ## 2) 도메인 추가
 1. `OrganizationRole`
 2. `OrganizationMember`
 3. migration 작성
 
-## 3) 조회/응답 확장
+## 3) 계정/조직 생성 흐름 정리
+1. 회원가입 API 추가
+2. organization 생성 API를 JWT 기반으로 정리
+3. organization 생성 시 creator owner membership 연결
+
+## 4) 조회/응답 확장
 1. `/api/v1/admin/me`에 membership 정보 추가
 2. membership repository / query 추가
 
-## 4) 멤버 관리 API
+## 5) 멤버 관리 API
 1. 목록 조회
 2. 추가
 3. role 변경
 4. 제거
 
-## 5) 인가 적용
+## 6) 인가 적용
 1. membership 조회 helper
 2. role check helper
 3. 멤버 API role 차단 적용
 
-## 6) 회귀 검증
+## 7) 회귀 검증
 1. 인증만 성공하고 membership 없을 때 차단
 2. role 부족 차단
 3. 마지막 owner 보호

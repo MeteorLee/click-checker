@@ -2,6 +2,7 @@ package com.clickchecker.auth.controller;
 
 import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.service.AccountQueryService;
+import java.util.List;
 import com.clickchecker.web.resolver.CurrentAccountId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,13 +19,30 @@ public class AdminAccountController {
     @GetMapping("/me")
     public AdminMeResponse me(@CurrentAccountId Long accountId) {
         Account account = accountQueryService.getById(accountId);
-        return new AdminMeResponse(account.getId(), account.getLoginId(), account.getStatus().name());
+        List<AdminMeMembershipResponse> memberships = accountQueryService.getMemberships(accountId).stream()
+                .map(membership -> new AdminMeMembershipResponse(
+                        membership.membershipId(),
+                        membership.organizationId(),
+                        membership.organizationName(),
+                        membership.role()
+                ))
+                .toList();
+        return new AdminMeResponse(account.getId(), account.getLoginId(), account.getStatus().name(), memberships);
     }
 
     public record AdminMeResponse(
             Long accountId,
             String loginId,
-            String status
+            String status,
+            List<AdminMeMembershipResponse> memberships
+    ) {
+    }
+
+    public record AdminMeMembershipResponse(
+            Long membershipId,
+            Long organizationId,
+            String organizationName,
+            String role
     ) {
     }
 }
