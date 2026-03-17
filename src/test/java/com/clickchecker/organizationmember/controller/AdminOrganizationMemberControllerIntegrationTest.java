@@ -1,6 +1,9 @@
 package com.clickchecker.organizationmember.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -104,6 +107,396 @@ class AdminOrganizationMemberControllerIntegrationTest {
                 .andExpect(jsonPath("$.members[1].accountStatus").value("DISABLED"))
                 .andExpect(jsonPath("$.members[2].loginId").value("owner"))
                 .andExpect(jsonPath("$.members[2].role").value("OWNER"));
+    }
+
+    @Test
+    void addMember_returnsCreated_whenRequesterIsOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "accountId": %d,
+                                          "role": "VIEWER"
+                                        }
+                                        """.formatted(member.getId()))
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.accountId").value(member.getId()))
+                .andExpect(jsonPath("$.loginId").value("member"))
+                .andExpect(jsonPath("$.accountStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.role").value("VIEWER"));
+
+        OrganizationMember membership = organizationMemberRepository
+                .findByAccountIdAndOrganizationId(member.getId(), organization.getId())
+                .orElseThrow();
+        assert membership.getRole() == OrganizationRole.VIEWER;
+    }
+
+    @Test
+    void addMember_returnsForbidden_whenRequesterIsAdmin() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account admin = saveAccount("admin", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(admin)
+                .organization(organization)
+                .role(OrganizationRole.ADMIN)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(admin.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "accountId": %d,
+                                          "role": "VIEWER"
+                                        }
+                                        """.formatted(member.getId()))
+                )
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void addMember_returnsConflict_whenMembershipAlreadyExists() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "accountId": %d,
+                                          "role": "ADMIN"
+                                        }
+                                        """.formatted(member.getId()))
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Organization member already exists."));
+    }
+
+    @Test
+    void addMember_returnsNotFound_whenTargetAccountDoesNotExist() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "accountId": 9999,
+                                          "role": "VIEWER"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Account not found."));
+    }
+
+    @Test
+    void updateRole_returnsOk_whenRequesterIsOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        OrganizationMember membership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        put("/api/v1/admin/organizations/{organizationId}/members/{memberId}/role", organization.getId(), membership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "role": "ADMIN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberId").value(membership.getId()))
+                .andExpect(jsonPath("$.accountId").value(member.getId()))
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+
+        OrganizationMember updatedMembership = organizationMemberRepository.findById(membership.getId())
+                .orElseThrow();
+        assert updatedMembership.getRole() == OrganizationRole.ADMIN;
+    }
+
+    @Test
+    void updateRole_returnsForbidden_whenRequesterIsAdmin() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account admin = saveAccount("admin", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(admin)
+                .organization(organization)
+                .role(OrganizationRole.ADMIN)
+                .build());
+        OrganizationMember membership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        put("/api/v1/admin/organizations/{organizationId}/members/{memberId}/role", organization.getId(), membership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(admin.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "role": "ADMIN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updateRole_returnsConflict_whenDemotingLastOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        OrganizationMember ownerMembership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        put("/api/v1/admin/organizations/{organizationId}/members/{memberId}/role", organization.getId(), ownerMembership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "role": "ADMIN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Last owner cannot be demoted."));
+    }
+
+    @Test
+    void updateRole_returnsNotFound_whenMemberDoesNotExistInOrganization() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Organization anotherOrganization = organizationRepository.save(Organization.builder()
+                .name("Beta")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        OrganizationMember anotherOrgMembership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(anotherOrganization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        put("/api/v1/admin/organizations/{organizationId}/members/{memberId}/role", organization.getId(), anotherOrgMembership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "role": "ADMIN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Organization member not found."));
+    }
+
+    @Test
+    void removeMember_returnsNoContent_whenRequesterIsOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        OrganizationMember membership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/{memberId}", organization.getId(), membership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                )
+                .andExpect(status().isNoContent());
+
+        assert organizationMemberRepository.findById(membership.getId()).isEmpty();
+    }
+
+    @Test
+    void removeMember_returnsForbidden_whenRequesterIsAdmin() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account admin = saveAccount("admin", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(admin)
+                .organization(organization)
+                .role(OrganizationRole.ADMIN)
+                .build());
+        OrganizationMember membership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/{memberId}", organization.getId(), membership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(admin.getId()))
+                )
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void removeMember_returnsConflict_whenRemovingLastOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        OrganizationMember ownerMembership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/{memberId}", organization.getId(), ownerMembership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Last owner cannot be removed."));
+    }
+
+    @Test
+    void removeMember_returnsNotFound_whenMemberDoesNotExistInOrganization() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Organization anotherOrganization = organizationRepository.save(Organization.builder()
+                .name("Beta")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        OrganizationMember anotherOrgMembership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(anotherOrganization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/{memberId}", organization.getId(), anotherOrgMembership.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Organization member not found."));
     }
 
     @Test
