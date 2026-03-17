@@ -11,7 +11,7 @@ set -euo pipefail
 # - wait for direct readiness on a specific color
 #
 # Main entrypoint:
-# - ./scripts/deploy-prod-orchestrator.sh
+# - ./scripts/deploy/deploy-prod-orchestrator.sh
 
 COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"
 NGINX_CONFIG="${NGINX_CONFIG:-/etc/nginx/sites-available/default}"

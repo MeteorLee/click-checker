@@ -7,9 +7,9 @@ set -euo pipefail
 # It is not the main prod deployment entrypoint.
 #
 # Usage:
-#   ./scripts/blue-green-local-switch.sh
-#   ./scripts/blue-green-local-switch.sh blue
-#   ./scripts/blue-green-local-switch.sh green
+#   ./scripts/deploy/blue-green-local-switch.sh
+#   ./scripts/deploy/blue-green-local-switch.sh blue
+#   ./scripts/deploy/blue-green-local-switch.sh green
 #
 # Environment:
 #   COMPOSE_FILES            Compose args override
@@ -19,7 +19,7 @@ set -euo pipefail
 #   SKIP_STOP_OLD=1          Keep old color running after switch
 #
 # Main prod entrypoint:
-# - ./scripts/deploy-prod-orchestrator.sh
+# - ./scripts/deploy/deploy-prod-orchestrator.sh
 #
 
 COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"

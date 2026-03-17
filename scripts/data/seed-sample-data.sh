@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Seed sample organizations and events for local/EC2 environments.
 # Usage:
-#   ./scripts/seed-sample-data.sh
-#   BASE_URL=http://localhost:8080 RUN_LABEL=my-run ./scripts/seed-sample-data.sh
+#   ./scripts/data/seed-sample-data.sh
+#   BASE_URL=http://localhost:8080 RUN_LABEL=my-run ./scripts/data/seed-sample-data.sh
 # Output:
 #   Writes a summary JSON file that includes organization IDs and apiKeys.
 #
