@@ -168,7 +168,7 @@
 - `to`
 - `timezone`
 - `externalUserId` (선택)
-- `minCohortUsers` (matrix에서 선택)
+- `minCohortUsers` (daily / matrix에서 선택)
 
 ### 응답 항목
 - `timezone`
@@ -211,14 +211,14 @@
 - `cohortDate`는 `firstSeen`을 요청 `timezone`으로 변환한 local date다.
 - 활동 여부는 조회 구간 이후 최대 30일을 추가 조회해 exact-day 기준으로 판정한다.
 - 각 retention 비율은 `retainedUsers / cohortUsers`로 계산한다.
+- `minCohortUsers`가 있으면 해당 값보다 작은 cohort는 응답에서 제외한다.
+- `minCohortUsers`가 없으면 기본값은 `1`이다.
 
 ### matrix 규칙
 - `matrix`는 `days` 쿼리로 custom day 목록을 받는다.
 - `days`가 없으면 기본값은 `1, 7, 30`이다.
 - `days`는 중복 제거 후 오름차순으로 정규화한다.
 - 각 day 값은 `1~365` 범위만 허용하고, 최대 10개까지 지원한다.
-- `minCohortUsers`가 있으면 해당 값보다 작은 cohort는 응답에서 제외한다.
-- `minCohortUsers`가 없으면 기본값은 `1`이다.
 - `matrix`도 exact-day / timezone local date 규칙은 `daily`와 동일하다.
 
 ## 응답 구조 정책
