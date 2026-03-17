@@ -26,7 +26,7 @@
   - 필수
   - 기본 기준: `from <= occurredAt < to`
   - `Instant` 절대시간 범위로 해석한다.
-  - 단, funnel은 `step1 anchor`는 `from <= occurredAt < to`에서 찾고, 후속 step 탐색은 기본 conversion window(`7일`)만큼 lookahead 한다.
+  - 단, funnel은 `step1 anchor`는 `from <= occurredAt < to`에서 찾고, 후속 step 탐색은 기본 `7일` 또는 요청 `conversionWindowDays`만큼 lookahead 한다.
 - `timezone`
   - funnel / retention / cohort 응답 메타와 날짜 해석에 사용한다.
   - 특히 cohort date와 retention day bucket은 요청 timezone 기준 local date로 해석한다.
@@ -90,6 +90,9 @@
   - 각 step은
     - `canonicalEventType` 필수
     - `routeKey` 선택
+- `conversionWindowDays` (선택)
+  - 없으면 기본값 `7`
+  - `1~365` 범위의 일(day) 단위 값
 
 ### 응답 항목
 - `steps`
@@ -107,7 +110,8 @@
 - 2~4 step
 - step 정의는 `canonicalEventType + optional routeKey`
 - 같은 사용자 기준 계산
-- 기본 conversion window는 `7일`
+- conversion window 기본값은 `7일`
+- 요청에서 `conversionWindowDays`로 변경 가능
 
 ### step 정의 단위
 - 현재 step은 아래 형태를 지원한다.
@@ -126,8 +130,9 @@
 
 ### conversion window 적용 방식
 - 최소 버전의 기본 conversion window는 `7일`이다.
-- 후속 step은 anchor 시각부터 `7일` 이내에서만 인정한다.
-- 따라서 실제 계산 시에는 `to` 이후 이벤트도 최대 `7일` lookahead 하여 step2~N를 판정할 수 있다.
+- 요청에 `conversionWindowDays`가 있으면 그 값을 우선 사용한다.
+- 후속 step은 anchor 시각부터 기본 `7일` 또는 요청 `conversionWindowDays` 이내에서만 인정한다.
+- 따라서 실제 계산 시에는 `to` 이후 이벤트도 최대 해당 conversion window만큼 lookahead 하여 step2~N를 판정할 수 있다.
 - 단, step1 anchor 자체는 항상 요청 구간(`from ~ to`) 안에서만 잡는다.
 
 ### step별 해석 보조 값
@@ -257,7 +262,7 @@
 - `users/overview`는 현재 `externalUserId` 필터만 지원한다.
 - funnel은 현재 `canonicalEventType only` step만 지원한다.
 - funnel은 현재 `canonicalEventType + optional routeKey` step까지 지원한다.
-- funnel의 custom conversion window는 아직 지원하지 않는다.
+- funnel의 `conversionWindowDays`는 현재 `1~365` 범위만 지원한다.
 - retention은 현재 daily cohort + Day 1/7/30 exact-day만 지원한다.
 - retention `matrix`는 custom day 목록을 지원하지만, cohort 상세 drill-down이나 on-or-after 방식은 아직 지원하지 않는다.
 - anonymous 포함 사용자 분석과 identity 병합은 이번 단계 범위 밖이다.
