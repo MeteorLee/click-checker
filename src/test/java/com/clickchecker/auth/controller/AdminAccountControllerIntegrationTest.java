@@ -1,6 +1,7 @@
 package com.clickchecker.auth.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -8,14 +9,20 @@ import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.entity.AccountStatus;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.service.JwtTokenProvider;
+import com.clickchecker.auth.repository.RefreshTokenRepository;
+import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
+import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organizationmember.entity.OrganizationMember;
 import com.clickchecker.organizationmember.entity.OrganizationRole;
 import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
+import com.clickchecker.route.repository.RouteTemplateRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,7 +47,22 @@ class AdminAccountControllerIntegrationTest {
     private OrganizationMemberRepository organizationMemberRepository;
 
     @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private EventTypeMappingRepository eventTypeMappingRepository;
+
+    @Autowired
+    private EventUserRepository eventUserRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private RouteTemplateRepository routeTemplateRepository;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -139,8 +161,45 @@ class AdminAccountControllerIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void me_includesOwnerMembership_afterOrganizationIsCreated() throws Exception {
+        cleanup();
+        Account account = accountRepository.save(Account.builder()
+                .loginId("alice")
+                .passwordHash(passwordEncoder.encode("secret123!"))
+                .status(AccountStatus.ACTIVE)
+                .build());
+        String accessToken = jwtTokenProvider.issueAccessToken(account.getId());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "name": "Acme"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(
+                        get("/api/v1/admin/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(1))
+                .andExpect(jsonPath("$.memberships[0].organizationName").value("Acme"))
+                .andExpect(jsonPath("$.memberships[0].role").value("OWNER"));
+    }
+
     private void cleanup() {
+        eventRepository.deleteAll();
+        eventTypeMappingRepository.deleteAll();
+        routeTemplateRepository.deleteAll();
+        eventUserRepository.deleteAll();
         organizationMemberRepository.deleteAll();
+        refreshTokenRepository.deleteAll();
         accountRepository.deleteAll();
         organizationRepository.deleteAll();
     }
