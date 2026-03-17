@@ -8,6 +8,7 @@ import com.clickchecker.organizationmember.entity.OrganizationMember;
 import com.clickchecker.organizationmember.entity.OrganizationRole;
 import com.clickchecker.organizationmember.repository.OrganizationMemberQueryRepository;
 import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
+import com.clickchecker.organizationmember.service.result.OrganizationMemberResult;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,12 +24,12 @@ public class OrganizationMemberQueryService {
     private final OrganizationMemberQueryRepository organizationMemberQueryRepository;
 
     @Transactional(readOnly = true)
-    public List<OrganizationMemberSummary> getMembers(Long accountId, Long organizationId) {
+    public List<OrganizationMemberResult> getMembers(Long accountId, Long organizationId) {
         requireMemberWithAtLeastAdminRole(accountId, organizationId);
 
         return organizationMemberQueryRepository.findMembersByOrganizationId(organizationId)
                 .stream()
-                .map(member -> new OrganizationMemberSummary(
+                .map(member -> new OrganizationMemberResult(
                         member.getId(),
                         member.getAccount().getId(),
                         member.getAccount().getLoginId(),
@@ -49,14 +50,5 @@ public class OrganizationMemberQueryService {
         if (!membership.hasRoleAtLeast(OrganizationRole.ADMIN)) {
             throw new ResponseStatusException(FORBIDDEN, "Forbidden.");
         }
-    }
-
-    public record OrganizationMemberSummary(
-            Long memberId,
-            Long accountId,
-            String loginId,
-            String accountStatus,
-            String role
-    ) {
     }
 }

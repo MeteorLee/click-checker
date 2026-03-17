@@ -4,6 +4,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.repository.AccountRepository;
+import com.clickchecker.account.service.result.AccountMembershipResult;
 import com.clickchecker.organizationmember.repository.OrganizationMemberQueryRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,23 +26,15 @@ public class AccountQueryService {
     }
 
     @Transactional(readOnly = true)
-    public List<AccountMembershipView> getMemberships(Long accountId) {
+    public List<AccountMembershipResult> getMemberships(Long accountId) {
         return organizationMemberQueryRepository.findMembershipsByAccountId(accountId)
                 .stream()
-                .map(membership -> new AccountMembershipView(
+                .map(membership -> new AccountMembershipResult(
                         membership.getId(),
                         membership.getOrganization().getId(),
                         membership.getOrganization().getName(),
                         membership.getRole().name()
                 ))
                 .toList();
-    }
-
-    public record AccountMembershipView(
-            Long membershipId,
-            Long organizationId,
-            String organizationName,
-            String role
-    ) {
     }
 }
