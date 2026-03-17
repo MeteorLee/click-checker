@@ -1,7 +1,7 @@
-package com.clickchecker.analytics.overview.controller;
+package com.clickchecker.analytics.activity.controller;
 
-import com.clickchecker.analytics.overview.controller.response.OverviewResponse;
-import com.clickchecker.analytics.overview.service.OverviewAnalyticsService;
+import com.clickchecker.analytics.activity.controller.response.ActivityOverviewResponse;
+import com.clickchecker.analytics.activity.service.ActivityAnalyticsService;
 import com.clickchecker.web.resolver.CurrentOrganizationId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,12 +16,12 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/events")
-public class OverviewAnalyticsController {
+public class ActivityAnalyticsController {
 
-    private final OverviewAnalyticsService overviewAnalyticsService;
+    private final ActivityAnalyticsService activityAnalyticsService;
 
     @GetMapping("/aggregates/overview")
-    public OverviewResponse aggregateOverview(
+    public ActivityOverviewResponse aggregateOverview(
             @CurrentOrganizationId Long authOrgId,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
@@ -30,7 +30,7 @@ public class OverviewAnalyticsController {
     ) {
         validateTimeRange(from, to);
 
-        return overviewAnalyticsService.getOverview(from, to, authOrgId, externalUserId, eventType);
+        return activityAnalyticsService.getOverview(from, to, authOrgId, externalUserId, eventType);
     }
 
     private void validateTimeRange(Instant from, Instant to) {

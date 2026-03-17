@@ -1,6 +1,6 @@
-package com.clickchecker.analytics.overview.service;
+package com.clickchecker.analytics.activity.service;
 
-import com.clickchecker.analytics.overview.controller.response.OverviewResponse;
+import com.clickchecker.analytics.activity.controller.response.ActivityOverviewResponse;
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
-public class OverviewAnalyticsService {
+public class ActivityAnalyticsService {
 
     private static final int OVERVIEW_SUMMARY_LIMIT = 3;
 
@@ -28,7 +28,7 @@ public class OverviewAnalyticsService {
     private final CanonicalEventTypeResolver canonicalEventTypeResolver;
 
     @Transactional(readOnly = true)
-    public OverviewResponse getOverview(
+    public ActivityOverviewResponse getOverview(
             Instant from,
             Instant to,
             Long organizationId,
@@ -42,7 +42,7 @@ public class OverviewAnalyticsService {
         Instant previousFrom = previousFrom(from, to);
         long previousTotalEvents = eventQueryRepository.countBetween(previousFrom, from, organizationId, externalUserId, eventType);
 
-        return new OverviewResponse(
+        return new ActivityOverviewResponse(
                 organizationId,
                 externalUserId,
                 from,
@@ -131,13 +131,13 @@ public class OverviewAnalyticsService {
         return from.minus(Duration.between(from, to));
     }
 
-    private OverviewResponse.Comparison toComparison(long current, long previous) {
+    private ActivityOverviewResponse.Comparison toComparison(long current, long previous) {
         long delta = current - previous;
         Double deltaRate = previous == 0
                 ? null
                 : delta / (double) previous;
 
-        return new OverviewResponse.Comparison(
+        return new ActivityOverviewResponse.Comparison(
                 current,
                 previous,
                 delta,
@@ -167,7 +167,7 @@ public class OverviewAnalyticsService {
         return eventTypeMappingCoverageBetween(from, to, organizationId, externalUserId);
     }
 
-    private List<OverviewResponse.RouteSummary> toRouteSummaries(
+    private List<ActivityOverviewResponse.RouteSummary> toRouteSummaries(
             Instant from,
             Instant to,
             Long organizationId,
@@ -187,16 +187,16 @@ public class OverviewAnalyticsService {
                 ));
 
         return countsByRouteKey.entrySet().stream()
-                .map(entry -> new OverviewResponse.RouteSummary(entry.getKey(), entry.getValue()))
+                .map(entry -> new ActivityOverviewResponse.RouteSummary(entry.getKey(), entry.getValue()))
                 .sorted(Comparator
-                        .comparingLong(OverviewResponse.RouteSummary::count)
+                        .comparingLong(ActivityOverviewResponse.RouteSummary::count)
                         .reversed()
-                        .thenComparing(OverviewResponse.RouteSummary::routeKey))
+                        .thenComparing(ActivityOverviewResponse.RouteSummary::routeKey))
                 .limit(OVERVIEW_SUMMARY_LIMIT)
                 .toList();
     }
 
-    private List<OverviewResponse.EventTypeSummary> toEventTypeSummaries(
+    private List<ActivityOverviewResponse.EventTypeSummary> toEventTypeSummaries(
             Instant from,
             Instant to,
             Long organizationId,
@@ -217,11 +217,11 @@ public class OverviewAnalyticsService {
                     ));
 
             return countsByCanonicalEventType.entrySet().stream()
-                    .map(entry -> new OverviewResponse.EventTypeSummary(entry.getKey(), entry.getValue()))
+                    .map(entry -> new ActivityOverviewResponse.EventTypeSummary(entry.getKey(), entry.getValue()))
                     .sorted(Comparator
-                            .comparingLong(OverviewResponse.EventTypeSummary::count)
+                            .comparingLong(ActivityOverviewResponse.EventTypeSummary::count)
                             .reversed()
-                            .thenComparing(OverviewResponse.EventTypeSummary::eventType))
+                            .thenComparing(ActivityOverviewResponse.EventTypeSummary::eventType))
                     .limit(OVERVIEW_SUMMARY_LIMIT)
                     .toList();
         }
@@ -234,7 +234,7 @@ public class OverviewAnalyticsService {
                         eventType,
                         OVERVIEW_SUMMARY_LIMIT
                 ).stream()
-                .map(item -> new OverviewResponse.EventTypeSummary(item.eventType(), item.count()))
+                .map(item -> new ActivityOverviewResponse.EventTypeSummary(item.eventType(), item.count()))
                 .toList();
     }
 }

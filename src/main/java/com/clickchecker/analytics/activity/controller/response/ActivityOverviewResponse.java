@@ -1,9 +1,9 @@
-package com.clickchecker.analytics.overview.controller.response;
+package com.clickchecker.analytics.activity.controller.response;
 
 import java.time.Instant;
 import java.util.List;
 
-public record OverviewResponse(
+public record ActivityOverviewResponse(
         Long organizationId,
         String externalUserId,
         Instant from,
