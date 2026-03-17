@@ -9,6 +9,7 @@
 - `GET /api/v1/events/analytics/users/overview`
 - `POST /api/v1/events/analytics/funnels/report`
 - `GET /api/v1/events/analytics/retention/daily`
+- `GET /api/v1/events/analytics/retention/matrix`
 
 ## 예정 엔드포인트
 - cohort 상세/확장 API
@@ -145,6 +146,7 @@
 
 ### 엔드포인트
 - `GET /api/v1/events/analytics/retention/daily`
+- `GET /api/v1/events/analytics/retention/matrix`
 
 ### 쿼리 파라미터
 - `from`
@@ -162,6 +164,14 @@
 - `items[].day7RetentionRate`
 - `items[].day30Users`
 - `items[].day30RetentionRate`
+
+### matrix 응답 항목
+- `days`
+- `items[].cohortDate`
+- `items[].cohortUsers`
+- `items[].values[].day`
+- `items[].values[].users`
+- `items[].values[].retentionRate`
 
 ### 최소 지원 범위
 - daily cohort만 지원
@@ -185,6 +195,13 @@
 - `cohortDate`는 `firstSeen`을 요청 `timezone`으로 변환한 local date다.
 - 활동 여부는 조회 구간 이후 최대 30일을 추가 조회해 exact-day 기준으로 판정한다.
 - 각 retention 비율은 `retainedUsers / cohortUsers`로 계산한다.
+
+### matrix 규칙
+- `matrix`는 `days` 쿼리로 custom day 목록을 받는다.
+- `days`가 없으면 기본값은 `1, 7, 30`이다.
+- `days`는 중복 제거 후 오름차순으로 정규화한다.
+- 각 day 값은 `1~365` 범위만 허용하고, 최대 10개까지 지원한다.
+- `matrix`도 exact-day / timezone local date 규칙은 `daily`와 동일하다.
 
 ## 응답 구조 정책
 
@@ -231,5 +248,5 @@
 - funnel은 현재 `canonicalEventType only` step만 지원한다.
 - funnel의 custom conversion window와 routeKey 결합 step은 아직 지원하지 않는다.
 - retention은 현재 daily cohort + Day 1/7/30 exact-day만 지원한다.
-- retention의 custom day set, on-or-after 방식, cohort 상세 drill-down은 아직 지원하지 않는다.
+- retention `matrix`는 custom day 목록을 지원하지만, cohort 상세 drill-down이나 on-or-after 방식은 아직 지원하지 않는다.
 - anonymous 포함 사용자 분석과 identity 병합은 이번 단계 범위 밖이다.
