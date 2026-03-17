@@ -60,13 +60,15 @@ public class RetentionAnalyticsService {
             ZoneId zoneId,
             Long organizationId,
             String externalUserId,
-            List<Integer> days
+            List<Integer> days,
+            int minCohortUsers
     ) {
         int maxDay = days.stream().mapToInt(Integer::intValue).max().orElse(30);
         RetentionContext context = buildContext(from, to, zoneId, organizationId, externalUserId, maxDay);
 
         List<RetentionMatrixRow> items = context.cohortUserIdsByDate().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
+                .filter(entry -> entry.getValue().size() >= minCohortUsers)
                 .map(entry -> buildMatrixRow(entry.getKey(), entry.getValue(), context.activeDatesByUserId(), days))
                 .toList();
 

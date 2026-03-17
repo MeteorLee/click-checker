@@ -51,10 +51,12 @@ public class RetentionAnalyticsController {
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "UTC") String timezone,
-            @RequestParam(required = false) List<Integer> days
+            @RequestParam(required = false) List<Integer> days,
+            @RequestParam(required = false) Integer minCohortUsers
     ) {
         validateTimeRange(from, to);
         ZoneId zoneId = parseZoneId(timezone);
+        int normalizedMinCohortUsers = normalizeMinCohortUsers(minCohortUsers);
 
         return retentionAnalyticsService.getRetentionMatrix(
                 from,
@@ -62,7 +64,8 @@ public class RetentionAnalyticsController {
                 zoneId,
                 authOrgId,
                 externalUserId,
-                normalizeDays(days)
+                normalizeDays(days),
+                normalizedMinCohortUsers
         );
     }
 
@@ -100,5 +103,15 @@ public class RetentionAnalyticsController {
         }
 
         return normalizedDays;
+    }
+
+    private int normalizeMinCohortUsers(Integer minCohortUsers) {
+        if (minCohortUsers == null) {
+            return 1;
+        }
+        if (minCohortUsers < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`minCohortUsers` must be at least 1.");
+        }
+        return minCohortUsers;
     }
 }

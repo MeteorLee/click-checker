@@ -50,7 +50,8 @@ class RetentionMatrixServiceTest {
                 ZoneId.of("Asia/Seoul"),
                 1L,
                 null,
-                List.of(1, 3, 7)
+                List.of(1, 3, 7),
+                1
         );
 
         assertThat(result.days()).containsExactly(1, 3, 7);
@@ -69,5 +70,45 @@ class RetentionMatrixServiceTest {
         assertThat(result.items().getFirst().values().get(2).day()).isEqualTo(7);
         assertThat(result.items().getFirst().values().get(2).users()).isEqualTo(1);
         assertThat(result.items().getFirst().values().get(2).retentionRate()).isEqualTo(0.5);
+    }
+
+    @Test
+    void getRetentionMatrix_filtersOutSmallCohorts_usingMinCohortUsers() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-08T00:00:00Z");
+
+        when(eventQueryRepository.findIdentifiedUserFirstSeen(1L, null))
+                .thenReturn(List.of(
+                        new IdentifiedUserFirstSeenProjection(101L, Instant.parse("2026-03-01T01:00:00Z")),
+                        new IdentifiedUserFirstSeenProjection(102L, Instant.parse("2026-03-01T12:00:00Z")),
+                        new IdentifiedUserFirstSeenProjection(201L, Instant.parse("2026-03-02T01:00:00Z"))
+                ));
+
+        when(eventQueryRepository.findIdentifiedUserOccurredAtBetween(
+                from,
+                Instant.parse("2026-03-09T00:00:00Z"),
+                1L,
+                null
+        )).thenReturn(List.of(
+                new IdentifiedUserOccurredAtProjection(101L, Instant.parse("2026-03-01T01:00:00Z")),
+                new IdentifiedUserOccurredAtProjection(101L, Instant.parse("2026-03-02T03:00:00Z")),
+                new IdentifiedUserOccurredAtProjection(102L, Instant.parse("2026-03-01T12:00:00Z")),
+                new IdentifiedUserOccurredAtProjection(201L, Instant.parse("2026-03-02T01:00:00Z")),
+                new IdentifiedUserOccurredAtProjection(201L, Instant.parse("2026-03-03T01:00:00Z"))
+        ));
+
+        RetentionMatrixResponse result = retentionAnalyticsService.getRetentionMatrix(
+                from,
+                to,
+                ZoneId.of("Asia/Seoul"),
+                1L,
+                null,
+                List.of(1),
+                2
+        );
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().cohortDate()).isEqualTo(java.time.LocalDate.parse("2026-03-01"));
+        assertThat(result.items().getFirst().cohortUsers()).isEqualTo(2);
     }
 }

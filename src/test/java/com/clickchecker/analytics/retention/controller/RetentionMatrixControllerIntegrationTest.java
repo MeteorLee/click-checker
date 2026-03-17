@@ -89,6 +89,39 @@ class RetentionMatrixControllerIntegrationTest {
                 .andExpect(jsonPath("$.items[0].values[2].users").value(1));
     }
 
+    @Test
+    void matrix_filtersOutSmallCohorts_usingMinCohortUsers() throws Exception {
+        cleanup();
+
+        Organization organization = saveOrganization();
+        String apiKey = issueApiKey(organization);
+
+        EventUser user1 = saveEventUser(organization, "user-1");
+        EventUser user2 = saveEventUser(organization, "user-2");
+        EventUser user3 = saveEventUser(organization, "user-3");
+
+        saveEvent(organization, user1, "view", "/landing", "2026-03-01T01:00:00Z");
+        saveEvent(organization, user1, "view", "/landing", "2026-03-02T03:00:00Z");
+
+        saveEvent(organization, user2, "view", "/landing", "2026-03-01T12:00:00Z");
+
+        saveEvent(organization, user3, "view", "/landing", "2026-03-02T01:00:00Z");
+        saveEvent(organization, user3, "view", "/landing", "2026-03-03T01:00:00Z");
+
+        mockMvc.perform(
+                        authorizedGet(apiKey)
+                                .param("from", "2026-03-01T00:00:00Z")
+                                .param("to", "2026-03-08T00:00:00Z")
+                                .param("timezone", "Asia/Seoul")
+                                .param("days", "1")
+                                .param("minCohortUsers", "2")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].cohortDate").value("2026-03-01"))
+                .andExpect(jsonPath("$.items[0].cohortUsers").value(2));
+    }
+
     private void cleanup() {
         eventRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();
