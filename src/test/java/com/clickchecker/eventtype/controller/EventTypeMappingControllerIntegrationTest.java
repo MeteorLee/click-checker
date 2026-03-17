@@ -1,7 +1,9 @@
 package com.clickchecker.eventtype.controller;
 
+import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.eventtype.entity.EventTypeMapping;
 import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
+import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
@@ -33,6 +35,12 @@ class EventTypeMappingControllerIntegrationTest {
 
     @Autowired
     private EventTypeMappingRepository eventTypeMappingRepository;
+
+    @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private EventUserRepository eventUserRepository;
 
     @Autowired
     private OrganizationRepository organizationRepository;
@@ -171,7 +179,9 @@ class EventTypeMappingControllerIntegrationTest {
     }
 
     private void cleanup() {
+        eventRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();
+        eventUserRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 

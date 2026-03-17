@@ -8,6 +8,7 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.route.repository.RouteTemplateRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,9 @@ class RetentionMatrixControllerIntegrationTest {
 
     @Autowired
     private OrganizationRepository organizationRepository;
+
+    @Autowired
+    private RouteTemplateRepository routeTemplateRepository;
 
     @Autowired
     private ApiKeyService apiKeyService;
@@ -125,6 +129,7 @@ class RetentionMatrixControllerIntegrationTest {
     private void cleanup() {
         eventRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();
+        routeTemplateRepository.deleteAll();
         eventUserRepository.deleteAll();
         organizationRepository.deleteAll();
     }

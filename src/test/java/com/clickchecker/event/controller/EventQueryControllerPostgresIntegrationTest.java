@@ -83,11 +83,15 @@ class EventQueryControllerPostgresIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
                 .andExpect(jsonPath("$.bucket").value("HOUR"))
-                .andExpect(jsonPath("$.items.length()").value(2))
-                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T10:00:00Z"))
-                .andExpect(jsonPath("$.items[0].count").value(2))
-                .andExpect(jsonPath("$.items[1].bucketStart").value("2026-02-13T11:00:00Z"))
-                .andExpect(jsonPath("$.items[1].count").value(1));
+                .andExpect(jsonPath("$.items.length()").value(24))
+                .andExpect(jsonPath("$.items[0].bucketStart").value("2026-02-13T00:00:00Z"))
+                .andExpect(jsonPath("$.items[0].count").value(0))
+                .andExpect(jsonPath("$.items[10].bucketStart").value("2026-02-13T10:00:00Z"))
+                .andExpect(jsonPath("$.items[10].count").value(2))
+                .andExpect(jsonPath("$.items[11].bucketStart").value("2026-02-13T11:00:00Z"))
+                .andExpect(jsonPath("$.items[11].count").value(1))
+                .andExpect(jsonPath("$.items[23].bucketStart").value("2026-02-13T23:00:00Z"))
+                .andExpect(jsonPath("$.items[23].count").value(0));
     }
 
     @Test

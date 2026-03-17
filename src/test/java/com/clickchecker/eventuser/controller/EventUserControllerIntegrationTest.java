@@ -1,9 +1,11 @@
 package com.clickchecker.eventuser.controller;
 
 import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
 import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
+import com.clickchecker.route.repository.RouteTemplateRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -33,6 +35,12 @@ class EventUserControllerIntegrationTest {
 
     @Autowired
     private EventRepository eventRepository;
+
+    @Autowired
+    private EventTypeMappingRepository eventTypeMappingRepository;
+
+    @Autowired
+    private RouteTemplateRepository routeTemplateRepository;
 
     @Test
     void create_returnsId_whenRequestIsValid() throws Exception {
@@ -156,6 +164,8 @@ class EventUserControllerIntegrationTest {
 
     private void cleanup() {
         eventRepository.deleteAll();
+        eventTypeMappingRepository.deleteAll();
+        routeTemplateRepository.deleteAll();
         eventUserRepository.deleteAll();
         organizationRepository.deleteAll();
     }

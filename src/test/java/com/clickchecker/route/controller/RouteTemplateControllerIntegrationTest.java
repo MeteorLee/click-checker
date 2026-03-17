@@ -1,5 +1,8 @@
 package com.clickchecker.route.controller;
 
+import com.clickchecker.event.repository.EventRepository;
+import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
+import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
@@ -39,6 +42,15 @@ class RouteTemplateControllerIntegrationTest {
 
     @Autowired
     private ApiKeyService apiKeyService;
+
+    @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private EventUserRepository eventUserRepository;
+
+    @Autowired
+    private EventTypeMappingRepository eventTypeMappingRepository;
 
     @Test
     void create_savesRouteTemplateUnderAuthenticatedOrganization() throws Exception {
@@ -177,7 +189,10 @@ class RouteTemplateControllerIntegrationTest {
     }
 
     private void cleanup() {
+        eventRepository.deleteAll();
+        eventTypeMappingRepository.deleteAll();
         routeTemplateRepository.deleteAll();
+        eventUserRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 
