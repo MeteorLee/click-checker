@@ -49,6 +49,116 @@ class AdminAuthControllerIntegrationTest {
     private RefreshTokenIssuer refreshTokenIssuer;
 
     @Test
+    void signup_returnsTokensAndStoresAccount_whenRequestIsValid() throws Exception {
+        cleanup();
+
+        String responseBody = mockMvc.perform(
+                        post("/api/v1/admin/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "alice",
+                                          "password": "secret123!"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.accountId").isNumber())
+                .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.refreshToken").isString())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String accessToken = extractField(responseBody, "accessToken");
+        String refreshToken = extractField(responseBody, "refreshToken");
+        Account savedAccount = accountRepository.findByLoginId("alice").orElseThrow();
+
+        assertThat(jwtTokenProvider.isValidAccessToken(accessToken)).isTrue();
+        assertThat(jwtTokenProvider.extractAccountId(accessToken)).isEqualTo(savedAccount.getId());
+        assertThat(savedAccount.getPasswordHash()).isNotEqualTo("secret123!");
+        assertThat(refreshTokenRepository.findByTokenHash(refreshTokenIssuer.hash(refreshToken))).isPresent();
+    }
+
+    @Test
+    void signup_normalizesLoginIdToLowercase_beforeSaving() throws Exception {
+        cleanup();
+
+        mockMvc.perform(
+                        post("/api/v1/admin/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "Alice_01",
+                                          "password": "secret123!"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated());
+
+        assertThat(accountRepository.findByLoginId("alice_01")).isPresent();
+    }
+
+    @Test
+    void signup_returnsConflict_whenLoginIdAlreadyExists() throws Exception {
+        cleanup();
+        accountRepository.save(Account.builder()
+                .loginId("alice")
+                .passwordHash(passwordEncoder.encode("secret123!"))
+                .status(AccountStatus.ACTIVE)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "alice",
+                                          "password": "secret123!"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Duplicated loginId."));
+    }
+
+    @Test
+    void signup_returnsBadRequest_whenLoginIdFormatIsInvalid() throws Exception {
+        cleanup();
+
+        mockMvc.perform(
+                        post("/api/v1/admin/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "ab",
+                                          "password": "secret123!"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+    }
+
+    @Test
+    void signup_returnsBadRequest_whenPasswordFormatIsInvalid() throws Exception {
+        cleanup();
+
+        mockMvc.perform(
+                        post("/api/v1/admin/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "alice",
+                                          "password": "abcdefgh"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+    }
+
+    @Test
     void login_returnsTokensAndStoresRefreshToken_whenCredentialsAreValid() throws Exception {
         cleanup();
         Account account = accountRepository.save(Account.builder()

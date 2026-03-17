@@ -36,7 +36,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         boolean protectedPath = path != null && path.startsWith("/api/v1/admin");
         boolean authPath = path != null
-                && (path.startsWith("/api/v1/admin/auth/login")
+                && (path.startsWith("/api/v1/admin/auth/signup")
+                || path.startsWith("/api/v1/admin/auth/login")
                 || path.startsWith("/api/v1/admin/auth/refresh")
                 || path.startsWith("/api/v1/admin/auth/logout"));
         boolean optionsRequest = "OPTIONS".equalsIgnoreCase(request.getMethod());

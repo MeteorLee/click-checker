@@ -100,6 +100,13 @@ class JwtAuthFilterTest {
                 .contains("accountId=1");
     }
 
+    @Test
+    void shouldNotFilterSignupPath() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/admin/auth/signup");
+
+        assertThat(filter.shouldNotFilter(request)).isTrue();
+    }
+
     private MockHttpServletResponse doFilter(String authorizationHeader) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/me");
         if (authorizationHeader != null) {

@@ -6,6 +6,7 @@ import com.clickchecker.auth.entity.RefreshToken;
 import com.clickchecker.auth.repository.RefreshTokenRepository;
 import com.clickchecker.auth.service.result.AdminTokenResult;
 import java.time.Instant;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AdminAuthService {
 
+    private static final String DUPLICATED_LOGIN_ID_MESSAGE = "Duplicated loginId.";
     private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid credentials.";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid refresh token.";
 
@@ -27,8 +29,27 @@ public class AdminAuthService {
     private final RefreshTokenIssuer refreshTokenIssuer;
 
     @Transactional
+    public AdminTokenResult signup(String loginId, String password) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+
+        if (accountRepository.findByLoginId(normalizedLoginId).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, DUPLICATED_LOGIN_ID_MESSAGE);
+        }
+
+        Account account = accountRepository.save(Account.builder()
+                .loginId(normalizedLoginId)
+                .passwordHash(passwordEncoder.encode(password))
+                .status(null)
+                .build());
+
+        return issueTokens(account);
+    }
+
+    @Transactional
     public AdminTokenResult login(String loginId, String password) {
-        Account account = accountRepository.findByLoginId(loginId)
+        String normalizedLoginId = normalizeLoginId(loginId);
+
+        Account account = accountRepository.findByLoginId(normalizedLoginId)
                 .filter(found -> !found.isDisabled())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE));
 
@@ -98,5 +119,11 @@ public class AdminAuthService {
 
     private ResponseStatusException invalidRefreshToken() {
         return new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_REFRESH_TOKEN_MESSAGE);
+    }
+
+    private String normalizeLoginId(String loginId) {
+        return loginId == null
+                ? null
+                : loginId.trim().toLowerCase(Locale.ROOT);
     }
 }

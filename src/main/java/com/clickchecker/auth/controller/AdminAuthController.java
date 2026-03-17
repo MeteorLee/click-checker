@@ -3,8 +3,10 @@ package com.clickchecker.auth.controller;
 import com.clickchecker.auth.controller.request.AdminLoginRequest;
 import com.clickchecker.auth.controller.request.AdminLogoutRequest;
 import com.clickchecker.auth.controller.request.AdminRefreshRequest;
+import com.clickchecker.auth.controller.request.AdminSignupRequest;
 import com.clickchecker.auth.controller.response.AdminLoginResponse;
 import com.clickchecker.auth.controller.response.AdminRefreshResponse;
+import com.clickchecker.auth.controller.response.AdminSignupResponse;
 import com.clickchecker.auth.mapper.AdminAuthResponseMapper;
 import com.clickchecker.auth.service.AdminAuthService;
 import com.clickchecker.auth.service.result.AdminTokenResult;
@@ -24,6 +26,12 @@ public class AdminAuthController {
 
     private final AdminAuthService adminAuthService;
     private final AdminAuthResponseMapper adminAuthResponseMapper;
+
+    @PostMapping("/signup")
+    public ResponseEntity<AdminSignupResponse> signup(@RequestBody @Valid AdminSignupRequest request) {
+        AdminTokenResult result = adminAuthService.signup(request.loginId(), request.password());
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminAuthResponseMapper.toSignupResponse(result));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<AdminLoginResponse> login(@RequestBody @Valid AdminLoginRequest request) {
