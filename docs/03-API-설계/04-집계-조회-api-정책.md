@@ -6,20 +6,20 @@
 - raw path와 routeKey, 식별 사용자 기준을 명시적으로 구분한다.
 
 ## 현재 엔드포인트
-- `GET /api/events/aggregates/count`
-- `GET /api/events/aggregates/overview`
-- `GET /api/events/aggregates/raw-event-types`
-- `GET /api/events/aggregates/event-types`
-- `GET /api/events/aggregates/event-types/unique-users`
-- `GET /api/events/aggregates/route-event-types`
-- `GET /api/events/aggregates/route-event-type-time-buckets`
-- `GET /api/events/aggregates/route-time-buckets`
-- `GET /api/events/aggregates/event-type-time-buckets`
-- `GET /api/events/aggregates/paths`
-- `GET /api/events/aggregates/routes`
-- `GET /api/events/aggregates/routes/unmatched-paths`
-- `GET /api/events/aggregates/routes/unique-users`
-- `GET /api/events/aggregates/time-buckets`
+- `GET /api/v1/events/analytics/aggregates/count`
+- `GET /api/v1/events/analytics/aggregates/overview`
+- `GET /api/v1/events/analytics/aggregates/raw-event-types`
+- `GET /api/v1/events/analytics/aggregates/event-types`
+- `GET /api/v1/events/analytics/aggregates/event-types/unique-users`
+- `GET /api/v1/events/analytics/aggregates/route-event-types`
+- `GET /api/v1/events/analytics/aggregates/route-event-type-time-buckets`
+- `GET /api/v1/events/analytics/aggregates/route-time-buckets`
+- `GET /api/v1/events/analytics/aggregates/event-type-time-buckets`
+- `GET /api/v1/events/analytics/aggregates/paths`
+- `GET /api/v1/events/analytics/aggregates/routes`
+- `GET /api/v1/events/analytics/aggregates/routes/unmatched-paths`
+- `GET /api/v1/events/analytics/aggregates/routes/unique-users`
+- `GET /api/v1/events/analytics/aggregates/time-buckets`
 - `GET /api/events/route-templates`
 - `POST /api/events/route-templates`
 - `PUT /api/events/route-templates/{id}`
