@@ -94,6 +94,9 @@
 - `items[].canonicalEventType`
 - `items[].users`
 - `items[].conversionRateFromFirstStep`
+- `items[].previousStepUsers`
+- `items[].conversionRateFromPreviousStep`
+- `items[].dropOffUsersFromPreviousStep`
 
 ### 최소 지원 범위
 - 2~4 step
@@ -118,6 +121,17 @@
 - 후속 step은 anchor 시각부터 `7일` 이내에서만 인정한다.
 - 따라서 실제 계산 시에는 `to` 이후 이벤트도 최대 `7일` lookahead 하여 step2~N를 판정할 수 있다.
 - 단, step1 anchor 자체는 항상 요청 구간(`from ~ to`) 안에서만 잡는다.
+
+### step별 해석 보조 값
+- `conversionRateFromFirstStep`
+  - step1 진입자 대비 현재 step 도달 비율
+- `previousStepUsers`
+  - 현재 step 바로 직전 step의 사용자 수
+- `conversionRateFromPreviousStep`
+  - 직전 step 사용자 대비 현재 step 도달 비율
+- `dropOffUsersFromPreviousStep`
+  - 직전 step 사용자 중 현재 step에 도달하지 못한 사용자 수
+- step1에는 직전 step이 없으므로 위 3개 값은 `null`이다.
 
 ### same timestamp 규칙
 - 같은 timestamp의 이벤트는 허용한다.
@@ -215,8 +229,7 @@
 ## 현재 제한
 - `users/overview`는 현재 `externalUserId` 필터만 지원한다.
 - funnel은 현재 `canonicalEventType only` step만 지원한다.
-- funnel 응답의 비율은 현재 `step1` 대비 `conversionRateFromFirstStep`만 제공한다.
-- funnel의 custom conversion window, routeKey 결합 step, drop-off 상세 값은 아직 지원하지 않는다.
+- funnel의 custom conversion window와 routeKey 결합 step은 아직 지원하지 않는다.
 - retention은 현재 daily cohort + Day 1/7/30 exact-day만 지원한다.
 - retention의 custom day set, on-or-after 방식, cohort 상세 drill-down은 아직 지원하지 않는다.
 - anonymous 포함 사용자 분석과 identity 병합은 이번 단계 범위 밖이다.
