@@ -30,17 +30,20 @@ public class RetentionAnalyticsController {
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
-            @RequestParam(defaultValue = "UTC") String timezone
+            @RequestParam(defaultValue = "UTC") String timezone,
+            @RequestParam(required = false) Integer minCohortUsers
     ) {
         validateTimeRange(from, to);
         ZoneId zoneId = parseZoneId(timezone);
+        int normalizedMinCohortUsers = normalizeMinCohortUsers(minCohortUsers);
 
         return retentionAnalyticsService.getDailyRetention(
                 from,
                 to,
                 zoneId,
                 authOrgId,
-                externalUserId
+                externalUserId,
+                normalizedMinCohortUsers
         );
     }
 

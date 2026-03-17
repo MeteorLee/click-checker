@@ -34,12 +34,14 @@ public class RetentionAnalyticsService {
             Instant to,
             ZoneId zoneId,
             Long organizationId,
-            String externalUserId
+            String externalUserId,
+            int minCohortUsers
     ) {
         RetentionContext context = buildContext(from, to, zoneId, organizationId, externalUserId, 30);
 
         List<DailyRetentionItem> items = context.cohortUserIdsByDate().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
+                .filter(entry -> entry.getValue().size() >= minCohortUsers)
                 .map(entry -> buildItem(entry.getKey(), entry.getValue(), context.activeDatesByUserId()))
                 .toList();
 
