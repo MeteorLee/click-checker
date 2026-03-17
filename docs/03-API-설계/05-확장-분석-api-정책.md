@@ -85,14 +85,18 @@
 - `to`
 - `externalUserId` (선택)
 - `steps`
-  - canonical eventType 이름 목록
+  - step 정의 목록
   - 최소 2개, 최대 4개
+  - 각 step은
+    - `canonicalEventType` 필수
+    - `routeKey` 선택
 
 ### 응답 항목
 - `steps`
 - `conversionWindow`
 - `items[].stepOrder`
-- `items[].canonicalEventType`
+- `items[].step.canonicalEventType`
+- `items[].step.routeKey`
 - `items[].users`
 - `items[].conversionRateFromFirstStep`
 - `items[].previousStepUsers`
@@ -101,13 +105,16 @@
 
 ### 최소 지원 범위
 - 2~4 step
-- step 정의는 `canonicalEventType only`
+- step 정의는 `canonicalEventType + optional routeKey`
 - 같은 사용자 기준 계산
 - 기본 conversion window는 `7일`
 
 ### step 정의 단위
-- 15단계 최소 step은 `canonicalEventType = X` 형태로만 지원한다.
-- `canonicalEventType + routeKey` 조합 step은 후속 확장으로 둔다.
+- 현재 step은 아래 형태를 지원한다.
+  - `canonicalEventType = X`
+  - `canonicalEventType = X` and `routeKey = Y`
+- `routeKey` 비교는 raw path가 아니라 route 정규화 결과를 기준으로 한다.
+- 즉 실제 계산 시에는 raw path를 먼저 `routeKey`로 해석한 뒤 step 조건과 비교한다.
 
 ### anchor / 순서 규칙
 - 각 사용자는 step1의 최초 발생 시점을 anchor로 삼는다.
@@ -126,6 +133,9 @@
 ### step별 해석 보조 값
 - `conversionRateFromFirstStep`
   - step1 진입자 대비 현재 step 도달 비율
+- `step.routeKey`
+  - 지정되면 해당 routeKey에서 발생한 이벤트만 step 후보로 인정한다.
+  - 비어 있으면 route 조건 없이 canonicalEventType만 비교한다.
 - `previousStepUsers`
   - 현재 step 바로 직전 step의 사용자 수
 - `conversionRateFromPreviousStep`
@@ -246,7 +256,8 @@
 ## 현재 제한
 - `users/overview`는 현재 `externalUserId` 필터만 지원한다.
 - funnel은 현재 `canonicalEventType only` step만 지원한다.
-- funnel의 custom conversion window와 routeKey 결합 step은 아직 지원하지 않는다.
+- funnel은 현재 `canonicalEventType + optional routeKey` step까지 지원한다.
+- funnel의 custom conversion window는 아직 지원하지 않는다.
 - retention은 현재 daily cohort + Day 1/7/30 exact-day만 지원한다.
 - retention `matrix`는 custom day 목록을 지원하지만, cohort 상세 drill-down이나 on-or-after 방식은 아직 지원하지 않는다.
 - anonymous 포함 사용자 분석과 identity 병합은 이번 단계 범위 밖이다.
