@@ -1,5 +1,7 @@
 package com.clickchecker.organizationmember.controller;
 
+import com.clickchecker.organizationmember.controller.response.AdminOrganizationMemberListResponse;
+import com.clickchecker.organizationmember.controller.response.AdminOrganizationMemberResponse;
 import com.clickchecker.organizationmember.service.OrganizationMemberQueryService;
 import com.clickchecker.web.resolver.CurrentAccountId;
 import java.util.List;
@@ -17,13 +19,13 @@ public class AdminOrganizationMemberController {
     private final OrganizationMemberQueryService organizationMemberQueryService;
 
     @GetMapping
-    public OrganizationMemberListResponse getMembers(
+    public AdminOrganizationMemberListResponse getMembers(
             @CurrentAccountId Long accountId,
             @PathVariable Long organizationId
     ) {
-        List<OrganizationMemberResponse> members = organizationMemberQueryService.getMembers(accountId, organizationId)
+        List<AdminOrganizationMemberResponse> members = organizationMemberQueryService.getMembers(accountId, organizationId)
                 .stream()
-                .map(member -> new OrganizationMemberResponse(
+                .map(member -> new AdminOrganizationMemberResponse(
                         member.memberId(),
                         member.accountId(),
                         member.loginId(),
@@ -32,20 +34,6 @@ public class AdminOrganizationMemberController {
                 ))
                 .toList();
 
-        return new OrganizationMemberListResponse(members);
-    }
-
-    public record OrganizationMemberListResponse(
-            List<OrganizationMemberResponse> members
-    ) {
-    }
-
-    public record OrganizationMemberResponse(
-            Long memberId,
-            Long accountId,
-            String loginId,
-            String accountStatus,
-            String role
-    ) {
+        return new AdminOrganizationMemberListResponse(members);
     }
 }

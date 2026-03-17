@@ -2,8 +2,10 @@ package com.clickchecker.auth.controller;
 
 import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.service.AccountQueryService;
-import java.util.List;
+import com.clickchecker.auth.controller.response.AdminMeMembershipResponse;
+import com.clickchecker.auth.controller.response.AdminMeResponse;
 import com.clickchecker.web.resolver.CurrentAccountId;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,21 +30,5 @@ public class AdminAccountController {
                 ))
                 .toList();
         return new AdminMeResponse(account.getId(), account.getLoginId(), account.getStatus().name(), memberships);
-    }
-
-    public record AdminMeResponse(
-            Long accountId,
-            String loginId,
-            String status,
-            List<AdminMeMembershipResponse> memberships
-    ) {
-    }
-
-    public record AdminMeMembershipResponse(
-            Long membershipId,
-            Long organizationId,
-            String organizationName,
-            String role
-    ) {
     }
 }
