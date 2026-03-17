@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -77,12 +76,7 @@ public class RouteTemplateService {
 
     @Transactional(readOnly = true)
     public List<RouteTemplateItem> getAll(Long organizationId) {
-        return routeTemplateRepository.findAll().stream()
-                .filter(routeTemplate -> routeTemplate.getOrganization().getId().equals(organizationId))
-                .sorted(Comparator
-                        .comparingInt(RouteTemplate::getPriority)
-                        .reversed()
-                        .thenComparing(RouteTemplate::getId))
+        return routeTemplateRepository.findByOrganizationIdOrderByPriorityDescIdAsc(organizationId).stream()
                 .map(routeTemplate -> new RouteTemplateItem(
                         routeTemplate.getId(),
                         routeTemplate.getTemplate(),

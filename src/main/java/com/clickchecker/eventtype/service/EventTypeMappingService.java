@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -79,11 +78,7 @@ public class EventTypeMappingService {
 
     @Transactional(readOnly = true)
     public List<EventTypeMappingItem> getAll(Long organizationId) {
-        return eventTypeMappingRepository.findAll().stream()
-                .filter(eventTypeMapping -> eventTypeMapping.getOrganization().getId().equals(organizationId))
-                .sorted(Comparator
-                        .comparing(EventTypeMapping::getRawEventType)
-                        .thenComparing(EventTypeMapping::getId))
+        return eventTypeMappingRepository.findByOrganizationIdOrderByRawEventTypeAscIdAsc(organizationId).stream()
                 .map(eventTypeMapping -> new EventTypeMappingItem(
                         eventTypeMapping.getId(),
                         eventTypeMapping.getRawEventType(),
