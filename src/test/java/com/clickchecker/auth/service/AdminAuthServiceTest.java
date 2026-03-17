@@ -11,6 +11,7 @@ import com.clickchecker.account.entity.AccountStatus;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.entity.RefreshToken;
 import com.clickchecker.auth.repository.RefreshTokenRepository;
+import com.clickchecker.auth.service.result.AdminTokenResult;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class AdminAuthServiceTest {
         when(accountRepository.findByLoginId("alice"))
                 .thenReturn(Optional.of(account));
 
-        AdminAuthService.TokenResult result = adminAuthService.login("alice", "secret123!");
+        AdminTokenResult result = adminAuthService.login("alice", "secret123!");
 
         assertThat(result.accountId()).isEqualTo(1L);
         assertThat(result.accessTokenExpiresIn()).isEqualTo(900);
@@ -123,7 +124,7 @@ class AdminAuthServiceTest {
         when(refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(refreshTokenIssuer.hash(oldRefreshToken)))
                 .thenReturn(Optional.of(existingRefreshToken));
 
-        AdminAuthService.TokenResult result = adminAuthService.refresh(oldRefreshToken);
+        AdminTokenResult result = adminAuthService.refresh(oldRefreshToken);
 
         assertThat(result.accountId()).isEqualTo(1L);
         assertThat(result.refreshToken()).startsWith("rt_");

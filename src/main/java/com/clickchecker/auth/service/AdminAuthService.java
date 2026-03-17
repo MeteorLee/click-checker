@@ -4,6 +4,7 @@ import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.entity.RefreshToken;
 import com.clickchecker.auth.repository.RefreshTokenRepository;
+import com.clickchecker.auth.service.result.AdminTokenResult;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class AdminAuthService {
     private final RefreshTokenIssuer refreshTokenIssuer;
 
     @Transactional
-    public TokenResult login(String loginId, String password) {
+    public AdminTokenResult login(String loginId, String password) {
         Account account = accountRepository.findByLoginId(loginId)
                 .filter(found -> !found.isDisabled())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE));
@@ -39,7 +40,7 @@ public class AdminAuthService {
     }
 
     @Transactional
-    public TokenResult refresh(String refreshToken) {
+    public AdminTokenResult refresh(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw invalidRefreshToken();
         }
@@ -78,7 +79,7 @@ public class AdminAuthService {
         savedRefreshToken.revoke(now);
     }
 
-    private TokenResult issueTokens(Account account) {
+    private AdminTokenResult issueTokens(Account account) {
         RefreshTokenIssuer.IssuedRefreshToken issuedRefreshToken = refreshTokenIssuer.issue();
         refreshTokenRepository.save(RefreshToken.builder()
                 .account(account)
@@ -86,7 +87,7 @@ public class AdminAuthService {
                 .expiresAt(issuedRefreshToken.expiresAt())
                 .build());
 
-        return new TokenResult(
+        return new AdminTokenResult(
                 account.getId(),
                 jwtTokenProvider.issueAccessToken(account.getId()),
                 jwtTokenProvider.getAccessTokenExpirationSeconds(),
@@ -97,14 +98,5 @@ public class AdminAuthService {
 
     private ResponseStatusException invalidRefreshToken() {
         return new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_REFRESH_TOKEN_MESSAGE);
-    }
-
-    public record TokenResult(
-            Long accountId,
-            String accessToken,
-            long accessTokenExpiresIn,
-            String refreshToken,
-            long refreshTokenExpiresIn
-    ) {
     }
 }

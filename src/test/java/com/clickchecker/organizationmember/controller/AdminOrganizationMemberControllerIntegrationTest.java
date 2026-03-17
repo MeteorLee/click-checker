@@ -8,6 +8,7 @@ import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.entity.AccountStatus;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.service.JwtTokenProvider;
+import com.clickchecker.auth.repository.RefreshTokenRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organizationmember.entity.OrganizationMember;
@@ -32,6 +33,9 @@ class AdminOrganizationMemberControllerIntegrationTest {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
     private OrganizationRepository organizationRepository;
@@ -176,6 +180,7 @@ class AdminOrganizationMemberControllerIntegrationTest {
 
     private void cleanup() {
         organizationMemberRepository.deleteAll();
+        refreshTokenRepository.deleteAll();
         accountRepository.deleteAll();
         organizationRepository.deleteAll();
     }

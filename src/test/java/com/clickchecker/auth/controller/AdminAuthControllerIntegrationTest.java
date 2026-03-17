@@ -12,6 +12,7 @@ import com.clickchecker.auth.entity.RefreshToken;
 import com.clickchecker.auth.repository.RefreshTokenRepository;
 import com.clickchecker.auth.service.JwtTokenProvider;
 import com.clickchecker.auth.service.RefreshTokenIssuer;
+import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -37,6 +38,9 @@ class AdminAuthControllerIntegrationTest {
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private OrganizationMemberRepository organizationMemberRepository;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -301,6 +305,7 @@ class AdminAuthControllerIntegrationTest {
     }
 
     private void cleanup() {
+        organizationMemberRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         accountRepository.deleteAll();
     }

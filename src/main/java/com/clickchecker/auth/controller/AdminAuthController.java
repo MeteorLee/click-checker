@@ -5,7 +5,9 @@ import com.clickchecker.auth.controller.request.AdminLogoutRequest;
 import com.clickchecker.auth.controller.request.AdminRefreshRequest;
 import com.clickchecker.auth.controller.response.AdminLoginResponse;
 import com.clickchecker.auth.controller.response.AdminRefreshResponse;
+import com.clickchecker.auth.mapper.AdminAuthResponseMapper;
 import com.clickchecker.auth.service.AdminAuthService;
+import com.clickchecker.auth.service.result.AdminTokenResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,29 +23,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminAuthController {
 
     private final AdminAuthService adminAuthService;
+    private final AdminAuthResponseMapper adminAuthResponseMapper;
 
     @PostMapping("/login")
     public ResponseEntity<AdminLoginResponse> login(@RequestBody @Valid AdminLoginRequest request) {
-        AdminAuthService.TokenResult result = adminAuthService.login(request.loginId(), request.password());
-        return ResponseEntity.ok(new AdminLoginResponse(
-                result.accountId(),
-                result.accessToken(),
-                result.accessTokenExpiresIn(),
-                result.refreshToken(),
-                result.refreshTokenExpiresIn()
-        ));
+        AdminTokenResult result = adminAuthService.login(request.loginId(), request.password());
+        return ResponseEntity.ok(adminAuthResponseMapper.toLoginResponse(result));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AdminRefreshResponse> refresh(@RequestBody @Valid AdminRefreshRequest request) {
-        AdminAuthService.TokenResult result = adminAuthService.refresh(request.refreshToken());
-        return ResponseEntity.ok(new AdminRefreshResponse(
-                result.accountId(),
-                result.accessToken(),
-                result.accessTokenExpiresIn(),
-                result.refreshToken(),
-                result.refreshTokenExpiresIn()
-        ));
+        AdminTokenResult result = adminAuthService.refresh(request.refreshToken());
+        return ResponseEntity.ok(adminAuthResponseMapper.toRefreshResponse(result));
     }
 
     @PostMapping("/logout")
