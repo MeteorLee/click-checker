@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_DIR="/home/ubuntu/click-checker"
-DEPLOY_SCRIPT="$APP_DIR/scripts/deploy-prod-orchestrator.sh"
+DEPLOY_SCRIPT="$APP_DIR/scripts/deploy/deploy-prod-orchestrator.sh"
 DEPLOY_ENV_FILE="$APP_DIR/.env.codedeploy"
 
 require_file() {

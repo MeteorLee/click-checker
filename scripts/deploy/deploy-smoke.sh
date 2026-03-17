@@ -15,6 +15,7 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-}"
 APP_DOMAIN="${APP_DOMAIN:-clickchecker.dev}"
 PUBLIC_RESOLVE="${PUBLIC_RESOLVE:-0}"
+AGGREGATE_PATHS_ENDPOINT="${AGGREGATE_PATHS_ENDPOINT:-/api/v1/events/analytics/aggregates/paths}"
 
 require_command() {
   local name="$1"
@@ -136,11 +137,11 @@ main() {
     agg_code=$(curl -sS -o "/tmp/smoke_agg.json" -w "%{http_code}" \
       --resolve "${APP_DOMAIN}:443:127.0.0.1" \
       -H "X-API-Key: ${api_key}" \
-      "${BASE_URL}/api/events/aggregates/paths?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
+      "${BASE_URL}${AGGREGATE_PATHS_ENDPOINT}?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
   else
     agg_code=$(curl -sS -o "/tmp/smoke_agg.json" -w "%{http_code}" \
       -H "X-API-Key: ${api_key}" \
-      "${BASE_URL}/api/events/aggregates/paths?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
+      "${BASE_URL}${AGGREGATE_PATHS_ENDPOINT}?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&top=5" || true)
   fi
 
   echo "[smoke] aggregate status=${agg_code}"
