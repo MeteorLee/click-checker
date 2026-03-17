@@ -75,7 +75,7 @@ class EventQueryControllerPostgresIntegrationTest {
         eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(base.plusHours(1).plusMinutes(5))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/time-buckets")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("bucket", "HOUR")
@@ -101,7 +101,7 @@ class EventQueryControllerPostgresIntegrationTest {
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-14T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
@@ -116,7 +116,7 @@ class EventQueryControllerPostgresIntegrationTest {
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "0")
@@ -124,7 +124,7 @@ class EventQueryControllerPostgresIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "101")
@@ -139,7 +139,7 @@ class EventQueryControllerPostgresIntegrationTest {
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "invalid-date")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
@@ -153,7 +153,7 @@ class EventQueryControllerPostgresIntegrationTest {
         Organization organization = saveOrganization("acme");
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
+                        get("/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
@@ -167,7 +167,7 @@ class EventQueryControllerPostgresIntegrationTest {
         Organization organization = saveOrganization("acme");
 
         mockMvc.perform(
-                        authorizedGet("ck_test_v1_invalid_deadbeef", "/api/events/aggregates/paths")
+                        authorizedGet("ck_test_v1_invalid_deadbeef", "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")

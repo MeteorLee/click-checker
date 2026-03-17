@@ -35,7 +35,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("view").path("/post/2").organization(organization).occurredAt(toInstant(base.plusMinutes(5))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "2")
@@ -65,7 +65,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("view").path("/post/2").organization(organization).occurredAt(toInstant(base.plusMinutes(5))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
@@ -98,7 +98,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organizationB).occurredAt(toInstant(base.plusMinutes(6))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
@@ -128,7 +128,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("click").path("/hacked").organization(organization).eventUser(eventUserB).occurredAt(toInstant(base.plusMinutes(4))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("externalUserId", eventUserA.getExternalUserId())
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
@@ -151,7 +151,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-14T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
@@ -165,7 +165,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "0")
@@ -173,7 +173,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "101")
@@ -187,7 +187,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("externalUserId", " ")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
@@ -202,7 +202,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "invalid-date")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
@@ -215,7 +215,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         saveOrganization("acme");
 
         mockMvc.perform(
-                        get("/api/events/aggregates/paths")
+                        get("/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
@@ -228,7 +228,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         saveOrganization("acme");
 
         mockMvc.perform(
-                        authorizedGet("ck_test_v1_invalid_deadbeef", "/api/events/aggregates/paths")
+                        authorizedGet("ck_test_v1_invalid_deadbeef", "/api/v1/events/analytics/aggregates/paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "5")
@@ -250,7 +250,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("click").path("/landing").organization(organization).occurredAt(toInstant(base.plusMinutes(3))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/routes")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/routes")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
@@ -283,7 +283,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("click").path("/landing").organization(organization).eventUser(eventUserC).occurredAt(Instant.parse("2026-02-13T00:40:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/routes/unique-users")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/routes/unique-users")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
@@ -312,7 +312,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("click").path("/unknown/b").organization(organization).occurredAt(Instant.parse("2026-02-13T00:40:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/routes/unmatched-paths")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/routes/unmatched-paths")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("eventType", "click")
@@ -341,7 +341,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("page_view").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/raw-event-types")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/raw-event-types")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "10")
@@ -372,7 +372,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("mystery_event").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:30:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/event-types")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/event-types")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "10")
@@ -406,7 +406,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("page_view").path("/landing").organization(organization).eventUser(eventUserC).occurredAt(Instant.parse("2026-02-13T00:40:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/event-types/unique-users")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/event-types/unique-users")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "10")
@@ -441,7 +441,7 @@ class AggregateAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
         eventRepository.save(Event.builder().eventType("mystery_event").path("/landing").organization(organization).eventUser(eventUserB).occurredAt(Instant.parse("2026-02-13T00:40:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/route-event-types")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/route-event-types")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("top", "10")

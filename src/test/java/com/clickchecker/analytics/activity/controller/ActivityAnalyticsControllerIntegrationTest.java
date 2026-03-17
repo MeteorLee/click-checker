@@ -34,7 +34,7 @@ class ActivityAnalyticsControllerIntegrationTest extends AnalyticsControllerInte
         saveEvent(organization, eventUserA, "button_click", "/posts/3", "2026-02-12T00:10:00Z");
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/overview")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/overview")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                 )

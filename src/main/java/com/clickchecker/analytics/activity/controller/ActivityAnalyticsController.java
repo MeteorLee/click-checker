@@ -15,7 +15,7 @@ import java.time.Instant;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping("/api/v1/events/analytics")
 public class ActivityAnalyticsController {
 
     private final ActivityAnalyticsService activityAnalyticsService;

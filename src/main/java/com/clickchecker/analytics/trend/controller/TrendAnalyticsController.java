@@ -23,7 +23,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping("/api/v1/events/analytics")
 public class TrendAnalyticsController {
 
     private final TrendAnalyticsService trendAnalyticsService;

@@ -33,7 +33,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
         eventRepository.save(Event.builder().eventType("click").path("/landing").organization(organization).occurredAt(Instant.parse("2026-02-13T11:05:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/route-time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/route-time-buckets")
                                 .param("from", "2026-02-13T10:00:00Z")
                                 .param("to", "2026-02-13T12:00:00Z")
                                 .param("eventType", "click")
@@ -73,7 +73,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
         eventRepository.save(Event.builder().eventType("mystery_event").path("/landing").organization(organization).occurredAt(Instant.parse("2026-02-13T11:15:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/event-type-time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/event-type-time-buckets")
                                 .param("from", "2026-02-13T10:00:00Z")
                                 .param("to", "2026-02-13T12:00:00Z")
                                 .param("bucket", "HOUR")
@@ -117,7 +117,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
         eventRepository.save(Event.builder().eventType("page_view").path("/landing").organization(organization).occurredAt(Instant.parse("2026-02-13T11:15:00Z")).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/route-event-type-time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/route-event-type-time-buckets")
                                 .param("from", "2026-02-13T10:00:00Z")
                                 .param("to", "2026-02-13T12:00:00Z")
                                 .param("bucket", "HOUR")
@@ -156,7 +156,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
         eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(base.plusHours(1).plusMinutes(5))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/time-buckets")
                                 .param("from", "2026-02-13T10:00:00Z")
                                 .param("to", "2026-02-13T12:00:00Z")
                                 .param("bucket", "HOUR")
@@ -182,7 +182,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
         eventRepository.save(Event.builder().eventType("click").path("/post/1").organization(organization).occurredAt(toInstant(LocalDateTime.of(2026, 2, 14, 9, 15))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/time-buckets")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-15T00:00:00Z")
                                 .param("bucket", "DAY")
@@ -210,7 +210,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
                 .build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/time-buckets")
                                 .param("from", "2026-02-13T15:00:00Z")
                                 .param("to", "2026-02-15T15:00:00Z")
                                 .param("timezone", "Asia/Seoul")
@@ -239,7 +239,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
         eventRepository.save(Event.builder().eventType("click").path("/home").organization(organization).eventUser(eventUserB).occurredAt(toInstant(base.plusMinutes(10))).build());
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/time-buckets")
                                 .param("externalUserId", "u-1001")
                                 .param("from", "2026-02-13T10:00:00Z")
                                 .param("to", "2026-02-13T11:00:00Z")
@@ -259,7 +259,7 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
         String apiKey = issueApiKey(organization);
 
         mockMvc.perform(
-                        authorizedGet(apiKey, "/api/events/aggregates/time-buckets")
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/time-buckets")
                                 .param("from", "2026-02-13T00:00:00Z")
                                 .param("to", "2026-02-14T00:00:00Z")
                                 .param("bucket", "WEEK")

@@ -25,7 +25,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping("/api/v1/events/analytics")
 public class AggregateAnalyticsController {
 
     private static final int MIN_TOP = 1;
