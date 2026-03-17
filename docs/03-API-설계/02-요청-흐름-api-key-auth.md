@@ -2,7 +2,7 @@
 
 ## 대상 요청
 - `POST /api/events`
-- `GET /api/events/aggregates/*`
+- `GET /api/v1/events/analytics/**`
 
 ## 처리 순서
 1. `ApiKeyAuthFilter`
