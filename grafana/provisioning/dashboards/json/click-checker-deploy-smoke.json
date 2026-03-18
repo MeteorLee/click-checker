@@ -415,7 +415,7 @@
       },
       "targets": [
         {
-          "expr": "{job=\"click-checker\",app=\"nginx\"} |= \"/actuator/health\" or {job=\"click-checker\",app=\"nginx\"} |= \"__smoke\" or {job=\"click-checker\",app=\"nginx\"} |= \"/api/v1/admin/auth/signup\" or {job=\"click-checker\",app=\"nginx\"} |= \"/api/v1/admin/organizations\" or {job=\"click-checker\",app=\"nginx\"} |= \"/api/events\" or {job=\"click-checker\",app=\"nginx\"} |= \"/api/v1/events/analytics\"",
+          "expr": "{job=\"click-checker\",app=\"nginx\"} |~ \"/actuator/health|__smoke|/api/v1/admin/auth/signup|/api/v1/admin/organizations|/api/events|/api/v1/events/analytics\"",
           "queryType": "range",
           "refId": "A"
         }
