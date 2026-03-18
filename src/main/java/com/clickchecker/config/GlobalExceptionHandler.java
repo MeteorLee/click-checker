@@ -1,9 +1,12 @@
 package com.clickchecker.config;
 
 import com.clickchecker.web.error.ApiErrorMessages;
+import com.clickchecker.web.filter.RequestIdFilter;
+import io.sentry.IScope;
 import io.sentry.Sentry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -22,6 +25,9 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final String APP_COLOR = readEnv("APP_COLOR", "default");
+    private static final String SENTRY_RELEASE = readEnv("SENTRY_RELEASE", "");
 
     private static final List<String> SCANNER_PATH_PATTERNS = List.of(
             "/.env",
@@ -51,7 +57,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex, HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         if (status.is5xxServerError()) {
-            Sentry.captureException(ex);
+            captureException(ex, request);
         }
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), ex.getReason(), request.getRequestURI(), List.of())
@@ -117,7 +123,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex,
                                                                         HttpServletRequest request) {
         if (shouldCaptureNoResourceFound(request)) {
-            Sentry.captureException(ex);
+            captureException(ex, request);
         }
         HttpStatus status = HttpStatus.NOT_FOUND;
         return ResponseEntity.status(status).body(
@@ -133,16 +139,47 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
-        Sentry.captureException(ex);
+        captureException(ex, request);
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), "Internal server error", request.getRequestURI(), List.of())
         );
     }
 
+    private void captureException(Exception ex, HttpServletRequest request) {
+        Sentry.withScope(scope -> {
+            applyRequestContext(scope, request);
+            Sentry.captureException(ex);
+        });
+    }
+
+    private void applyRequestContext(IScope scope, HttpServletRequest request) {
+        String requestId = MDC.get(RequestIdFilter.MDC_KEY);
+        if (requestId != null && !requestId.isBlank()) {
+            scope.setTag("requestId", requestId);
+        }
+
+        scope.setTag("appColor", APP_COLOR);
+        if (!SENTRY_RELEASE.isBlank()) {
+            scope.setTag("release", SENTRY_RELEASE);
+        }
+
+        scope.setExtra("httpMethod", request.getMethod());
+        scope.setExtra("requestPath", request.getRequestURI());
+        if (request.getQueryString() != null && !request.getQueryString().isBlank()) {
+            scope.setExtra("queryString", request.getQueryString());
+        }
+    }
+
     private boolean shouldCaptureNoResourceFound(HttpServletRequest request) {
         String path = normalizePath(request.getRequestURI());
         return SCANNER_PATH_PATTERNS.stream().noneMatch(path::contains);
+    }
+
+    private static String readEnv(String key, String defaultValue) {
+        return java.util.Optional.ofNullable(System.getenv(key))
+                .filter(value -> !value.isBlank())
+                .orElse(defaultValue);
     }
 
     private String normalizePath(String path) {
