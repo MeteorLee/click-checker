@@ -9,9 +9,12 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,30 +31,6 @@ public class GlobalExceptionHandler {
 
     private static final String APP_COLOR = readEnv("APP_COLOR", "default");
     private static final String SENTRY_RELEASE = readEnv("SENTRY_RELEASE", "");
-
-    private static final List<String> SCANNER_PATH_PATTERNS = List.of(
-            "/.env",
-            "/wp-admin",
-            "/wordpress/",
-            "/wp-includes/",
-            "/.git/",
-            "wlwmanifest.xml",
-            "/v1/models",
-            "/v1/embeddings",
-            "/v1/completions",
-            "/admin/assets/",
-            "/favicon.ico",
-            "/robots.txt",
-            "/sitemap.xml",
-            "/feed/",
-            ".php",
-            ".bak",
-            ".old",
-            ".save",
-            ".dist",
-            ".sample",
-            "~"
-    );
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex, HttpServletRequest request) {
@@ -122,9 +101,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex,
                                                                         HttpServletRequest request) {
-        if (shouldCaptureNoResourceFound(request)) {
-            captureException(ex, request);
-        }
         HttpStatus status = HttpStatus.NOT_FOUND;
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(
@@ -134,6 +110,39 @@ public class GlobalExceptionHandler {
                         request.getRequestURI(),
                         List.of()
                 )
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Method not allowed", request.getRequestURI(), List.of())
+        );
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotAcceptableException(
+            HttpMediaTypeNotAcceptableException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.NOT_ACCEPTABLE;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Not acceptable", request.getRequestURI(), List.of())
+        );
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Unsupported media type", request.getRequestURI(), List.of())
         );
     }
 
@@ -171,22 +180,10 @@ public class GlobalExceptionHandler {
         }
     }
 
-    private boolean shouldCaptureNoResourceFound(HttpServletRequest request) {
-        String path = normalizePath(request.getRequestURI());
-        return SCANNER_PATH_PATTERNS.stream().noneMatch(path::contains);
-    }
-
     private static String readEnv(String key, String defaultValue) {
         return java.util.Optional.ofNullable(System.getenv(key))
                 .filter(value -> !value.isBlank())
                 .orElse(defaultValue);
-    }
-
-    private String normalizePath(String path) {
-        return path == null
-                ? ""
-                : path.toLowerCase()
-                        .replaceAll("/{2,}", "/");
     }
 
     private String formatFieldError(FieldError e) {
