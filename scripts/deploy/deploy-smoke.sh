@@ -41,10 +41,23 @@ dump_smoke_org_response() {
   fi
 
   echo "---- /tmp/smoke_org.json (redacted) ----"
-  if jq -c '{id, apiKeyPrefix, apiKey:"[REDACTED]"}' /tmp/smoke_org.json >/tmp/smoke_org_redacted.json 2>/dev/null; then
+  if jq -c '{organizationId, name, ownerMembershipId, apiKeyPrefix, apiKey:"[REDACTED]"}' /tmp/smoke_org.json >/tmp/smoke_org_redacted.json 2>/dev/null; then
     cat /tmp/smoke_org_redacted.json
   else
     echo "Response body redacted because it may contain apiKey."
+  fi
+}
+
+redact_smoke_org_file() {
+  if [ ! -f /tmp/smoke_org.json ]; then
+    return
+  fi
+
+  if jq '{organizationId, name, ownerMembershipId, apiKeyPrefix, apiKey:"[REDACTED]"}' \
+    /tmp/smoke_org.json >/tmp/smoke_org_redacted.json 2>/dev/null; then
+    mv /tmp/smoke_org_redacted.json /tmp/smoke_org.json
+  else
+    rm -f /tmp/smoke_org_redacted.json
   fi
 }
 
@@ -68,11 +81,39 @@ smoke_post_json_public() {
     --resolve "${APP_DOMAIN}:443:127.0.0.1" \
     -H "Content-Type: application/json" \
     -X POST "${url}" \
+      -d "${data}" || true
+}
+
+smoke_post_json_with_bearer() {
+  local url="$1"
+  local data="$2"
+  local token="$3"
+  local out="$4"
+
+  curl -sS -o "$out" -w "%{http_code}" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${token}" \
+    -X POST "${url}" \
+    -d "${data}" || true
+}
+
+smoke_post_json_public_with_bearer() {
+  local url="$1"
+  local data="$2"
+  local token="$3"
+  local out="$4"
+
+  curl -sS -o "$out" -w "%{http_code}" \
+    --resolve "${APP_DOMAIN}:443:127.0.0.1" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${token}" \
+    -X POST "${url}" \
     -d "${data}" || true
 }
 
 main() {
-  local ts now org_code api_key event_body event_code agg_code
+  local ts now signup_code org_code api_key access_token event_body event_code agg_code
+  local smoke_login_id smoke_password
 
   require_command curl
   require_command jq
@@ -80,15 +121,46 @@ main() {
 
   ts=$(date +"%Y%m%d%H%M%S")
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  smoke_login_id="smoke-${ts}"
+  smoke_password="Smoke1234"
+
+  echo "[smoke] signup smoke account via ${BASE_URL}"
+  if [ "${PUBLIC_RESOLVE}" = "1" ]; then
+    signup_code=$(smoke_post_json_public "${BASE_URL}/api/v1/admin/auth/signup" \
+      "{\"loginId\":\"${smoke_login_id}\",\"password\":\"${smoke_password}\"}" \
+      "/tmp/smoke_auth.json")
+  else
+    signup_code=$(smoke_post_json "${BASE_URL}/api/v1/admin/auth/signup" \
+      "{\"loginId\":\"${smoke_login_id}\",\"password\":\"${smoke_password}\"}" \
+      "/tmp/smoke_auth.json")
+  fi
+
+  echo "[smoke] signup status=${signup_code}"
+  if [ "${signup_code}" != "200" ] && [ "${signup_code}" != "201" ]; then
+    echo "[smoke] signup failed"
+    echo "---- /tmp/smoke_auth.json ----"
+    cat /tmp/smoke_auth.json || true
+    exit 1
+  fi
+
+  access_token=$(jq -r '.accessToken // empty' /tmp/smoke_auth.json 2>/dev/null || true)
+  if [ -z "${access_token}" ]; then
+    echo "[smoke] accessToken parse failed"
+    echo "---- /tmp/smoke_auth.json ----"
+    cat /tmp/smoke_auth.json || true
+    exit 1
+  fi
 
   echo "[smoke] create organization via ${BASE_URL}"
   if [ "${PUBLIC_RESOLVE}" = "1" ]; then
-    org_code=$(smoke_post_json_public "${BASE_URL}/api/organizations" \
+    org_code=$(smoke_post_json_public_with_bearer "${BASE_URL}/api/v1/admin/organizations" \
       "{\"name\":\"__smoke-org-${ts}\"}" \
+      "${access_token}" \
       "/tmp/smoke_org.json")
   else
-    org_code=$(smoke_post_json "${BASE_URL}/api/organizations" \
+    org_code=$(smoke_post_json_with_bearer "${BASE_URL}/api/v1/admin/organizations" \
       "{\"name\":\"__smoke-org-${ts}\"}" \
+      "${access_token}" \
       "/tmp/smoke_org.json")
   fi
 
@@ -105,13 +177,14 @@ main() {
     dump_smoke_org_response
     exit 1
   fi
+  redact_smoke_org_file
 
   event_body=$(jq -nc \
     --arg externalUserId "deploy-smoke-user" \
     --arg eventType "__smoke" \
     --arg path "/__smoke/deploy" \
     --arg occurredAt "${now}" \
-    --arg payload "{}" \
+    --arg payload "{\"source\":\"deploy-smoke\",\"runId\":\"${ts}\"}" \
     '{externalUserId:$externalUserId,eventType:$eventType,path:$path,occurredAt:$occurredAt,payload:$payload}')
 
   echo "[smoke] post event via ${BASE_URL}"
