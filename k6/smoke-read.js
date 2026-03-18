@@ -29,7 +29,7 @@ export default function () {
     throw new Error('API_KEY environment variable is required');
   }
 
-  const url = `${BASE_URL}/api/events/aggregates/paths?from=${encodeURIComponent(FROM)}&to=${encodeURIComponent(TO)}&top=${TOP}`;
+  const url = `${BASE_URL}/api/v1/events/analytics/aggregates/paths?from=${encodeURIComponent(FROM)}&to=${encodeURIComponent(TO)}&top=${TOP}`;
   const res = http.get(url, {
     headers: {
       'X-API-Key': API_KEY,
