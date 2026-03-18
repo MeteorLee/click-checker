@@ -5,6 +5,7 @@ import com.clickchecker.organization.entity.ApiKeyStatus;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyIssuer;
+import com.clickchecker.web.sentry.SentryRequestContextSupport;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -92,13 +93,14 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         organization.markApiKeyUsed(Instant.now());
         organizationRepository.save(organization);
         request.setAttribute(AUTH_ORG_ID, organization.getId());
+        SentryRequestContextSupport.bindApiKeyAuthContext(organization.getId(), kid);
         log.debug(
                 "api key auth success: method={}, path={}, orgId={}, kidMasked={}, requestId={}",
                 request.getMethod(),
                 request.getRequestURI(),
                 organization.getId(),
                 LogMaskingUtil.maskIdentifier(kid),
-                MDC.get(RequestIdFilter.MDC_KEY)
+                LogMaskingUtil.maskIdentifier(MDC.get(RequestIdFilter.MDC_KEY))
         );
         filterChain.doFilter(request, response);
     }
@@ -109,7 +111,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                 reason,
                 request.getMethod(),
                 request.getRequestURI(),
-                MDC.get(RequestIdFilter.MDC_KEY)
+                LogMaskingUtil.maskIdentifier(MDC.get(RequestIdFilter.MDC_KEY))
         );
     }
 }

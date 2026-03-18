@@ -3,6 +3,8 @@ package com.clickchecker.web.filter;
 import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.service.JwtTokenProvider;
+import com.clickchecker.logging.LogMaskingUtil;
+import com.clickchecker.web.sentry.SentryRequestContextSupport;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -96,12 +98,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         request.setAttribute(AUTH_ACCOUNT_ID, account.getId());
+        SentryRequestContextSupport.bindJwtAuthContext(account.getId());
         log.debug(
                 "jwt auth success: method={}, path={}, accountId={}, requestId={}",
                 request.getMethod(),
                 request.getRequestURI(),
                 account.getId(),
-                MDC.get(RequestIdFilter.MDC_KEY)
+                LogMaskingUtil.maskIdentifier(MDC.get(RequestIdFilter.MDC_KEY))
         );
         filterChain.doFilter(request, response);
     }
@@ -112,7 +115,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 reason,
                 request.getMethod(),
                 request.getRequestURI(),
-                MDC.get(RequestIdFilter.MDC_KEY)
+                LogMaskingUtil.maskIdentifier(MDC.get(RequestIdFilter.MDC_KEY))
         );
     }
 }

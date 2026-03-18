@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.clickchecker.logging.LogMaskingUtil;
+import com.clickchecker.web.sentry.SentryRequestContextSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -35,6 +36,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
         response.setHeader(REQUEST_ID_HEADER, requestId);
         MDC.put(MDC_KEY, requestId);
+        SentryRequestContextSupport.bindRequestContext(requestId, request);
         log.debug(
                 "request id assigned: method={}, path={}, requestIdMasked={}",
                 request.getMethod(),
@@ -45,6 +47,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
+            SentryRequestContextSupport.clearRequestContext();
             MDC.remove(MDC_KEY);
         }
     }
