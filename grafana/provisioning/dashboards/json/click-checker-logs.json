@@ -77,7 +77,7 @@
       },
       "targets": [
         {
-          "expr": "{job=\"click-checker\",app=\"nginx\"} |= \"GET\" or {job=\"click-checker\",app=\"nginx\"} |= \"POST\" or {job=\"click-checker\",app=\"nginx\"} |= \"PUT\" or {job=\"click-checker\",app=\"nginx\"} |= \"DELETE\"",
+          "expr": "{job=\"click-checker\",app=\"nginx\"} |~ \"GET|POST|PUT|DELETE\"",
           "queryType": "range",
           "refId": "A"
         }
