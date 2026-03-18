@@ -7,6 +7,7 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,9 @@ class EventTypeMappingControllerIntegrationTest {
 
     @Autowired
     private ApiKeyService apiKeyService;
+
+    @Autowired
+    private OrganizationMemberRepository organizationMemberRepository;
 
     @Test
     void create_savesEventTypeMappingUnderAuthenticatedOrganization() throws Exception {
@@ -182,6 +186,7 @@ class EventTypeMappingControllerIntegrationTest {
         eventRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();
         eventUserRepository.deleteAll();
+        organizationMemberRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 

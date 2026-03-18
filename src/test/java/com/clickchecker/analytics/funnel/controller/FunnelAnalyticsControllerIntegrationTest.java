@@ -9,6 +9,7 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.route.entity.RouteTemplate;
 import com.clickchecker.route.repository.RouteTemplateRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
@@ -52,6 +53,9 @@ class FunnelAnalyticsControllerIntegrationTest {
 
     @Autowired
     private ApiKeyService apiKeyService;
+
+    @Autowired
+    private OrganizationMemberRepository organizationMemberRepository;
 
     @Test
     void report_returnsStepUsersAndConversionRates() throws Exception {
@@ -166,6 +170,7 @@ class FunnelAnalyticsControllerIntegrationTest {
         eventTypeMappingRepository.deleteAll();
         routeTemplateRepository.deleteAll();
         eventUserRepository.deleteAll();
+        organizationMemberRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 

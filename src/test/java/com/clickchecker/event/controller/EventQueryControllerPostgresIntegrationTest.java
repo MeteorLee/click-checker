@@ -5,6 +5,7 @@ import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,9 @@ class EventQueryControllerPostgresIntegrationTest {
 
     @Autowired
     private OrganizationRepository organizationRepository;
+
+    @Autowired
+    private OrganizationMemberRepository organizationMemberRepository;
 
     @Autowired
     private ApiKeyService apiKeyService;
@@ -177,6 +181,7 @@ class EventQueryControllerPostgresIntegrationTest {
 
     private void cleanup() {
         eventRepository.deleteAll();
+        organizationMemberRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 
