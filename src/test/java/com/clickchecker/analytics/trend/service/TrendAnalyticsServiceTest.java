@@ -16,8 +16,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,9 +51,12 @@ class TrendAnalyticsServiceTest {
                         new RawPathOccurredAtCountProjection("/landing", Instant.parse("2026-03-01T11:05:00Z"), 3)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/posts/2")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/posts/1", "/posts/{id}",
+                        "/posts/2", "/posts/{id}",
+                        "/landing", "/landing"
+                ));
 
         List<RouteTimeBucketItem> result =
                 trendAnalyticsService.countByRouteKeyTimeBucketBetween(from, to, 1L, null, "click", TimeBucket.HOUR);
@@ -78,11 +84,13 @@ class TrendAnalyticsServiceTest {
                         new RawEventTypeOccurredAtCountProjection("mystery_event", Instant.parse("2026-03-01T11:15:00Z"), 1)
                 ));
 
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
-        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
-                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "button_click", "click",
+                        "post_click", "click",
+                        "page_view", "view",
+                        "mystery_event", CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                ));
 
         List<CanonicalEventTypeTimeBucketItem> result =
                 trendAnalyticsService.countByCanonicalEventTypeTimeBucketBetween(from, to, 1L, null, TimeBucket.HOUR);
@@ -130,7 +138,8 @@ class TrendAnalyticsServiceTest {
                         new RawPathOccurredAtCountProjection("/posts/1", Instant.parse("2026-03-02T00:30:00Z"), 2)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of("/posts/1", "/posts/{id}"));
 
         List<RouteTimeBucketItem> result =
                 trendAnalyticsService.countByRouteKeyTimeBucketBetween(
@@ -161,7 +170,8 @@ class TrendAnalyticsServiceTest {
                         new RawEventTypeOccurredAtCountProjection("button_click", Instant.parse("2026-03-02T00:30:00Z"), 2)
                 ));
 
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of("button_click", "click"));
 
         List<CanonicalEventTypeTimeBucketItem> result =
                 trendAnalyticsService.countByCanonicalEventTypeTimeBucketBetween(
@@ -192,10 +202,16 @@ class TrendAnalyticsServiceTest {
                         new RawPathEventTypeOccurredAtCountProjection("/landing", "page_view", Instant.parse("2026-03-01T11:15:00Z"), 1)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/posts/1", "/posts/{id}",
+                        "/landing", "/landing"
+                ));
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "button_click", "click",
+                        "page_view", "view"
+                ));
 
         List<RouteEventTypeTimeBucketItem> result =
                 trendAnalyticsService.countByRouteKeyAndCanonicalEventTypeTimeBucketBetween(

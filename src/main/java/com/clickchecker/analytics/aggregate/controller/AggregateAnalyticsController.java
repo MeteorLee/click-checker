@@ -2,7 +2,6 @@ package com.clickchecker.analytics.aggregate.controller;
 
 import com.clickchecker.analytics.aggregate.controller.response.CanonicalEventTypeAggregateResponse;
 import com.clickchecker.analytics.aggregate.controller.response.CanonicalEventTypeUniqueUserAggregateResponse;
-import com.clickchecker.analytics.aggregate.controller.response.CountResponse;
 import com.clickchecker.analytics.aggregate.controller.response.PathAggregateResponse;
 import com.clickchecker.analytics.aggregate.controller.response.RawEventTypeAggregateResponse;
 import com.clickchecker.analytics.aggregate.controller.response.RouteAggregateResponse;
@@ -32,12 +31,6 @@ public class AggregateAnalyticsController {
     private static final int MAX_TOP = 100;
 
     private final AggregateAnalyticsService aggregateAnalyticsService;
-
-    @GetMapping("/aggregates/count")
-    public CountResponse count(@RequestParam String eventType) {
-        Long count = aggregateAnalyticsService.countByEventType(eventType);
-        return new CountResponse(eventType, count);
-    }
 
     @GetMapping("/aggregates/raw-event-types")
     public RawEventTypeAggregateResponse aggregateRawEventTypes(

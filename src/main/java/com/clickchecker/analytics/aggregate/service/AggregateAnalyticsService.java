@@ -8,7 +8,6 @@ import com.clickchecker.analytics.aggregate.controller.response.RouteEventTypeAg
 import com.clickchecker.analytics.aggregate.controller.response.RouteUniqueUserItem;
 import com.clickchecker.analytics.aggregate.controller.response.UnmatchedPathItem;
 import com.clickchecker.event.repository.EventQueryRepository;
-import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeUserCountProjection;
@@ -30,15 +29,9 @@ import java.util.stream.Collectors;
 @Service
 public class AggregateAnalyticsService {
 
-    private final EventRepository eventRepository;
     private final EventQueryRepository eventQueryRepository;
     private final RouteKeyResolver routeKeyResolver;
     private final CanonicalEventTypeResolver canonicalEventTypeResolver;
-
-    @Transactional(readOnly = true)
-    public long countByEventType(String eventType) {
-        return eventRepository.countByEventType(eventType);
-    }
 
     @Transactional(readOnly = true)
     public List<RawEventTypeItem> countRawEventTypeBetween(
@@ -67,15 +60,24 @@ public class AggregateAnalyticsService {
             String externalUserId,
             int top
     ) {
-        Map<String, Long> countsByCanonicalEventType = eventQueryRepository.countRawEventTypeBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId,
-                        Integer.MAX_VALUE
-                ).stream()
+        List<RawEventTypeCountProjection> rawEventTypeCounts = eventQueryRepository.countRawEventTypeBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                Integer.MAX_VALUE
+        );
+        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
+                organizationId,
+                rawEventTypeCounts.stream().map(RawEventTypeCountProjection::rawEventType).toList()
+        );
+
+        Map<String, Long> countsByCanonicalEventType = rawEventTypeCounts.stream()
                 .collect(Collectors.groupingBy(
-                        item -> canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                        item -> canonicalEventTypesByRawEventType.getOrDefault(
+                                item.rawEventType(),
+                                CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                        ),
                         Collectors.summingLong(RawEventTypeCountProjection::count)
                 ));
 
@@ -110,15 +112,21 @@ public class AggregateAnalyticsService {
             String eventType,
             int top
     ) {
-        Map<String, Long> countsByRouteKey = eventQueryRepository.countRawPathBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId,
-                        eventType
-                ).stream()
+        List<PathCountProjection> rawPathCounts = eventQueryRepository.countRawPathBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType
+        );
+        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
+                organizationId,
+                rawPathCounts.stream().map(PathCountProjection::path).toList()
+        );
+
+        Map<String, Long> countsByRouteKey = rawPathCounts.stream()
                 .collect(Collectors.groupingBy(
-                        item -> routeKeyResolver.resolve(organizationId, item.path()),
+                        item -> routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
                         Collectors.summingLong(PathCountProjection::count)
                 ));
 
@@ -141,15 +149,21 @@ public class AggregateAnalyticsService {
             String eventType,
             int top
     ) {
-        return eventQueryRepository.countRawPathBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId,
-                        eventType
-                ).stream()
+        List<PathCountProjection> rawPathCounts = eventQueryRepository.countRawPathBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType
+        );
+        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
+                organizationId,
+                rawPathCounts.stream().map(PathCountProjection::path).toList()
+        );
+
+        return rawPathCounts.stream()
                 .filter(item -> RouteKeyResolver.UNMATCHED_ROUTE.equals(
-                        routeKeyResolver.resolve(organizationId, item.path())
+                        routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE)
                 ))
                 .map(item -> new UnmatchedPathItem(item.path(), item.count()))
                 .sorted(Comparator
@@ -169,15 +183,21 @@ public class AggregateAnalyticsService {
             String eventType,
             int top
     ) {
-        Map<String, Long> uniqueUsersByRouteKey = eventQueryRepository.countRawPathUserBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId,
-                        eventType
-                ).stream()
+        List<RawPathUserCountProjection> rawPathUserCounts = eventQueryRepository.countRawPathUserBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType
+        );
+        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
+                organizationId,
+                rawPathUserCounts.stream().map(RawPathUserCountProjection::path).toList()
+        );
+
+        Map<String, Long> uniqueUsersByRouteKey = rawPathUserCounts.stream()
                 .collect(Collectors.groupingBy(
-                        item -> routeKeyResolver.resolve(organizationId, item.path()),
+                        item -> routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
                         Collectors.mapping(
                                 RawPathUserCountProjection::eventUserId,
                                 Collectors.collectingAndThen(Collectors.toSet(), userIds -> (long) userIds.size())
@@ -202,14 +222,23 @@ public class AggregateAnalyticsService {
             String externalUserId,
             int top
     ) {
-        Map<String, Long> uniqueUsersByCanonicalEventType = eventQueryRepository.countRawEventTypeUserBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId
-                ).stream()
+        List<RawEventTypeUserCountProjection> rawEventTypeUserCounts = eventQueryRepository.countRawEventTypeUserBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId
+        );
+        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
+                organizationId,
+                rawEventTypeUserCounts.stream().map(RawEventTypeUserCountProjection::rawEventType).toList()
+        );
+
+        Map<String, Long> uniqueUsersByCanonicalEventType = rawEventTypeUserCounts.stream()
                 .collect(Collectors.groupingBy(
-                        item -> canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                        item -> canonicalEventTypesByRawEventType.getOrDefault(
+                                item.rawEventType(),
+                                CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                        ),
                         Collectors.mapping(
                                 RawEventTypeUserCountProjection::eventUserId,
                                 Collectors.collectingAndThen(Collectors.toSet(), userIds -> (long) userIds.size())
@@ -234,16 +263,29 @@ public class AggregateAnalyticsService {
             String externalUserId,
             int top
     ) {
-        Map<RouteEventTypeKey, Long> countsByRouteEventType = eventQueryRepository.countRawPathEventTypeBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId
-                ).stream()
+        List<RawPathEventTypeCountProjection> rawPathEventTypeCounts = eventQueryRepository.countRawPathEventTypeBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId
+        );
+        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
+                organizationId,
+                rawPathEventTypeCounts.stream().map(RawPathEventTypeCountProjection::path).toList()
+        );
+        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
+                organizationId,
+                rawPathEventTypeCounts.stream().map(RawPathEventTypeCountProjection::rawEventType).toList()
+        );
+
+        Map<RouteEventTypeKey, Long> countsByRouteEventType = rawPathEventTypeCounts.stream()
                 .collect(Collectors.groupingBy(
                         item -> new RouteEventTypeKey(
-                                routeKeyResolver.resolve(organizationId, item.path()),
-                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType())
+                                routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
+                                canonicalEventTypesByRawEventType.getOrDefault(
+                                        item.rawEventType(),
+                                        CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                                )
                         ),
                         Collectors.summingLong(RawPathEventTypeCountProjection::count)
                 ));

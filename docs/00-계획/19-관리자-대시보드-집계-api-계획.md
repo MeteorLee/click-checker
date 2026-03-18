@@ -56,7 +56,7 @@
 - 콘솔용 조직 선택 흐름에 맞는 path 계약 정리
 - 콘솔용 대시보드 화면 설계 기준 정리
 - 기존 집계 API의 구조적 문제 정리
-  - `/aggregates/count` 제거 여부 확정
+  - 제거한 `/aggregates/count` 반영
   - route/event type resolver 반복 조회 완화
   - 시계열 API 요청 범위 제한
 
@@ -78,7 +78,7 @@
 - admin 집계 API는 `organizationId` path와 membership 검사로 organization scope를 결정한다.
 - 기존 `X-API-Key` 기반 집계 API와 계산 결과가 핵심 지표에서 일관된다.
 - 브라우저/콘솔는 API key를 직접 보관하거나 전송하지 않는다.
-- `/aggregates/count`는 제거하거나 조직 스코프가 보장되는 형태로 정리된다.
+- 기존 `/aggregates/count` 제거가 반영된다.
 - route/event type 해석에서 같은 organization 규칙을 반복 조회하지 않도록 개선된다.
 - 시계열 API는 버킷 수가 과도하게 커지는 요청을 제한할 수 있다.
 - 대시보드 화면에서 organization 선택 후 주요 집계 결과를 확인할 수 있다.
@@ -99,7 +99,6 @@
 - 기존 집계 API는 `X-API-Key -> authOrgId`를 기대하므로, 콘솔 화면에서 직접 호출하기 어렵다.
 - 브라우저에 API key를 넘기면 보안상/설계상 경계가 흐려진다.
 - 일부 집계 API는 콘솔로 그대로 올리기 전에 구조 정리가 필요하다.
-  - `/aggregates/count`는 현재 organization scope를 보장하지 못한다.
   - route/event type resolver가 집계 중 반복 조회되어 요청당 쿼리 수가 커질 수 있다.
   - 시계열 API는 요청 범위 제한이 없어 큰 구간에서 응답이 쉽게 커질 수 있다.
 - 따라서 "사람 계정 기반 콘솔"과 "조직 machine credential 기반 외부 집계 API" 사이에 한 층이 더 필요하다.
@@ -150,9 +149,8 @@
 - 동일 계산 로직을 복붙하지 않는다.
 
 ## 이번 단계에서 함께 정리할 기존 집계 API 이슈
-- `GET /api/v1/events/analytics/aggregates/count`
-  - 개발용 성격이 강하고 현재 organization scope가 깨져 있다.
-  - 콘솔 경로로 옮기기보다 제거를 우선 검토한다.
+- 기존 `GET /api/v1/events/analytics/aggregates/count`
+  - 개발용 성격이 강하고 organization scope가 깨져 있어 제거했다.
 - route / canonical event type resolver
   - 집계 중 같은 organization 규칙을 반복 조회하지 않도록, 요청 단위 preload 또는 캐시 구조를 검토한다.
 - time-buckets 계열
@@ -201,7 +199,7 @@
   - `X-API-Key` 집계 API 결과
   - JWT admin 집계 API 결과
   핵심 지표가 맞는지 비교할 수 있어야 한다.
-- 제거 후보인 `/aggregates/count`는 별도 회귀선을 만들기보다, 제거 여부를 먼저 확정한다.
+- 제거한 `/aggregates/count`는 admin 경로로 옮기지 않는다.
 - route/event type resolver preload와 시계열 범위 제한은 성능/안정성 회귀 테스트 기준을 남긴다.
 
 ## 배포 / 데모 관점
@@ -218,7 +216,7 @@
 # 19.8 실행 순서
 
 ## 1) 기존 집계 API 구조 정리
-1. `/aggregates/count` 제거 여부 확정
+1. `/aggregates/count` 제거 반영
 2. route/event type resolver 반복 조회 완화
 3. time-buckets 계열 범위 제한 추가
 

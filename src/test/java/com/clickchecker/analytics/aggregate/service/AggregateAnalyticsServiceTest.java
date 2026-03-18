@@ -7,7 +7,6 @@ import com.clickchecker.analytics.aggregate.controller.response.RouteEventTypeAg
 import com.clickchecker.analytics.aggregate.controller.response.RouteUniqueUserItem;
 import com.clickchecker.analytics.aggregate.controller.response.UnmatchedPathItem;
 import com.clickchecker.event.repository.EventQueryRepository;
-import com.clickchecker.event.repository.EventRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeUserCountProjection;
@@ -19,21 +18,22 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class AggregateAnalyticsServiceTest {
 
-    private final EventRepository eventRepository = mock(EventRepository.class);
     private final EventQueryRepository eventQueryRepository = mock(EventQueryRepository.class);
     private final RouteKeyResolver routeKeyResolver = mock(RouteKeyResolver.class);
     private final CanonicalEventTypeResolver canonicalEventTypeResolver = mock(CanonicalEventTypeResolver.class);
 
     private final AggregateAnalyticsService aggregateAnalyticsService =
             new AggregateAnalyticsService(
-                    eventRepository,
                     eventQueryRepository,
                     routeKeyResolver,
                     canonicalEventTypeResolver
@@ -51,9 +51,12 @@ class AggregateAnalyticsServiceTest {
                         new PathCountProjection("/landing", 8)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/posts/2")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/posts/1", "/posts/{id}",
+                        "/posts/2", "/posts/{id}",
+                        "/landing", "/landing"
+                ));
 
         List<RouteAggregateItem> result =
                 aggregateAnalyticsService.countByRouteKeyBetween(from, to, 1L, null, "click", 1);
@@ -73,9 +76,12 @@ class AggregateAnalyticsServiceTest {
                         new PathCountProjection("/unknown/b", 6)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/unknown/a")).thenReturn(RouteKeyResolver.UNMATCHED_ROUTE);
-        when(routeKeyResolver.resolve(1L, "/unknown/b")).thenReturn(RouteKeyResolver.UNMATCHED_ROUTE);
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/posts/1", "/posts/{id}",
+                        "/unknown/a", RouteKeyResolver.UNMATCHED_ROUTE,
+                        "/unknown/b", RouteKeyResolver.UNMATCHED_ROUTE
+                ));
 
         List<UnmatchedPathItem> result =
                 aggregateAnalyticsService.countUnmatchedPathsBetween(from, to, 1L, null, "click", 10);
@@ -98,10 +104,12 @@ class AggregateAnalyticsServiceTest {
                         new RawEventTypeCountProjection("mystery_event", 3)
                 ));
 
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
-                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "button_click", "click",
+                        "post_click", "click",
+                        "mystery_event", CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                ));
 
         List<CanonicalEventTypeItem> result =
                 aggregateAnalyticsService.countByCanonicalEventTypeBetween(from, to, 1L, null, 2);
@@ -124,9 +132,12 @@ class AggregateAnalyticsServiceTest {
                         new RawEventTypeUserCountProjection("page_view", 201L, 3L)
                 ));
 
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "button_click", "click",
+                        "post_click", "click",
+                        "page_view", "view"
+                ));
 
         List<CanonicalEventTypeUniqueUserItem> result =
                 aggregateAnalyticsService.countUniqueUsersByCanonicalEventTypeBetween(from, to, 1L, null, 10);
@@ -150,14 +161,19 @@ class AggregateAnalyticsServiceTest {
                         new RawPathEventTypeCountProjection("/landing", "mystery_event", 2)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/posts/2")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "post_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
-        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
-                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/posts/1", "/posts/{id}",
+                        "/posts/2", "/posts/{id}",
+                        "/landing", "/landing"
+                ));
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "button_click", "click",
+                        "post_click", "click",
+                        "page_view", "view",
+                        "mystery_event", CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                ));
 
         List<RouteEventTypeAggregateItem> result =
                 aggregateAnalyticsService.countByRouteKeyAndCanonicalEventTypeBetween(from, to, 1L, null, 3);
@@ -181,9 +197,12 @@ class AggregateAnalyticsServiceTest {
                         new RawPathUserCountProjection("/landing", 201L, 3L)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/posts/2")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/posts/1", "/posts/{id}",
+                        "/posts/2", "/posts/{id}",
+                        "/landing", "/landing"
+                ));
 
         List<RouteUniqueUserItem> result =
                 aggregateAnalyticsService.countUniqueUsersByRouteKeyBetween(from, to, 1L, null, "click", 10);

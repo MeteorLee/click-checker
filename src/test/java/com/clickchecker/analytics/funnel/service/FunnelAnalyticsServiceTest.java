@@ -10,8 +10,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -44,13 +47,19 @@ class FunnelAnalyticsServiceTest {
                 new IdentifiedUserEventStepOccurredAtProjection(103L, "purchase_complete", "/purchase", Instant.parse("2026-03-16T00:00:00Z"))
         ));
 
-        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("PAGE_VIEW");
-        when(canonicalEventTypeResolver.resolve(1L, "signup_button_click")).thenReturn("SIGN_UP");
-        when(canonicalEventTypeResolver.resolve(1L, "purchase_complete")).thenReturn("PURCHASE");
-        when(routeKeyResolver.resolve(1L, "/pricing")).thenReturn("/pricing");
-        when(routeKeyResolver.resolve(1L, "/home")).thenReturn("/home");
-        when(routeKeyResolver.resolve(1L, "/signup")).thenReturn("/signup");
-        when(routeKeyResolver.resolve(1L, "/purchase")).thenReturn("/purchase");
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "page_view", "PAGE_VIEW",
+                        "signup_button_click", "SIGN_UP",
+                        "purchase_complete", "PURCHASE"
+                ));
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/pricing", "/pricing",
+                        "/signup", "/signup",
+                        "/purchase", "/purchase",
+                        "/home", "/home"
+                ));
 
         FunnelReportResponse result = funnelAnalyticsService.report(
                 from,
@@ -101,10 +110,16 @@ class FunnelAnalyticsServiceTest {
                 new IdentifiedUserEventStepOccurredAtProjection(201L, "purchase_complete", "/purchase", Instant.parse("2026-03-20T09:00:00Z"))
         ));
 
-        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("PAGE_VIEW");
-        when(canonicalEventTypeResolver.resolve(1L, "purchase_complete")).thenReturn("PURCHASE");
-        when(routeKeyResolver.resolve(1L, "/pricing")).thenReturn("/pricing");
-        when(routeKeyResolver.resolve(1L, "/purchase")).thenReturn("/purchase");
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "page_view", "PAGE_VIEW",
+                        "purchase_complete", "PURCHASE"
+                ));
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/pricing", "/pricing",
+                        "/purchase", "/purchase"
+                ));
 
         FunnelReportResponse result = funnelAnalyticsService.report(
                 from,
