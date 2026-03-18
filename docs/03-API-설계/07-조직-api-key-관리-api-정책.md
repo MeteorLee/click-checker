@@ -131,6 +131,7 @@
 ## 기존 공개 organization 생성 경로와의 관계
 - 기존 `POST /api/organizations`는 아직 남아 있다.
 - 다만 포트폴리오 기준 주 경로는 `POST /api/v1/admin/organizations`로 본다.
+- 즉 새 기능 추가, 데모 시나리오, 최소 화면은 공개 경로가 아니라 admin 경로를 기준으로 맞춘다.
 - 공개 경로 정리/제거는 후속 단계에서 다룬다.
 
 ## 현재 제한
