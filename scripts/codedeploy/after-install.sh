@@ -42,6 +42,7 @@ chmod +x \
   "$APP_DIR/scripts/deploy/deploy-drain.sh"
 
 APP_IMAGE=$(awk -F= '$1 == "APP_IMAGE" { print substr($0, index($0, "=") + 1) }' "$IMAGE_DETAIL_FILE")
+SENTRY_RELEASE="${APP_IMAGE##*:}"
 
 if [ -z "$APP_IMAGE" ]; then
   echo "[codedeploy:after-install] APP_IMAGE is missing in $IMAGE_DETAIL_FILE" >&2
@@ -50,7 +51,9 @@ fi
 
 cat > "$DEPLOY_ENV_FILE" <<EOF
 APP_IMAGE=$APP_IMAGE
+SENTRY_RELEASE=$SENTRY_RELEASE
 EOF
 
 echo "[codedeploy:after-install] prepared deploy env with APP_IMAGE=$APP_IMAGE"
+echo "[codedeploy:after-install] prepared deploy env with SENTRY_RELEASE=$SENTRY_RELEASE"
 echo "[codedeploy:after-install] completed"

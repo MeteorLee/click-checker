@@ -22,25 +22,25 @@ groups:
       - alert: ClickCheckerHigh5xxRatio
         expr: |
           (
-            sum(rate(http_server_requests_seconds_count{job="click-checker-app",status=~"5.."}[5m]))
+            sum(rate(http_server_requests_seconds_count{job="click-checker-app",uri=~"/api/.*",status=~"5.."}[5m]))
             /
-            clamp_min(sum(rate(http_server_requests_seconds_count{job="click-checker-app"}[5m])), 1)
+            clamp_min(sum(rate(http_server_requests_seconds_count{job="click-checker-app",uri=~"/api/.*"}[5m])), 1)
           ) >= 0.02
           and
-          sum(rate(http_server_requests_seconds_count{job="click-checker-app"}[5m])) >= 0.2
+          sum(rate(http_server_requests_seconds_count{job="click-checker-app",uri=~"/api/.*"}[5m])) >= 0.2
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "click-checker 5xx ratio is high"
-          description: "5xx ratio has stayed at or above 2% for 5 minutes."
+          description: "API 5xx ratio has stayed at or above 2% for 5 minutes."
 
       - alert: ClickCheckerHighP95Latency
         expr: |
           histogram_quantile(
             0.95,
             sum by (le) (
-              rate(http_server_requests_seconds_bucket{job="click-checker-app"}[5m])
+              rate(http_server_requests_seconds_bucket{job="click-checker-app",uri=~"/api/events|/api/v1/events/analytics.*"}[5m])
             )
           ) >= 0.8
         for: 5m
@@ -48,7 +48,7 @@ groups:
           severity: warning
         annotations:
           summary: "click-checker p95 latency is high"
-          description: "p95 latency has stayed at or above 800ms for 5 minutes."
+          description: "Product API p95 latency has stayed at or above 800ms for 5 minutes."
 
       - alert: ClickCheckerHighDbPoolUsage
         expr: |

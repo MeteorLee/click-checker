@@ -1,13 +1,20 @@
 package com.clickchecker.config;
 
+import com.clickchecker.web.error.ApiErrorMessages;
+import com.clickchecker.web.filter.RequestIdFilter;
+import io.sentry.IScope;
 import io.sentry.Sentry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,35 +29,14 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final List<String> SCANNER_PATH_PATTERNS = List.of(
-            "/.env",
-            "/wp-admin",
-            "/wordpress/",
-            "/wp-includes/",
-            "/.git/",
-            "wlwmanifest.xml",
-            "/v1/models",
-            "/v1/embeddings",
-            "/v1/completions",
-            "/admin/assets/",
-            "/favicon.ico",
-            "/robots.txt",
-            "/sitemap.xml",
-            "/feed/",
-            ".php",
-            ".bak",
-            ".old",
-            ".save",
-            ".dist",
-            ".sample",
-            "~"
-    );
+    private static final String APP_COLOR = readEnv("APP_COLOR", "default");
+    private static final String SENTRY_RELEASE = readEnv("SENTRY_RELEASE", "");
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex, HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         if (status.is5xxServerError()) {
-            Sentry.captureException(ex);
+            captureException(ex, request);
         }
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), ex.getReason(), request.getRequestURI(), List.of())
@@ -112,28 +98,92 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex,
+                                                                        HttpServletRequest request) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(
+                        status.value(),
+                        status.getReasonPhrase(),
+                        ApiErrorMessages.RESOURCE_NOT_FOUND,
+                        request.getRequestURI(),
+                        List.of()
+                )
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Method not allowed", request.getRequestURI(), List.of())
+        );
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotAcceptableException(
+            HttpMediaTypeNotAcceptableException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.NOT_ACCEPTABLE;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Not acceptable", request.getRequestURI(), List.of())
+        );
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+        return ResponseEntity.status(status).body(
+                ErrorResponse.of(status.value(), status.getReasonPhrase(), "Unsupported media type", request.getRequestURI(), List.of())
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
-        if (!(ex instanceof NoResourceFoundException)
-                || shouldCaptureNoResourceFound(request)) {
-            Sentry.captureException(ex);
-        }
+        captureException(ex, request);
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(status).body(
                 ErrorResponse.of(status.value(), status.getReasonPhrase(), "Internal server error", request.getRequestURI(), List.of())
         );
     }
 
-    private boolean shouldCaptureNoResourceFound(HttpServletRequest request) {
-        String path = normalizePath(request.getRequestURI());
-        return SCANNER_PATH_PATTERNS.stream().noneMatch(path::contains);
+    private void captureException(Exception ex, HttpServletRequest request) {
+        Sentry.withScope(scope -> {
+            applyRequestContext(scope, request);
+            Sentry.captureException(ex);
+        });
     }
 
-    private String normalizePath(String path) {
-        return path == null
-                ? ""
-                : path.toLowerCase()
-                        .replaceAll("/{2,}", "/");
+    private void applyRequestContext(IScope scope, HttpServletRequest request) {
+        String requestId = MDC.get(RequestIdFilter.MDC_KEY);
+        if (requestId != null && !requestId.isBlank()) {
+            scope.setTag("requestId", requestId);
+        }
+
+        scope.setTag("appColor", APP_COLOR);
+        if (!SENTRY_RELEASE.isBlank()) {
+            scope.setTag("release", SENTRY_RELEASE);
+        }
+
+        scope.setExtra("httpMethod", request.getMethod());
+        scope.setExtra("requestPath", request.getRequestURI());
+        if (request.getQueryString() != null && !request.getQueryString().isBlank()) {
+            scope.setExtra("queryString", request.getQueryString());
+        }
+    }
+
+    private static String readEnv(String key, String defaultValue) {
+        return java.util.Optional.ofNullable(System.getenv(key))
+                .filter(value -> !value.isBlank())
+                .orElse(defaultValue);
     }
 
     private String formatFieldError(FieldError e) {

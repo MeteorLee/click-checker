@@ -7,31 +7,39 @@
 - 운영 배포 구조는 현재 `GitHub Actions -> ECR -> S3 -> CodeDeploy -> EC2 -> Blue/Green` 기준으로 정리돼 있다.
 - local postgres는 local 개발/검증용으로만 유지한다.
 - `Organization` 생성 시 API Key 발급/해시 저장 구현 완료.
-- `EventUser` 도메인 뼈대 구현 완료:
-  - entity/repository/dto/mapper/service/controller
-  - `POST /api/event-users`
+- 현재 API 구조는 크게 두 축이다.
+  - ingest:
+    - `POST /api/events`
+  - analytics read:
+    - `/api/v1/events/analytics/**`
+- 14단계 집계 기반과 15단계 확장 분석까지 구현 완료 상태다.
+  - 14단계:
+    - activity overview
+    - aggregate
+    - trend
+    - route/eventType/time 교차 집계
+    - unique users
+    - unmatched paths
+    - coverage 지표
+  - 15단계:
+    - `GET /api/v1/events/analytics/users/overview`
+    - `POST /api/v1/events/analytics/funnels/report`
+    - `GET /api/v1/events/analytics/retention/daily`
+    - `GET /api/v1/events/analytics/retention/matrix`
 - `Event` 생성 흐름:
-- 필수: `X-API-Key` (헤더 인증)
-- 선택: `externalUserId`
-  - `externalUserId`가 있으면:
-    - `(authOrgId, externalUserId)`로 조회
-    - 없으면 `EventUser` 자동 생성(upsert)
-  - `externalUserId`가 null/blank면:
-    - 익명 이벤트로 저장(`eventUser = null`)
-- Path 집계 API:
-  - 필수: `X-API-Key` (헤더 인증)
+  - 필수: `X-API-Key`
   - 선택: `externalUserId`
-  - 선택: `eventType`
-  - 시간 조건: `from <= occurredAt < to`
-- 시간 버킷 집계 API:
-  - 엔드포인트: `GET /api/events/aggregates/time-buckets`
-  - 필수: `X-API-Key`, `from`, `to`, `bucket(HOUR|DAY)`
-  - 선택: `externalUserId`, `eventType`
-  - 시간 조건: `from <= occurredAt < to`
-- 시간 버킷 입력 처리 참고:
-  - 현재 `bucket`은 enum(`HOUR`, `DAY`) 직접 바인딩 기준으로 동작
-  - 소문자 입력(`hour/day`) 유연 처리와 에러 메시지 개선은
-    이후 요청 DTO 리팩터링 시점에 함께 정리하기로 결정
+  - `externalUserId`가 있으면 `(organization, externalUserId)` 기준으로 `EventUser`를 조회/생성해 연결한다.
+  - `externalUserId`가 없으면 익명 이벤트(`eventUser = null`)로 저장한다.
+- analytics 공개 패키지는 현재 아래 경계로 정리돼 있다.
+  - `analytics.activity`
+  - `analytics.aggregate`
+  - `analytics.trend`
+  - `analytics.user`
+  - `analytics.funnel`
+  - `analytics.retention`
+  - `analytics.common`
+- legacy `EventQueryService` facade는 제거했고, read API URI는 `/api/v1/events/analytics/**` 기준으로 통일했다.
 - 운영 관측 기준:
   - `Prometheus + Loki + Grafana + Alertmanager + Sentry` 기준의 운영 관측 체계 1차 구성이 완료됐다.
   - local / prod 모두에서 observability stack 기동, readiness, 조회, Discord 알림 수신까지 확인했다.
@@ -50,22 +58,35 @@
   - `src/main/java/com/clickchecker/eventuser/service/EventUserService.java`
   - `src/main/java/com/clickchecker/eventuser/controller/EventUserController.java`
   - `src/main/java/com/clickchecker/mapper/EventUserMapper.java`
-- Event/EventQuery 업데이트:
+- Event ingest:
   - `src/main/java/com/clickchecker/event/dto/EventCreateRequest.java`
   - `src/main/java/com/clickchecker/event/entity/Event.java`
   - `src/main/java/com/clickchecker/event/service/EventCommandService.java`
-  - `src/main/java/com/clickchecker/event/controller/EventQueryController.java`
-  - `src/main/java/com/clickchecker/event/service/EventQueryService.java`
+  - `src/main/java/com/clickchecker/event/controller/EventCommandController.java`
   - `src/main/java/com/clickchecker/event/repository/EventQueryRepository.java`
-  - `src/main/java/com/clickchecker/event/repository/dto/TimeBucket.java`
-  - `src/main/java/com/clickchecker/event/repository/dto/TimeBucketCountDto.java`
+- Analytics activity / aggregate / trend:
+  - `src/main/java/com/clickchecker/analytics/activity/controller/ActivityAnalyticsController.java`
+  - `src/main/java/com/clickchecker/analytics/activity/service/ActivityAnalyticsService.java`
+  - `src/main/java/com/clickchecker/analytics/aggregate/controller/AggregateAnalyticsController.java`
+  - `src/main/java/com/clickchecker/analytics/aggregate/service/AggregateAnalyticsService.java`
+  - `src/main/java/com/clickchecker/analytics/trend/controller/TrendAnalyticsController.java`
+  - `src/main/java/com/clickchecker/analytics/trend/service/TrendAnalyticsService.java`
+- Analytics user / funnel / retention:
+  - `src/main/java/com/clickchecker/analytics/user/controller/UserAnalyticsController.java`
+  - `src/main/java/com/clickchecker/analytics/user/service/UserAnalyticsService.java`
+  - `src/main/java/com/clickchecker/analytics/funnel/controller/FunnelAnalyticsController.java`
+  - `src/main/java/com/clickchecker/analytics/funnel/service/FunnelAnalyticsService.java`
+  - `src/main/java/com/clickchecker/analytics/retention/controller/RetentionAnalyticsController.java`
+  - `src/main/java/com/clickchecker/analytics/retention/service/RetentionAnalyticsService.java`
 - HTTP 샘플:
   - `api-scenarios/event.http`
   - `api-scenarios/event-user.http`
   - `api-scenarios/organization.http`
 - 배포 / 운영 스크립트:
-  - `scripts/deploy-prod-orchestrator.sh`
-  - `scripts/blue-green-prod-lib.sh`
+  - `scripts/deploy/deploy-prod-orchestrator.sh`
+  - `scripts/deploy/blue-green-prod-lib.sh`
+  - `scripts/deploy/deploy-smoke.sh`
+  - `scripts/deploy/deploy-drain.sh`
   - `scripts/codedeploy/after-install.sh`
   - `scripts/codedeploy/application-start.sh`
   - `scripts/codedeploy/validate-service.sh`
@@ -86,33 +107,46 @@
 ## 테스트 상태
 - 추가/수정된 테스트:
   - `src/test/java/com/clickchecker/event/controller/EventCommandControllerIntegrationTest.java`
-  - `src/test/java/com/clickchecker/event/controller/EventQueryControllerIntegrationTest.java`
   - `src/test/java/com/clickchecker/event/controller/EventQueryControllerPostgresIntegrationTest.java`
   - `src/test/java/com/clickchecker/eventuser/controller/EventUserControllerIntegrationTest.java`
   - `src/test/java/com/clickchecker/organization/controller/OrganizationControllerIntegrationTest.java`
-- FK 안전 정리 순서 표준화:
-  - `event -> eventUser -> organization`
-- 최근 타깃 통합테스트 통과:
-  - `EventCommandControllerIntegrationTest`
-  - `EventQueryControllerIntegrationTest`
-  - `EventUserControllerIntegrationTest`
+  - `src/test/java/com/clickchecker/analytics/activity/controller/ActivityAnalyticsControllerIntegrationTest.java`
+  - `src/test/java/com/clickchecker/analytics/aggregate/controller/AggregateAnalyticsControllerIntegrationTest.java`
+  - `src/test/java/com/clickchecker/analytics/trend/controller/TrendAnalyticsControllerIntegrationTest.java`
+  - `src/test/java/com/clickchecker/analytics/user/controller/UserAnalyticsControllerIntegrationTest.java`
+  - `src/test/java/com/clickchecker/analytics/funnel/controller/FunnelAnalyticsControllerIntegrationTest.java`
+  - `src/test/java/com/clickchecker/analytics/retention/controller/RetentionAnalyticsControllerIntegrationTest.java`
+  - `src/test/java/com/clickchecker/analytics/retention/controller/RetentionMatrixControllerIntegrationTest.java`
+- analytics controller 통합 테스트는 축별로 분리됐다.
+  - activity / aggregate / trend / user / funnel / retention
+- FK 정리와 cleanup 순서는 analytics 테스트 구조 기준으로 다시 맞췄다.
+- 최근 기준 검증:
+  - `./gradlew test` 통과
+  - `./gradlew postgresTest` 통과
 
 ## 참고 사항
-- `/api/events/aggregates/count`는 개발/디버그 용도로 유지
-- `ApiKeyAuthFilter` 보호 범위는 현재 `/api/events/**`만 적용
+- ingest `POST /api/events`는 유지하고, analytics read만 `/api/v1/events/analytics/**`로 올렸다.
+- `/api/v1/events/**`도 API key 인증 보호 범위에 포함된다.
 - `EventUser` API(`/api/event-users`)는 아직 `organizationId` 요청 방식 유지(후속 정리 대상)
 - prod 배포는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` 기준으로 동작
 - `POSTGRES_*`는 local postgres 컨테이너 기동용으로만 본다
+- scripts 구조는 현재 역할별 디렉토리 기준이다.
+  - `scripts/deploy`
+  - `scripts/observability`
+  - `scripts/data`
+  - `scripts/codedeploy`
+- analytics 응답 전면 `meta / summary / data` 표준화는 시도 후 롤백했다.
+  - 포트폴리오 기준으로 변경량 대비 실익이 낮다고 판단했다.
 
 ## 다음 권장 작업
-1. `EventUser` API 테넌트 스코프 정합성 정리
-   - `/api/event-users`를 인증 org 기준으로 어떻게 정렬할지 결정한다.
+1. 16단계 계획 수립
+   - 현재 후보는 분석 API를 실제로 소비하는 대시보드/리포트 UI다.
 2. 샘플 시나리오 / 문서 계약 정합화
-   - `k6`, `api-scenarios`, 오래된 문서 예시를 현재 `X-API-Key` 계약 기준으로 마감 정리한다.
-3. 6단계 집계 기능 고도화 진입점 확정
-   - Route Template / 응답 구조 / API 계약 중 무엇을 먼저 할지 좁힌다.
-4. 관측 고도화는 후속 단계로 이관
-   - Loki S3 저장, retention/compactor, Alertmanager 고도화는 9단계 직전(8.6 성격)으로 미룬다.
+   - `k6`, `api-scenarios`, 오래된 예시를 현재 `/api/v1/events/analytics/**` 기준으로 맞춘다.
+3. EventUser API 정리 여부 판단
+   - `/api/event-users`를 계속 유지할지, 인증 org 기준으로 어떻게 가져갈지 결정한다.
+4. 운영 관측 고도화는 별도 후속 단계로 이관
+   - Loki S3 저장, retention/compactor, Alertmanager 고도화는 별도 슬라이스로 본다.
 
 ## 최근 업데이트 (추가)
 - RDS 전환 완료:

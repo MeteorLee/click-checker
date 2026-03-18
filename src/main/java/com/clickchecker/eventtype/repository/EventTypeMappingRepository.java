@@ -10,5 +10,7 @@ public interface EventTypeMappingRepository extends JpaRepository<EventTypeMappi
 
     List<EventTypeMapping> findByOrganizationIdAndActiveTrueOrderByRawEventTypeAsc(Long organizationId);
 
+    List<EventTypeMapping> findByOrganizationIdOrderByRawEventTypeAscIdAsc(Long organizationId);
+
     Optional<EventTypeMapping> findByIdAndOrganizationId(Long id, Long organizationId);
 }

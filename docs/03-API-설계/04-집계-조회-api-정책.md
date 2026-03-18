@@ -6,7 +6,6 @@
 - raw path와 routeKey, 식별 사용자 기준을 명시적으로 구분한다.
 
 ## 현재 엔드포인트
-- `GET /api/v1/events/analytics/aggregates/count`
 - `GET /api/v1/events/analytics/aggregates/overview`
 - `GET /api/v1/events/analytics/aggregates/raw-event-types`
 - `GET /api/v1/events/analytics/aggregates/event-types`
@@ -36,6 +35,12 @@
 - 조직 스코프는 `X-API-Key -> authOrgId`로만 결정한다.
 - 조회 API는 `organizationId` 쿼리를 받지 않는다.
 
+## 제거된 엔드포인트
+- `GET /api/v1/events/analytics/aggregates/count`
+  - 개발 확인용으로 추가된 단순 count API였다.
+  - 현재 계약과 달리 organization scope를 보장하지 못해 공식 집계 API 목록에서 제거했다.
+  - 동일 목적의 확인은 `overview` 등 조직 스코프가 보장되는 집계 API로 대체한다.
+
 ## 공통 필터 계약
 - `from`, `to`
   - 필수
@@ -50,6 +55,10 @@
 - `timezone`
   - 시계열 API에서만 사용한다.
   - `from`, `to` 자체를 다시 해석하는 용도가 아니라, bucket 경계를 어떤 시간대로 자를지 정하는 용도다.
+- `bucket`
+  - 시계열 API에서만 사용한다.
+  - 현재 구현은 요청당 최대 366 bucket까지만 허용한다.
+  - 이를 넘는 구간은 `400 Bad Request`로 거부한다.
 
 ## path / route 정책
 

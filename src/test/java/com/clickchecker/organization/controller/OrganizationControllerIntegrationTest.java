@@ -5,6 +5,7 @@ import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
 import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.ApiKeyStatus;
 import com.clickchecker.organization.repository.OrganizationRepository;
+import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.route.repository.RouteTemplateRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,9 @@ class OrganizationControllerIntegrationTest {
 
     @Autowired
     private RouteTemplateRepository routeTemplateRepository;
+
+    @Autowired
+    private OrganizationMemberRepository organizationMemberRepository;
 
     @Test
     void create_returnsId_whenRequestIsValid() throws Exception {
@@ -91,6 +95,7 @@ class OrganizationControllerIntegrationTest {
         eventTypeMappingRepository.deleteAll();
         routeTemplateRepository.deleteAll();
         eventUserRepository.deleteAll();
+        organizationMemberRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 }

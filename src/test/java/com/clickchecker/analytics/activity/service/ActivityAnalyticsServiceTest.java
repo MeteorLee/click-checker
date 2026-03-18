@@ -10,8 +10,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -51,10 +54,10 @@ class ActivityAnalyticsServiceTest {
                         new RawEventTypeCountProjection("page_view", 1)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/landing")).thenReturn("/landing");
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "page_view")).thenReturn("view");
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of("/posts/1", "/posts/{id}", "/landing", "/landing"));
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of("button_click", "click", "page_view", "view"));
 
         ActivityOverviewResponse result = activityAnalyticsService.getOverview(from, to, 1L, null, null);
 
@@ -90,9 +93,11 @@ class ActivityAnalyticsServiceTest {
                         new RawEventTypeCountProjection("mystery_event", 4)
                 ));
 
-        when(canonicalEventTypeResolver.resolve(1L, "button_click")).thenReturn("click");
-        when(canonicalEventTypeResolver.resolve(1L, "mystery_event"))
-                .thenReturn(CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE);
+        when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "button_click", "click",
+                        "mystery_event", CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                ));
 
         Double result = activityAnalyticsService.eventTypeMappingCoverageBetween(from, to, 1L, null);
 
@@ -111,8 +116,11 @@ class ActivityAnalyticsServiceTest {
                         new PathCountProjection("/unknown/1", 4)
                 ));
 
-        when(routeKeyResolver.resolve(1L, "/posts/1")).thenReturn("/posts/{id}");
-        when(routeKeyResolver.resolve(1L, "/unknown/1")).thenReturn(RouteKeyResolver.UNMATCHED_ROUTE);
+        when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
+                .thenReturn(Map.of(
+                        "/posts/1", "/posts/{id}",
+                        "/unknown/1", RouteKeyResolver.UNMATCHED_ROUTE
+                ));
 
         Double result = activityAnalyticsService.routeMatchCoverageBetween(from, to, 1L, null, "click");
 

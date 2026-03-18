@@ -121,16 +121,32 @@ public class TrendAnalyticsService {
             String timezone
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
-        Map<RouteEventTypeTimeBucketKey, Long> countsByKey = eventQueryRepository.countRawPathEventTypeOccurredAtBetween(
+        List<RawPathEventTypeOccurredAtCountProjection> rawPathEventTypeOccurredAtCounts =
+                eventQueryRepository.countRawPathEventTypeOccurredAtBetween(
                         from,
                         to,
                         organizationId,
                         externalUserId
-                ).stream()
+                );
+        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
+                organizationId,
+                rawPathEventTypeOccurredAtCounts.stream().map(RawPathEventTypeOccurredAtCountProjection::path).toList()
+        );
+        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
+                organizationId,
+                rawPathEventTypeOccurredAtCounts.stream()
+                        .map(RawPathEventTypeOccurredAtCountProjection::rawEventType)
+                        .toList()
+        );
+
+        Map<RouteEventTypeTimeBucketKey, Long> countsByKey = rawPathEventTypeOccurredAtCounts.stream()
                 .collect(Collectors.groupingBy(
                         item -> new RouteEventTypeTimeBucketKey(
-                                routeKeyResolver.resolve(organizationId, item.path()),
-                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                                routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
+                                canonicalEventTypesByRawEventType.getOrDefault(
+                                        item.rawEventType(),
+                                        CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                                ),
                                 bucket.floor(item.occurredAt(), zoneId)
                         ),
                         Collectors.summingLong(RawPathEventTypeOccurredAtCountProjection::count)
@@ -244,10 +260,14 @@ public class TrendAnalyticsService {
             TimeBucket bucket,
             ZoneId zoneId
     ) {
+        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
+                organizationId,
+                counts.stream().map(RawPathOccurredAtCountProjection::path).toList()
+        );
         Map<RouteTimeBucketKey, Long> countsByRouteBucket = counts.stream()
                 .collect(Collectors.groupingBy(
                         item -> new RouteTimeBucketKey(
-                                routeKeyResolver.resolve(organizationId, item.path()),
+                                routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
                                 bucket.floor(item.occurredAt(), zoneId)
                         ),
                         Collectors.summingLong(RawPathOccurredAtCountProjection::count)
@@ -284,10 +304,17 @@ public class TrendAnalyticsService {
             TimeBucket bucket,
             ZoneId zoneId
     ) {
+        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
+                organizationId,
+                counts.stream().map(RawEventTypeOccurredAtCountProjection::rawEventType).toList()
+        );
         Map<CanonicalEventTypeTimeBucketKey, Long> countsByEventTypeBucket = counts.stream()
                 .collect(Collectors.groupingBy(
                         item -> new CanonicalEventTypeTimeBucketKey(
-                                canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
+                                canonicalEventTypesByRawEventType.getOrDefault(
+                                        item.rawEventType(),
+                                        CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                                ),
                                 bucket.floor(item.occurredAt(), zoneId)
                         ),
                         Collectors.summingLong(RawEventTypeOccurredAtCountProjection::count)
