@@ -6,6 +6,7 @@ x-app-prod-env: &app-prod-env
   API_KEY_PEPPER: ${API_KEY_PEPPER}
   API_KEY_ENV: ${API_KEY_ENV:-live}
   SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_RELEASE: ${SENTRY_RELEASE:-}
 
 x-app-prod-common: &app-prod-common
   image: ${APP_IMAGE}

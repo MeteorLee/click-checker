@@ -47,16 +47,30 @@ public class FunnelAnalyticsService {
                 .toList();
 
         Instant queryTo = to.plus(conversionWindow);
-        List<UserEvent> userEvents = eventQueryRepository.findIdentifiedUserEventStepOccurredAtBetween(
+        List<IdentifiedUserEventStepOccurredAtProjection> stepEvents =
+                eventQueryRepository.findIdentifiedUserEventStepOccurredAtBetween(
                         from,
                         queryTo,
                         organizationId,
                         externalUserId
-                ).stream()
+                );
+        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
+                organizationId,
+                stepEvents.stream().map(IdentifiedUserEventStepOccurredAtProjection::rawEventType).toList()
+        );
+        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
+                organizationId,
+                stepEvents.stream().map(IdentifiedUserEventStepOccurredAtProjection::path).toList()
+        );
+
+        List<UserEvent> userEvents = stepEvents.stream()
                 .map(item -> new UserEvent(
                         item.eventUserId(),
-                        canonicalEventTypeResolver.resolve(organizationId, item.rawEventType()),
-                        routeKeyResolver.resolve(organizationId, item.path()),
+                        canonicalEventTypesByRawEventType.getOrDefault(
+                                item.rawEventType(),
+                                CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                        ),
+                        routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
                         item.occurredAt()
                 ))
                 .toList();

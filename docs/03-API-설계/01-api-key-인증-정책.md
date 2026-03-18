@@ -6,7 +6,10 @@
 
 ## 적용 범위 (현재)
 - 보호 대상: `/api/events/**`
-- 비보호 대상(현재): `/api/organizations/**`, `/api/event-users/**`
+- 비보호 대상(현재): `/api/organizations/**`
+- 참고:
+  - `POST /api/organizations`는 기존 공개 organization 생성 경로다.
+  - 현재 포트폴리오 기준 주 경로는 `POST /api/v1/admin/organizations`이며, 공개 경로는 레거시로 취급한다.
 
 ## 인증 방식
 - 헤더: `X-API-Key`

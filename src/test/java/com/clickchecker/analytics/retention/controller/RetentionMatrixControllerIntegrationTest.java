@@ -8,6 +8,7 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.route.repository.RouteTemplateRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class RetentionMatrixControllerIntegrationTest {
 
     @Autowired
     private ApiKeyService apiKeyService;
+
+    @Autowired
+    private OrganizationMemberRepository organizationMemberRepository;
 
     @Test
     void matrix_returnsCustomDayRetentionValues() throws Exception {
@@ -131,6 +135,7 @@ class RetentionMatrixControllerIntegrationTest {
         eventTypeMappingRepository.deleteAll();
         routeTemplateRepository.deleteAll();
         eventUserRepository.deleteAll();
+        organizationMemberRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 

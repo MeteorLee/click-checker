@@ -1,5 +1,8 @@
 package com.clickchecker.web.resolver;
 
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+
+import com.clickchecker.web.error.ApiErrorMessages;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
@@ -8,8 +11,6 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.server.ResponseStatusException;
-
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Component
 public class CurrentOrganizationIdResolver implements HandlerMethodArgumentResolver {
@@ -33,6 +34,6 @@ public class CurrentOrganizationIdResolver implements HandlerMethodArgumentResol
         if (value instanceof Long orgId) {
             return orgId;
         }
-        throw new ResponseStatusException(UNAUTHORIZED, "Unauthorized.");
+        throw new ResponseStatusException(UNAUTHORIZED, ApiErrorMessages.UNAUTHORIZED);
     }
 }

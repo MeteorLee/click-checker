@@ -19,3 +19,9 @@ management:
 logging:
   level:
     root: info
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-jwt-secret-local-dev-jwt-secret-123456}
+    access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:900}
+    refresh-token-expiration-seconds: ${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS:1209600}

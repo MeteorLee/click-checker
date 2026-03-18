@@ -26,6 +26,8 @@ import java.util.List;
 @RequestMapping("/api/v1/events/analytics")
 public class TrendAnalyticsController {
 
+    private static final int MAX_BUCKETS = 366;
+
     private final TrendAnalyticsService trendAnalyticsService;
 
     @GetMapping("/aggregates/route-event-type-time-buckets")
@@ -39,6 +41,7 @@ public class TrendAnalyticsController {
     ) {
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
+        validateBucketRange(from, to, bucket, zoneId);
 
         return new RouteEventTypeTimeBucketAggregateResponse(
                 authOrgId,
@@ -70,6 +73,7 @@ public class TrendAnalyticsController {
     ) {
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
+        validateBucketRange(from, to, bucket, zoneId);
 
         return new RouteTimeBucketAggregateResponse(
                 authOrgId,
@@ -102,6 +106,7 @@ public class TrendAnalyticsController {
     ) {
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
+        validateBucketRange(from, to, bucket, zoneId);
 
         return new CanonicalEventTypeTimeBucketAggregateResponse(
                 authOrgId,
@@ -133,6 +138,7 @@ public class TrendAnalyticsController {
     ) {
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
+        validateBucketRange(from, to, bucket, zoneId);
 
         List<TimeBucketCountProjection> items = trendAnalyticsService.countByTimeBucketBetween(
                 from,
@@ -167,6 +173,22 @@ public class TrendAnalyticsController {
             return ZoneId.of(timezone);
         } catch (DateTimeException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`timezone` is invalid.");
+        }
+    }
+
+    private void validateBucketRange(Instant from, Instant to, TimeBucket bucket, ZoneId zoneId) {
+        int bucketCount = 0;
+        Instant current = bucket.floor(from, zoneId);
+
+        while (current.isBefore(to)) {
+            bucketCount++;
+            if (bucketCount > MAX_BUCKETS) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "`from` and `to` range is too large for the requested `bucket`."
+                );
+            }
+            current = bucket.next(current, zoneId);
         }
     }
 }

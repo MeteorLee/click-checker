@@ -266,4 +266,32 @@ class TrendAnalyticsControllerIntegrationTest extends AnalyticsControllerIntegra
                 )
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void aggregateTimeBuckets_returnsBadRequest_whenBucketRangeExceedsLimit() throws Exception {
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/time-buckets")
+                                .param("from", "2026-02-01T00:00:00Z")
+                                .param("to", "2026-02-17T00:00:00Z")
+                                .param("bucket", "HOUR")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aggregateRouteEventTypeTimeBuckets_returnsBadRequest_whenBucketRangeExceedsLimit() throws Exception {
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/v1/events/analytics/aggregates/route-event-type-time-buckets")
+                                .param("from", "2026-02-01T00:00:00Z")
+                                .param("to", "2026-02-17T00:00:00Z")
+                                .param("bucket", "HOUR")
+                )
+                .andExpect(status().isBadRequest());
+    }
 }

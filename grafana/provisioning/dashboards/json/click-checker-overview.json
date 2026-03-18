@@ -17,7 +17,7 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
@@ -37,7 +37,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 8,
         "x": 0,
         "y": 0
       },
@@ -56,12 +56,103 @@
       },
       "targets": [
         {
-          "expr": "sum by (app) (rate(http_server_requests_seconds_count{job=\"click-checker-app\"}[1m]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"click-checker-app\",uri=\"/api/events\"}[1m]))",
+          "legendFormat": "ingest",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"click-checker-app\",uri=~\"/api/v1/events/analytics.*\"}[1m]))",
+          "legendFormat": "analytics",
+          "refId": "B"
+        }
+      ],
+      "title": "API Request Mix",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "click-checker-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (app) (rate(http_server_requests_seconds_count{job=\"click-checker-app\",uri=\"/api/events\"}[1m]))",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
       ],
-      "title": "RPS by App",
+      "title": "Ingest RPS by App",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "click-checker-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (app) (rate(http_server_requests_seconds_count{job=\"click-checker-app\",uri=~\"/api/v1/events/analytics.*\"}[1m]))",
+          "legendFormat": "{{app}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Analytics RPS by App",
       "type": "timeseries"
     },
     {
@@ -80,11 +171,11 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
+        "w": 8,
+        "x": 0,
+        "y": 8
       },
-      "id": 2,
+      "id": 4,
       "options": {
         "legend": {
           "calcs": [],
@@ -99,17 +190,65 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le, app) (rate(http_server_requests_seconds_bucket{job=\"click-checker-app\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, app) (rate(http_server_requests_seconds_bucket{job=\"click-checker-app\",uri=\"/api/events\"}[5m])))",
           "legendFormat": "{{app}} p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum by (le, app) (rate(http_server_requests_seconds_bucket{job=\"click-checker-app\"}[5m])))",
+          "expr": "histogram_quantile(0.99, sum by (le, app) (rate(http_server_requests_seconds_bucket{job=\"click-checker-app\",uri=\"/api/events\"}[5m])))",
           "legendFormat": "{{app}} p99",
           "refId": "B"
         }
       ],
-      "title": "Latency p95 / p99",
+      "title": "Ingest Latency p95 / p99",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "click-checker-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, app) (rate(http_server_requests_seconds_bucket{job=\"click-checker-app\",uri=~\"/api/v1/events/analytics.*\"}[5m])))",
+          "legendFormat": "{{app}} p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, app) (rate(http_server_requests_seconds_bucket{job=\"click-checker-app\",uri=~\"/api/v1/events/analytics.*\"}[5m])))",
+          "legendFormat": "{{app}} p99",
+          "refId": "B"
+        }
+      ],
+      "title": "Analytics Latency p95 / p99",
       "type": "timeseries"
     },
     {
@@ -130,10 +269,10 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 0,
+        "x": 16,
         "y": 8
       },
-      "id": 3,
+      "id": 6,
       "options": {
         "legend": {
           "calcs": [],
@@ -148,12 +287,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=\"click-checker-app\",status=~\"4..|5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"click-checker-app\"}[5m])), 1)",
+          "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=\"click-checker-app\",uri=~\"/api/.*\",status=~\"4..|5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"click-checker-app\",uri=~\"/api/.*\"}[5m])), 1)",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
       ],
-      "title": "4xx / 5xx Ratio",
+      "title": "HTTP 4xx / 5xx Ratio",
       "type": "timeseries"
     },
     {
@@ -193,10 +332,10 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 8,
-        "y": 8
+        "x": 0,
+        "y": 16
       },
-      "id": 4,
+      "id": 7,
       "options": {
         "legend": {
           "calcs": [],
@@ -229,51 +368,18 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "bytes"
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 16,
-        "y": 8
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "jvm_memory_used_bytes{job=\"click-checker-app\",area=\"heap\"}",
-          "legendFormat": "{{app}} {{id}}",
-          "refId": "A"
-        }
-      ],
-      "title": "JVM Heap Used",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "click-checker-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
+        "x": 8,
         "y": 16
       },
-      "id": 7,
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -285,16 +391,6 @@
           "mode": "multi",
           "sort": "none"
         }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "decimals": 0,
-          "min": 0
-        },
-        "overrides": []
       },
       "targets": [
         {
@@ -322,11 +418,11 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 8,
+        "x": 16,
         "y": 16
       },
-      "id": 8,
+      "id": 9,
       "options": {
         "legend": {
           "calcs": [],
@@ -348,41 +444,9 @@
       ],
       "title": "JVM Heap Used by App",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "click-checker-loki"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 24
-      },
-      "id": 6,
-      "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": true,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
-      },
-      "targets": [
-        {
-          "expr": "{job=\"click-checker\"}",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Recent Logs",
-      "type": "logs"
     }
   ],
-  "refresh": "30s",
+  "refresh": "10s",
   "schemaVersion": 39,
   "style": "dark",
   "tags": [
@@ -400,6 +464,6 @@
   "timezone": "",
   "title": "Click Checker Overview",
   "uid": "click-checker-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

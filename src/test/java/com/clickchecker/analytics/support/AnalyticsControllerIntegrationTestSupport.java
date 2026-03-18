@@ -9,6 +9,7 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyService;
+import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.route.entity.RouteTemplate;
 import com.clickchecker.route.repository.RouteTemplateRepository;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
@@ -46,6 +47,9 @@ public abstract class AnalyticsControllerIntegrationTestSupport {
     @Autowired
     protected EventTypeMappingRepository eventTypeMappingRepository;
 
+    @Autowired
+    protected OrganizationMemberRepository organizationMemberRepository;
+
     @BeforeEach
     void cleanupBeforeEach() {
         cleanup();
@@ -61,6 +65,7 @@ public abstract class AnalyticsControllerIntegrationTestSupport {
         eventUserRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();
         routeTemplateRepository.deleteAll();
+        organizationMemberRepository.deleteAll();
         organizationRepository.deleteAll();
     }
 
