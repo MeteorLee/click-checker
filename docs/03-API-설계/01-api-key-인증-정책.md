@@ -6,7 +6,7 @@
 
 ## 적용 범위 (현재)
 - 보호 대상: `/api/events/**`
-- 비보호 대상(현재): `/api/organizations/**`, `/api/event-users/**`
+- 비보호 대상(현재): `/api/organizations/**`
 
 ## 인증 방식
 - 헤더: `X-API-Key`
