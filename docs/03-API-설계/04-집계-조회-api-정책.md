@@ -6,7 +6,6 @@
 - raw path와 routeKey, 식별 사용자 기준을 명시적으로 구분한다.
 
 ## 현재 엔드포인트
-- `GET /api/v1/events/analytics/aggregates/count`
 - `GET /api/v1/events/analytics/aggregates/overview`
 - `GET /api/v1/events/analytics/aggregates/raw-event-types`
 - `GET /api/v1/events/analytics/aggregates/event-types`
@@ -35,6 +34,12 @@
 - 보호 대상: `/api/events/**`
 - 조직 스코프는 `X-API-Key -> authOrgId`로만 결정한다.
 - 조회 API는 `organizationId` 쿼리를 받지 않는다.
+
+## 레거시 / 제거 후보
+- `GET /api/v1/events/analytics/aggregates/count`
+  - 개발 확인용으로 추가된 단순 count API였다.
+  - 현재 계약과 달리 organization scope를 보장하지 못하므로, 포트폴리오 기준 공식 집계 API 목록에서는 제외한다.
+  - 이후에는 조직 스코프를 보장하는 형태로 재설계하기보다 제거를 우선 검토한다.
 
 ## 공통 필터 계약
 - `from`, `to`
