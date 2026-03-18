@@ -3,8 +3,8 @@ import { check } from 'k6';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const API_KEY = __ENV.API_KEY;
-const FROM = __ENV.FROM || '2026-02-13T00:00:00';
-const TO = __ENV.TO || '2026-02-14T00:00:00';
+const FROM = __ENV.FROM || '2026-02-13T00:00:00Z';
+const TO = __ENV.TO || '2026-02-14T00:00:00Z';
 const TOP = __ENV.TOP || '5';
 
 export const options = {

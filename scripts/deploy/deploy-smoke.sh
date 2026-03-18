@@ -11,11 +11,13 @@ set -euo pipefail
 # Optional env:
 # - APP_DOMAIN         default: clickchecker.dev
 # - PUBLIC_RESOLVE     default: 0
+# - EXPORT_API_KEY_FILE  optional file path for temporary api key export
 
 BASE_URL="${BASE_URL:-}"
 APP_DOMAIN="${APP_DOMAIN:-clickchecker.dev}"
 PUBLIC_RESOLVE="${PUBLIC_RESOLVE:-0}"
 AGGREGATE_PATHS_ENDPOINT="${AGGREGATE_PATHS_ENDPOINT:-/api/v1/events/analytics/aggregates/paths}"
+EXPORT_API_KEY_FILE="${EXPORT_API_KEY_FILE:-}"
 
 require_command() {
   local name="$1"
@@ -59,6 +61,18 @@ redact_smoke_org_file() {
   else
     rm -f /tmp/smoke_org_redacted.json
   fi
+}
+
+export_api_key_if_requested() {
+  local api_key="$1"
+
+  if [ -z "${EXPORT_API_KEY_FILE}" ]; then
+    return
+  fi
+
+  printf '%s\n' "${api_key}" > "${EXPORT_API_KEY_FILE}"
+  chmod 600 "${EXPORT_API_KEY_FILE}"
+  echo "[smoke] exported api key to ${EXPORT_API_KEY_FILE}"
 }
 
 smoke_post_json() {
@@ -177,6 +191,7 @@ main() {
     dump_smoke_org_response
     exit 1
   fi
+  export_api_key_if_requested "${api_key}"
   redact_smoke_org_file
 
   event_body=$(jq -nc \
