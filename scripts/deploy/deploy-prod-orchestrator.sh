@@ -146,6 +146,7 @@ main() {
   require_env DB_PASSWORD
   require_env API_KEY_PEPPER
   require_env API_KEY_ENV
+  require_env JWT_SECRET
 
   ACTIVE_COLOR=$(current_color)
   TARGET_COLOR=$(other_color "${ACTIVE_COLOR}")
