@@ -5,11 +5,11 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.organization.entity.Organization;
-import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.result.AdminOrganizationCreateResult;
 import com.clickchecker.organizationmember.entity.OrganizationMember;
 import com.clickchecker.organizationmember.entity.OrganizationRole;
 import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
+import java.time.Instant;
 import com.clickchecker.web.error.ApiErrorMessages;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,18 +21,22 @@ import org.springframework.web.server.ResponseStatusException;
 public class AdminOrganizationService {
 
     private final AccountRepository accountRepository;
-    private final OrganizationRepository organizationRepository;
+    private final OrganizationService organizationService;
     private final OrganizationMemberRepository organizationMemberRepository;
+    private final ApiKeyIssuer apiKeyIssuer;
 
     @Transactional
     public AdminOrganizationCreateResult create(Long accountId, String name) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, ApiErrorMessages.UNAUTHORIZED));
 
-        Organization organization = organizationRepository.save(
-                Organization.builder()
-                        .name(name.trim())
-                        .build()
+        ApiKeyIssuer.IssuedApiKey issuedApiKey = apiKeyIssuer.issue();
+        Organization organization = organizationService.create(
+                name.trim(),
+                issuedApiKey.kid(),
+                issuedApiKey.hash(),
+                issuedApiKey.prefix(),
+                Instant.now()
         );
 
         OrganizationMember ownerMembership = organizationMemberRepository.save(
@@ -46,7 +50,9 @@ public class AdminOrganizationService {
         return new AdminOrganizationCreateResult(
                 organization.getId(),
                 organization.getName(),
-                ownerMembership.getId()
+                ownerMembership.getId(),
+                issuedApiKey.plainKey(),
+                issuedApiKey.prefix()
         );
     }
 }
