@@ -44,6 +44,7 @@
 
 ## 7. 인가 적용은 "현재 구조 위에 얹는 방식"으로 시작한다
 - 1차 버전에서는 현재 `JwtAuthFilter + @CurrentAccountId` 구조를 유지한다.
+- 즉 현재 단계에서는 `SecurityContext` 기반 principal 주입으로 바로 옮기지 않는다.
 - membership / role 검사는 서비스 또는 별도 인가 helper에서 수행한다.
 - `SecurityContext`, `@PreAuthorize`, `PermissionEvaluator` 같은 정식 Spring Security 인가 구조는 후속 정리 대상으로 둔다.
 
@@ -75,8 +76,13 @@
 - 이메일 초대 / 이메일 인증
 - 비밀번호 찾기 / 비밀번호 재설정
 - 관리자 콘솔 UI
+- organization 즉시 삭제 기능
 - 세밀한 permission matrix
 - Spring Security principal / PermissionEvaluator 정식화
+
+참고:
+- organization lifecycle은 1차에서 즉시 삭제보다 비활성화 중심으로 후속 설계한다.
+- 데이터 보존과 운영 안전성을 고려해, 삭제는 후순위 관리 기능으로 둔다.
 
 ---
 
@@ -426,3 +432,4 @@
 - 감사 로그
 - 관리자 콘솔
 - Spring Security principal / 권한 모델 정식화
+  - 현재 `custom filter + resolver` 구조를 `SecurityContext` 중심 구조로 옮길지 후속 단계에서 판단

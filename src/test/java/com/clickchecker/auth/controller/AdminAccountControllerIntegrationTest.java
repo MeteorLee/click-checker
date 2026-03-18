@@ -2,6 +2,8 @@ package com.clickchecker.auth.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -193,6 +195,128 @@ class AdminAccountControllerIntegrationTest {
                 .andExpect(jsonPath("$.memberships[0].role").value("OWNER"));
     }
 
+    @Test
+    void me_reflectsMembershipLifecycle_afterSignupCreateAddUpdateAndRemove() throws Exception {
+        cleanup();
+
+        String ownerSignupResponse = mockMvc.perform(
+                        post("/api/v1/admin/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "owner01",
+                                          "password": "secret123!"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String ownerAccessToken = extractField(ownerSignupResponse, "accessToken");
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerAccessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "name": "Acme"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated());
+
+        Long organizationId = organizationRepository.findAll().getFirst().getId();
+
+        mockMvc.perform(
+                        get("/api/v1/admin/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerAccessToken)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(1))
+                .andExpect(jsonPath("$.memberships[0].organizationName").value("Acme"))
+                .andExpect(jsonPath("$.memberships[0].role").value("OWNER"));
+
+        String memberSignupResponse = mockMvc.perform(
+                        post("/api/v1/admin/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "member01",
+                                          "password": "secret123!"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String memberAccessToken = extractField(memberSignupResponse, "accessToken");
+        Long memberAccountId = accountRepository.findByLoginId("member01").orElseThrow().getId();
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members", organizationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerAccessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "accountId": %d,
+                                          "role": "VIEWER"
+                                        }
+                                        """.formatted(memberAccountId))
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.accountId").value(memberAccountId))
+                .andExpect(jsonPath("$.role").value("VIEWER"));
+
+        mockMvc.perform(
+                        get("/api/v1/admin/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + memberAccessToken)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(1))
+                .andExpect(jsonPath("$.memberships[0].organizationName").value("Acme"))
+                .andExpect(jsonPath("$.memberships[0].role").value("VIEWER"));
+
+        Long memberId = organizationMemberRepository.findByAccountIdAndOrganizationId(memberAccountId, organizationId)
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(
+                        put("/api/v1/admin/organizations/{organizationId}/members/{memberId}/role", organizationId, memberId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerAccessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "role": "ADMIN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+
+        mockMvc.perform(
+                        get("/api/v1/admin/organizations/{organizationId}/members", organizationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + memberAccessToken)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.members.length()").value(2));
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/{memberId}", organizationId, memberId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerAccessToken)
+                )
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(
+                        get("/api/v1/admin/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + memberAccessToken)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(0));
+    }
+
     private void cleanup() {
         eventRepository.deleteAll();
         eventTypeMappingRepository.deleteAll();
@@ -202,5 +326,16 @@ class AdminAccountControllerIntegrationTest {
         refreshTokenRepository.deleteAll();
         accountRepository.deleteAll();
         organizationRepository.deleteAll();
+    }
+
+    private String extractField(String responseBody, String fieldName) {
+        String prefix = "\"" + fieldName + "\":\"";
+        int start = responseBody.indexOf(prefix);
+        if (start < 0) {
+            throw new IllegalStateException("Missing field: " + fieldName);
+        }
+        int valueStart = start + prefix.length();
+        int valueEnd = responseBody.indexOf('"', valueStart);
+        return responseBody.substring(valueStart, valueEnd);
     }
 }
