@@ -1,0 +1,62 @@
+{
+  "scenario": "W1",
+  "runId": "w1-20260319-161709-r200-existing50",
+  "timestamp": "2026-03-19T16:17:30+09:00",
+  "status": "threshold_fail",
+  "isBaseline": false,
+  "compareTo": null,
+  "env": {
+    "name": "local",
+    "prepareBaseUrl": "http://localhost:8080",
+    "baseUrl": "http://app:8080",
+    "appCount": 1,
+    "dbInstance": "local-postgres"
+  },
+  "auth": {
+    "apiKey": "ck_test_v1_ec9288aaf0de0a1a7c65_f069d37a4de883dc68d05589e73d2209c9bee9bc1d3e97920af326d00bdc3380",
+    "apiKeyPrefix": "ec9288aa"
+  },
+  "dataset": {
+    "orgId": 16,
+    "orgName": "perf-w1-r200-20260319161709",
+    "pathPrefix": "/loadtest/w1",
+    "eventType": "loadtest_write",
+    "pathCount": 6,
+    "existingUserPoolSize": 1000,
+    "existingUserRatio": 50
+  },
+  "seed": {
+    "eventType": "loadtest_seed",
+    "pathPrefix": "/loadtest/w1/seed",
+    "existingUserPoolSize": 1000,
+    "startedAt": "2026-03-19T16:17:09+09:00",
+    "completedAt": "2026-03-19T16:17:30+09:00",
+    "successCount": 1000
+  },
+  "load": {
+    "rate": 200,
+    "warmup": "30s",
+    "duration": "3m",
+    "cooldown": "0",
+    "preAllocatedVUs": 400,
+    "maxVUs": 800,
+    "p95ThresholdMs": 5000,
+    "p99ThresholdMs": 8000
+  },
+  "capture": {
+    "mode": "scripted",
+    "timeRange": "start-2m ~ end+2m",
+    "status": "success",
+    "generatedAt": "2026-03-19T16:21:45+09:00",
+    "fromMs": 1773904540000,
+    "toMs": 1773905004000
+  },
+  "artifacts": {
+    "outDir": "artifacts/perf/w1/w1-20260319-161709-r200-existing50"
+  },
+  "updatedAt": "2026-03-19T16:21:24+09:00",
+  "run": {
+    "startedAt": "2026-03-19T16:17:40+09:00",
+    "completedAt": "2026-03-19T16:21:24+09:00"
+  }
+}
