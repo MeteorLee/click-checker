@@ -23,3 +23,11 @@ scrape_configs:
           - app-green:8082
         labels:
           app: app-green
+
+  - job_name: click-checker-renderer
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - renderer:8081
+        labels:
+          app: renderer

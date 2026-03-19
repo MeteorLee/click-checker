@@ -33,10 +33,10 @@ main() {
   chmod 644 "${DISCORD_WEBHOOK_FILE}"
 
   echo "[observability] starting shared prod observability services"
-  compose up -d prometheus loki promtail alertmanager grafana
+  compose up -d prometheus loki promtail alertmanager renderer grafana
 
   echo "[observability] service status"
-  compose ps prometheus loki promtail alertmanager grafana
+  compose ps prometheus loki promtail alertmanager renderer grafana
 }
 
 main "$@"

@@ -40,6 +40,7 @@ main() {
   check_http prometheus prometheus "http://localhost:9090/-/ready"
   check_http loki loki "http://localhost:3100/ready"
   check_http alertmanager alertmanager "http://localhost:9093/-/ready"
+  check_http renderer renderer "http://localhost:8081/metrics"
   check_http grafana grafana "http://localhost:3000/api/health"
 
   echo "[observability:validate] all checks passed"
