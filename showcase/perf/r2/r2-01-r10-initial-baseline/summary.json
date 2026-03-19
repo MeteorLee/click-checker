@@ -1,0 +1,148 @@
+{
+    "metrics": {
+        "data_sent": {
+            "count": 102265,
+            "rate": 3258.9512725334253
+        },
+        "checks": {
+            "passes": 900,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_connecting": {
+            "avg": 0.13940502333333332,
+            "min": 0,
+            "med": 0,
+            "max": 35.829216,
+            "p(90)": 0,
+            "p(95)": 0.2470343
+        },
+        "data_received": {
+            "count": 255565,
+            "rate": 8144.271079694958
+        },
+        "http_req_tls_handshaking": {
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0
+        },
+        "http_req_waiting": {
+            "med": 27.4476455,
+            "max": 61.415695,
+            "p(90)": 32.360766700000006,
+            "p(95)": 37.38512165000001,
+            "avg": 29.04207000666669,
+            "min": 24.405676
+        },
+        "http_req_receiving": {
+            "min": 0.061845,
+            "med": 0.4464055,
+            "max": 4.138944,
+            "p(90)": 0.6893865000000002,
+            "p(95)": 0.8588196000000002,
+            "avg": 0.4382648166666663
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 300,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "iterations": {
+            "count": 300,
+            "rate": 9.560312734171296
+        },
+        "http_req_duration": {
+            "p(95)": 37.55139720000002,
+            "avg": 29.527616720000005,
+            "min": 24.818143,
+            "med": 27.975793,
+            "max": 62.259487,
+            "p(90)": 32.8908882,
+            "thresholds": {
+                "p(95)<1500": false,
+                "p(99)<3000": false
+            }
+        },
+        "vus_max": {
+            "max": 20,
+            "value": 20,
+            "min": 20
+        },
+        "http_req_blocked": {
+            "min": 0.004656,
+            "med": 0.006017,
+            "max": 35.922718,
+            "p(90)": 0.021716700000000016,
+            "p(95)": 0.3610022500000001,
+            "avg": 0.15890882000000006
+        },
+        "vus": {
+            "value": 0,
+            "min": 0,
+            "max": 0
+        },
+        "iteration_duration": {
+            "p(90)": 33.4570491,
+            "p(95)": 37.85099800000002,
+            "avg": 30.06711392000002,
+            "min": 25.050569,
+            "med": 28.329144499999998,
+            "max": 82.5368
+        },
+        "http_reqs": {
+            "count": 300,
+            "rate": 9.560312734171296
+        },
+        "http_req_duration{expected_response:true}": {
+            "med": 27.975793,
+            "max": 62.259487,
+            "p(90)": 32.8908882,
+            "p(95)": 37.55139720000002,
+            "avg": 29.527616720000005,
+            "min": 24.818143
+        },
+        "http_req_sending": {
+            "avg": 0.04728189666666662,
+            "min": 0.017754,
+            "med": 0.039387,
+            "max": 0.193302,
+            "p(90)": 0.0709612,
+            "p(95)": 0.08380785
+        }
+    },
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "status is 200": {
+                    "path": "::status is 200",
+                    "id": "6210a8cd14cd70477eba5c5e4cb3fb5f",
+                    "passes": 300,
+                    "fails": 0,
+                    "name": "status is 200"
+                },
+                "response has items": {
+                    "id": "2a664044f1628608fe9ed05034de4e21",
+                    "passes": 300,
+                    "fails": 0,
+                    "name": "response has items",
+                    "path": "::response has items"
+                },
+                "items size is within top": {
+                    "id": "2e07cbfdd2164d21c4a3a54d1c5935da",
+                    "passes": 300,
+                    "fails": 0,
+                    "name": "items size is within top",
+                    "path": "::items size is within top"
+                }
+            },
+        "name": "",
+        "path": ""
+    }
+}
