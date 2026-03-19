@@ -1,0 +1,92 @@
+{
+  "scenario": "M1",
+  "runId": "m1-20260320-072140-w10-r10-dryrun",
+  "timestamp": "2026-03-20T07:22:35+09:00",
+  "status": "success",
+  "isBaseline": false,
+  "compareTo": null,
+  "env": {
+    "name": "local",
+    "prepareBaseUrl": "http://localhost:8080",
+    "baseUrl": "http://app:8080",
+    "appCount": 1,
+    "dbInstance": "local-postgres"
+  },
+  "auth": {
+    "apiKey": "ck_test_v1_2ea0b13a361d8b66c8bf_33db0d9a601a973f2ec41c8b377fc53fd324b8e10edb5bf0af9a6b90b530a10e",
+    "apiKeyPrefix": "2ea0b13a"
+  },
+  "dataset": {
+    "orgId": 19,
+    "orgName": "perf-m1-dataset",
+    "datasetVersion": "m1-v1",
+    "snapshotVersion": "m1-v1-snap1",
+    "totalEvents": 50000,
+    "identifiedUsers": 1000,
+    "identifiedEvents": 40000,
+    "anonymousEvents": 10000,
+    "rawPathCount": 30,
+    "routeTemplateCount": 24,
+    "unmatchedPathCount": 6,
+    "rawEventTypeCount": 5,
+    "mappedEventTypeCount": 4,
+    "unmappedEventTypeCount": 1,
+    "rangeFrom": "2026-03-12T22:00:00Z",
+    "rangeTo": "2026-03-19T22:00:00Z",
+    "queryWindowFrom": "2026-03-18T22:00:00Z",
+    "queryWindowTo": "2026-03-19T22:00:00Z",
+    "seedStartedAt": "2026-03-20T07:21:41+09:00",
+    "seedCompletedAt": "2026-03-20T07:21:49+09:00"
+  },
+  "request": {
+    "write": {
+      "pathPrefix": "/loadtest/m1",
+      "eventType": "loadtest_mixed",
+      "pathCount": 6,
+      "existingUserPoolSize": 1000,
+      "existingUserRatio": 80
+    },
+    "read": {
+      "endpoint": "/api/v1/events/analytics/aggregates/overview",
+      "from": "2026-03-18T22:00:00Z",
+      "to": "2026-03-19T22:00:00Z",
+      "externalUserId": null,
+      "eventType": null
+    }
+  },
+  "load": {
+    "warmup": "15s",
+    "duration": "30s",
+    "cooldown": "0",
+    "writeRate": 10,
+    "readRate": 10,
+    "writePreAllocatedVUs": 20,
+    "writeMaxVUs": 60,
+    "readPreAllocatedVUs": 20,
+    "readMaxVUs": 60,
+    "writeP95ThresholdMs": 5000,
+    "writeP99ThresholdMs": 8000,
+    "readP95ThresholdMs": 1500,
+    "readP99ThresholdMs": 3000
+  },
+  "capture": {
+    "mode": "scripted",
+    "profile": "m1",
+    "timeRange": "start-2m ~ end+2m",
+    "status": "success",
+    "generatedAt": "2026-03-20T07:27:04+09:00",
+    "fromMs": 1773958909000,
+    "toMs": 1773959298000
+  },
+  "artifacts": {
+    "outDir": "artifacts/perf/m1/m1-20260320-072140-w10-r10-dryrun",
+    "metaPath": "artifacts/perf/m1/m1-20260320-072140-w10-r10-dryrun/meta.json",
+    "summaryPath": "artifacts/perf/m1/m1-20260320-072140-w10-r10-dryrun/summary.json",
+    "consolePath": "artifacts/perf/m1/m1-20260320-072140-w10-r10-dryrun/console.log"
+  },
+  "updatedAt": "2026-03-20T07:26:18+09:00",
+  "run": {
+    "startedAt": "2026-03-20T07:23:49+09:00",
+    "completedAt": "2026-03-20T07:26:18+09:00"
+  }
+}
