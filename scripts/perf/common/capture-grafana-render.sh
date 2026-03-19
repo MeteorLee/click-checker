@@ -79,7 +79,7 @@ main() {
   require_command date
 
   if [[ -z "${META_PATH}" ]]; then
-    echo "Usage: META_PATH=artifacts/perf/<scenario>/<runId>/meta.json scripts/perf/capture-grafana-render.sh" >&2
+    echo "Usage: META_PATH=artifacts/perf/<scenario>/<runId>/meta.json scripts/perf/common/capture-grafana-render.sh" >&2
     exit 1
   fi
 

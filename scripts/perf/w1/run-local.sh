@@ -4,8 +4,8 @@ set -euo pipefail
 META_PATH="${META_PATH:-${META:-${1:-}}}"
 K6_IMAGE="${K6_IMAGE:-grafana/k6}"
 K6_NETWORK="${K6_NETWORK:-click-checker_default}"
-K6_SCRIPT="${K6_SCRIPT:-k6/perf-w1-write-heavy.js}"
-CAPTURE_SCRIPT="${CAPTURE_SCRIPT:-scripts/perf/capture-grafana-render.sh}"
+K6_SCRIPT="${K6_SCRIPT:-k6/w1/write-heavy.js}"
+CAPTURE_SCRIPT="${CAPTURE_SCRIPT:-scripts/perf/common/capture-grafana-render.sh}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -118,7 +118,7 @@ main() {
   require_command jq
 
   if [[ -z "${META_PATH}" ]]; then
-    echo "Usage: META_PATH=artifacts/perf/w1/<runId>/meta.json scripts/perf/run-w1-local.sh" >&2
+    echo "Usage: META_PATH=artifacts/perf/w1/<runId>/meta.json scripts/perf/w1/run-local.sh" >&2
     exit 1
   fi
 

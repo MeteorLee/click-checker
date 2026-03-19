@@ -229,3 +229,8 @@ artifacts/perf/
 
 # test용 http 파일
 # *.http
+
+대화-계속.md
+전체-계획표.md
+현재-진행중.md
+/docs/00-실행기록
