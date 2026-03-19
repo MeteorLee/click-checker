@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ActivityAnalyticsServiceTest {
@@ -41,8 +43,6 @@ class ActivityAnalyticsServiceTest {
         when(eventQueryRepository.countBetween(previousFrom, from, 1L, null, null)).thenReturn(0L);
         when(eventQueryRepository.countUniqueUsersBetween(from, to, 1L, null, null)).thenReturn(2L);
         when(eventQueryRepository.countIdentifiedEventsBetween(from, to, 1L, null, null)).thenReturn(2L);
-        when(eventQueryRepository.countEventsWithEventTypeBetween(from, to, 1L, null)).thenReturn(3L);
-        when(eventQueryRepository.countEventsWithPathBetween(from, to, 1L, null, null)).thenReturn(3L);
         when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, null))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 2),
@@ -79,6 +79,10 @@ class ActivityAnalyticsServiceTest {
                 new ActivityOverviewResponse.EventTypeSummary("click", 2),
                 new ActivityOverviewResponse.EventTypeSummary("view", 1)
         );
+        verify(eventQueryRepository, times(1)).countRawPathBetween(from, to, 1L, null, null);
+        verify(eventQueryRepository, times(1)).countRawEventTypeBetween(from, to, 1L, null, Integer.MAX_VALUE);
+        verify(routeKeyResolver, times(1)).resolveAll(eq(1L), anyCollection());
+        verify(canonicalEventTypeResolver, times(1)).resolveAll(eq(1L), anyCollection());
     }
 
     @Test
@@ -86,7 +90,6 @@ class ActivityAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countEventsWithEventTypeBetween(from, to, 1L, null)).thenReturn(10L);
         when(eventQueryRepository.countRawEventTypeBetween(from, to, 1L, null, Integer.MAX_VALUE))
                 .thenReturn(List.of(
                         new RawEventTypeCountProjection("button_click", 6),
@@ -109,7 +112,6 @@ class ActivityAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countEventsWithPathBetween(from, to, 1L, null, "click")).thenReturn(10L);
         when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, "click"))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 6),
