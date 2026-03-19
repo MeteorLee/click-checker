@@ -17,12 +17,14 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +129,50 @@ class ApiKeyAuthFilterTest {
                 .doesNotContain(VALID_API_KEY)
                 .doesNotContain(HASHED_API_KEY)
                 .doesNotContain("kidMasked=abcd1234");
+    }
+
+    @Test
+    void shouldNotPersistApiKeyLastUsedAtWhenRecentlyUpdated() throws Exception {
+        Organization organization = Organization.builder()
+                .name("acme")
+                .apiKeyKid("abcd1234")
+                .apiKeyHash("stored-hash")
+                .apiKeyLastUsedAt(Instant.now())
+                .build();
+        ReflectionTestUtils.setField(organization, "id", ORGANIZATION_ID);
+
+        when(apiKeyIssuer.extractKid(VALID_API_KEY)).thenReturn("abcd1234");
+        when(organizationRepository.findByApiKeyKidAndApiKeyStatus("abcd1234", ApiKeyStatus.ACTIVE))
+                .thenReturn(Optional.of(organization));
+        when(apiKeyIssuer.hash(VALID_API_KEY)).thenReturn(HASHED_API_KEY);
+        when(apiKeyIssuer.constantTimeEquals(HASHED_API_KEY, "stored-hash")).thenReturn(true);
+
+        MockHttpServletResponse response = doFilterWithApiKey(VALID_API_KEY);
+
+        assertThat(response.getStatus()).isEqualTo(MockHttpServletResponse.SC_OK);
+        verify(organizationRepository, never()).save(organization);
+    }
+
+    @Test
+    void shouldPersistApiKeyLastUsedAtWhenMissing() throws Exception {
+        Organization organization = Organization.builder()
+                .name("acme")
+                .apiKeyKid("abcd1234")
+                .apiKeyHash("stored-hash")
+                .build();
+        ReflectionTestUtils.setField(organization, "id", ORGANIZATION_ID);
+
+        when(apiKeyIssuer.extractKid(VALID_API_KEY)).thenReturn("abcd1234");
+        when(organizationRepository.findByApiKeyKidAndApiKeyStatus("abcd1234", ApiKeyStatus.ACTIVE))
+                .thenReturn(Optional.of(organization));
+        when(apiKeyIssuer.hash(VALID_API_KEY)).thenReturn(HASHED_API_KEY);
+        when(apiKeyIssuer.constantTimeEquals(HASHED_API_KEY, "stored-hash")).thenReturn(true);
+
+        MockHttpServletResponse response = doFilterWithApiKey(VALID_API_KEY);
+
+        assertThat(response.getStatus()).isEqualTo(MockHttpServletResponse.SC_OK);
+        verify(organizationRepository, times(1)).save(organization);
+        assertThat(organization.getApiKeyLastUsedAt()).isNotNull();
     }
 
     @Test

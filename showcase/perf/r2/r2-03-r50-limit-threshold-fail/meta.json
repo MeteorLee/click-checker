@@ -1,0 +1,72 @@
+{
+  "scenario": "R2",
+  "runId": "r2-20260319-214222-r50",
+  "timestamp": "2026-03-19T21:42:22+09:00",
+  "status": "threshold_fail",
+  "isBaseline": false,
+  "compareTo": "r2-20260319-213814-r30",
+  "env": {
+    "name": "local",
+    "prepareBaseUrl": "http://localhost:8080",
+    "baseUrl": "http://app:8080",
+    "appCount": 1,
+    "dbInstance": "local-postgres"
+  },
+  "auth": {
+    "apiKey": "ck_test_v1_b3f64ae1214a8a496b69_b8196bb528f69a41da6c984afadfa9c37a7ff439aa358b96dff82ffe8dadf457",
+    "apiKeyPrefix": "b3f64ae1"
+  },
+  "dataset": {
+    "orgId": 17,
+    "orgName": "perf-r1-dataset",
+    "datasetVersion": "r1-v1",
+    "queryPreset": "r2-routes-7d-top10",
+    "totalEvents": 50000,
+    "identifiedUsers": 1000,
+    "identifiedEvents": 40000,
+    "anonymousEvents": 10000,
+    "rawPathCount": 30,
+    "routeTemplateCount": 24,
+    "unmatchedPathCount": 6,
+    "rawEventTypeCount": 5,
+    "mappedEventTypeCount": 4,
+    "unmappedEventTypeCount": 1,
+    "rangeFrom": "2026-03-12T09:00:00Z",
+    "rangeTo": "2026-03-19T09:00:00Z"
+  },
+  "request": {
+    "endpoint": "/api/v1/events/analytics/aggregates/routes",
+    "from": "2026-03-12T09:00:00Z",
+    "to": "2026-03-19T09:00:00Z",
+    "top": 10,
+    "externalUserId": null,
+    "eventType": null
+  },
+  "load": {
+    "rate": 50,
+    "warmup": "15s",
+    "duration": "30s",
+    "cooldown": "0",
+    "preAllocatedVUs": 100,
+    "maxVUs": 300,
+    "p95ThresholdMs": 1500,
+    "p99ThresholdMs": 3000
+  },
+  "capture": {
+    "mode": "scripted",
+    "profile": "r1",
+    "timeRange": "start-2m ~ end+2m",
+    "status": "success",
+    "generatedAt": "2026-03-19T21:44:03+09:00",
+    "fromMs": 1773924032000,
+    "toMs": 1773924327000
+  },
+  "artifacts": {
+    "outDir": "artifacts/perf/r2/r2-20260319-214222-r50"
+  },
+  "updatedAt": "2026-03-19T21:43:27+09:00",
+  "run": {
+    "startedAt": "2026-03-19T21:42:32+09:00",
+    "completedAt": "2026-03-19T21:43:27+09:00"
+  }
+}

@@ -1,0 +1,145 @@
+{
+    "root_group": {
+        "checks": {
+            "status is 200": {
+                "passes": 33346,
+                "fails": 0,
+                "name": "status is 200",
+                "path": "::status is 200",
+                "id": "6210a8cd14cd70477eba5c5e4cb3fb5f"
+            },
+            "response has id": {
+                "passes": 33346,
+                "fails": 0,
+                "name": "response has id",
+                "path": "::response has id",
+                "id": "6649b70c5c96e7e83e46163774f71c12"
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {}
+    },
+    "metrics": {
+        "http_req_tls_handshaking": {
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0
+        },
+        "checks": {
+            "passes": 66692,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_failed": {
+            "fails": 33346,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration": {
+            "p(95)": 6354.4270985,
+            "avg": 1812.4968245010086,
+            "min": 4.064909,
+            "med": 309.2819395,
+            "max": 11018.665137,
+            "p(90)": 5451.199216,
+            "thresholds": {
+                "p(95)<5000": true,
+                "p(99)<8000": false
+            }
+        },
+        "vus": {
+            "min": 1,
+            "max": 800,
+            "value": 116
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(95)": 6354.4270985,
+            "avg": 1812.4968245010086,
+            "min": 4.064909,
+            "med": 309.2819395,
+            "max": 11018.665137,
+            "p(90)": 5451.199216
+        },
+        "http_req_blocked": {
+            "max": 450.572384,
+            "p(90)": 0.009799,
+            "p(95)": 0.04006975,
+            "avg": 0.11852212205361956,
+            "min": 0.001749,
+            "med": 0.006598
+        },
+        "http_req_connecting": {
+            "med": 0,
+            "max": 450.463094,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.08849527241648168,
+            "min": 0
+        },
+        "data_received": {
+            "count": 12522548,
+            "rate": 65787.02471317476
+        },
+        "iterations": {
+            "count": 33346,
+            "rate": 175.18272847391165
+        },
+        "vus_max": {
+            "value": 800,
+            "min": 400,
+            "max": 800
+        },
+        "http_req_receiving": {
+            "min": 0.015135,
+            "med": 0.647991,
+            "max": 479.589272,
+            "p(90)": 9.085096,
+            "p(95)": 15.506118500000001,
+            "avg": 3.2436505564385563
+        },
+        "http_req_sending": {
+            "p(95)": 0.27128549999999996,
+            "avg": 0.16057999535176593,
+            "min": 0.006394,
+            "med": 0.0255245,
+            "max": 374.900702,
+            "p(90)": 0.11778849999999999
+        },
+        "http_reqs": {
+            "count": 33346,
+            "rate": 175.18272847391165
+        },
+        "http_req_waiting": {
+            "min": 3.752493,
+            "med": 304.796208,
+            "max": 11017.881024,
+            "p(90)": 5445.394932,
+            "p(95)": 6352.8574797500005,
+            "avg": 1809.0925939492342
+        },
+        "data_sent": {
+            "count": 23709033,
+            "rate": 124555.06178906049
+        },
+        "iteration_duration": {
+            "avg": 1767.617475821026,
+            "min": 4.460703,
+            "med": 302.8777605,
+            "max": 11018.842908,
+            "p(90)": 5146.000169,
+            "p(95)": 6015.06011925
+        },
+        "dropped_iterations": {
+            "count": 2655,
+            "rate": 13.948004081396133
+        }
+    }
+}

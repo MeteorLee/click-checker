@@ -85,10 +85,24 @@ services:
     depends_on:
       - prometheus
       - loki
+      - renderer
+    environment:
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      GF_RENDERING_RENDERER_TOKEN: ${GRAFANA_RENDERER_TOKEN:-click-checker-renderer-token}
     volumes:
       - click-checker-grafana-data:/var/lib/grafana
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+
+  renderer:
+    image: grafana/grafana-image-renderer:3.12.9
+    container_name: click-checker-renderer
+    restart: unless-stopped
+    environment:
+      AUTH_TOKEN: ${GRAFANA_RENDERER_TOKEN:-click-checker-renderer-token}
+      ENABLE_METRICS: "true"
+      LOG_LEVEL: info
 
 volumes:
   click-checker-pg-data:

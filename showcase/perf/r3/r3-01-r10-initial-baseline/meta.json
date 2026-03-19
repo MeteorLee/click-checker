@@ -1,0 +1,70 @@
+{
+  "scenario": "R3",
+  "runId": "r3-20260319-221428-r10-dryrun-fix",
+  "timestamp": "2026-03-19T22:14:28+09:00",
+  "status": "success",
+  "isBaseline": false,
+  "compareTo": null,
+  "env": {
+    "name": "local",
+    "prepareBaseUrl": "http://localhost:8080",
+    "baseUrl": "http://app:8080",
+    "appCount": 1,
+    "dbInstance": "local-postgres"
+  },
+  "auth": {
+    "apiKey": "ck_test_v1_b3f64ae1214a8a496b69_b8196bb528f69a41da6c984afadfa9c37a7ff439aa358b96dff82ffe8dadf457",
+    "apiKeyPrefix": "b3f64ae1"
+  },
+  "dataset": {
+    "orgId": 17,
+    "orgName": "perf-r1-dataset",
+    "datasetVersion": "r1-v1",
+    "queryPreset": "r3-time-buckets-7d-hour-utc",
+    "totalEvents": 50000,
+    "identifiedUsers": 1000,
+    "rawPathCount": 30,
+    "routeTemplateCount": 24,
+    "unmatchedPathCount": 6,
+    "rawEventTypeCount": 5,
+    "rangeFrom": "2026-03-12T09:00:00Z",
+    "rangeTo": "2026-03-19T09:00:00Z",
+    "expectedBucketCount": 168
+  },
+  "request": {
+    "endpoint": "/api/v1/events/analytics/aggregates/time-buckets",
+    "from": "2026-03-12T09:00:00Z",
+    "to": "2026-03-19T09:00:00Z",
+    "bucket": "HOUR",
+    "timezone": "UTC",
+    "externalUserId": null,
+    "eventType": null
+  },
+  "load": {
+    "rate": 10,
+    "warmup": "15s",
+    "duration": "30s",
+    "cooldown": "0",
+    "preAllocatedVUs": 20,
+    "maxVUs": 60,
+    "p95ThresholdMs": 1500,
+    "p99ThresholdMs": 3000
+  },
+  "capture": {
+    "mode": "scripted",
+    "profile": "r1",
+    "timeRange": "start-2m ~ end+2m",
+    "status": "success",
+    "generatedAt": "2026-03-19T22:22:58+09:00",
+    "fromMs": 1773926382000,
+    "toMs": 1773926672000
+  },
+  "artifacts": {
+    "outDir": "artifacts/perf/r3/r3-20260319-221428-r10-dryrun-fix"
+  },
+  "updatedAt": "2026-03-19T22:22:32+09:00",
+  "run": {
+    "startedAt": "2026-03-19T22:21:42+09:00",
+    "completedAt": "2026-03-19T22:22:32+09:00"
+  }
+}
