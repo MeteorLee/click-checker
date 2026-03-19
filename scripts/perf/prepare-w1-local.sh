@@ -23,6 +23,17 @@ IS_BASELINE="${IS_BASELINE:-true}"
 COMPARE_TO="${COMPARE_TO:-}"
 P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-5000}"
 P99_THRESHOLD_MS="${P99_THRESHOLD_MS:-8000}"
+PREPARE_COMPLETED="false"
+
+cleanup_prepare_out_dir() {
+  local exit_code=$?
+
+  if [[ "${PREPARE_COMPLETED}" != "true" && -d "${OUT_DIR}" ]]; then
+    rm -rf "${OUT_DIR}"
+  fi
+
+  exit "${exit_code}"
+}
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -166,6 +177,7 @@ main() {
   require_command jq
   require_command date
   validate_rate
+  trap cleanup_prepare_out_dir EXIT INT TERM
 
   if [[ -e "${OUT_DIR}" ]]; then
     echo "OUT_DIR already exists: ${OUT_DIR}" >&2
@@ -305,6 +317,7 @@ main() {
       }
     }' > "${meta_path}"
   chmod 600 "${meta_path}"
+  PREPARE_COMPLETED="true"
 
   echo "[w1-prepare] meta=${meta_path}"
   jq -c '{scenario,runId,status,isBaseline,env:{name: .env.name, baseUrl: .env.baseUrl},dataset:{orgId: .dataset.orgId, orgName: .dataset.orgName, existingUserPoolSize: .dataset.existingUserPoolSize},load,capture,auth:{apiKeyPrefix: .auth.apiKeyPrefix}}' "${meta_path}"
