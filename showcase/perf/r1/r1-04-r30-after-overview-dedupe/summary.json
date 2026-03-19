@@ -1,0 +1,152 @@
+{
+    "metrics": {
+        "http_req_duration{expected_response:true}": {
+            "med": 2099.255353,
+            "max": 8087.880577,
+            "p(90)": 3991.1435,
+            "p(95)": 5096.56878,
+            "avg": 2347.6930662404166,
+            "min": 121.050401
+        },
+        "iterations": {
+            "rate": 26.02714066789823,
+            "count": 861
+        },
+        "http_reqs": {
+            "rate": 26.02714066789823,
+            "count": 861
+        },
+        "iteration_duration": {
+            "max": 7598.202804,
+            "p(90)": 3862.503657,
+            "p(95)": 4689.507365,
+            "avg": 2278.5919724541222,
+            "min": 121.296484,
+            "med": 2058.511302
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "max": 686.176194,
+            "p(90)": 0.175538,
+            "p(95)": 0.325376,
+            "avg": 2.032402433217189
+        },
+        "data_sent": {
+            "count": 302169,
+            "rate": 9134.256757814332
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 861,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "vus_max": {
+            "value": 96,
+            "min": 60,
+            "max": 96
+        },
+        "vus": {
+            "value": 9,
+            "min": 9,
+            "max": 93
+        },
+        "http_req_duration": {
+            "max": 8087.880577,
+            "p(90)": 3991.1435,
+            "p(95)": 5096.56878,
+            "avg": 2347.6930662404166,
+            "min": 121.050401,
+            "med": 2099.255353,
+            "thresholds": {
+                "p(99)<5000": true,
+                "p(95)<3000": true
+            }
+        },
+        "http_req_waiting": {
+            "max": 8054.364494,
+            "p(90)": 3989.654093,
+            "p(95)": 5086.5651,
+            "avg": 2335.2810444111465,
+            "min": 110.69332,
+            "med": 2095.839857
+        },
+        "http_req_receiving": {
+            "avg": 12.356391281068534,
+            "min": 0.022209,
+            "med": 5.474726,
+            "max": 198.714771,
+            "p(90)": 29.960006,
+            "p(95)": 44.704096
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_sending": {
+            "avg": 0.0556305481997677,
+            "min": 0.00514,
+            "med": 0.021821,
+            "max": 4.709894,
+            "p(90)": 0.078245,
+            "p(95)": 0.109487
+        },
+        "checks": {
+            "passes": 2583,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_blocked": {
+            "avg": 2.077956872241582,
+            "min": 0.001649,
+            "med": 0.006594,
+            "max": 686.256496,
+            "p(90)": 0.250021,
+            "p(95)": 0.79466
+        },
+        "dropped_iterations": {
+            "count": 40,
+            "rate": 1.2091586837583381
+        },
+        "data_received": {
+            "count": 843738,
+            "rate": 25505.328237922316
+        }
+    },
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "status is 200": {
+                    "name": "status is 200",
+                    "path": "::status is 200",
+                    "id": "6210a8cd14cd70477eba5c5e4cb3fb5f",
+                    "passes": 861,
+                    "fails": 0
+                },
+                "response has totalEvents": {
+                    "name": "response has totalEvents",
+                    "path": "::response has totalEvents",
+                    "id": "c413bb57181d3d857fc6646a49ac1630",
+                    "passes": 861,
+                    "fails": 0
+                },
+                "response has topRoutes": {
+                    "path": "::response has topRoutes",
+                    "id": "0a7f873fa1a91a178f30a4090d71d107",
+                    "passes": 861,
+                    "fails": 0,
+                    "name": "response has topRoutes"
+                }
+            },
+        "name": "",
+        "path": ""
+    }
+}
