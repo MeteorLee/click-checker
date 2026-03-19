@@ -38,6 +38,8 @@ public class ActivityAnalyticsService {
         long currentTotalEvents = eventQueryRepository.countBetween(from, to, organizationId, externalUserId, eventType);
         long currentUniqueUsers = eventQueryRepository.countUniqueUsersBetween(from, to, organizationId, externalUserId, eventType);
         long identifiedEvents = eventQueryRepository.countIdentifiedEventsBetween(from, to, organizationId, externalUserId, eventType);
+        PathAnalysis pathAnalysis = analyzePaths(from, to, organizationId, externalUserId, eventType);
+        EventTypeAnalysis eventTypeAnalysis = analyzeEventTypes(from, to, organizationId, externalUserId, eventType);
 
         Instant previousFrom = previousFrom(from, to);
         long previousTotalEvents = eventQueryRepository.countBetween(previousFrom, from, organizationId, externalUserId, eventType);
@@ -51,11 +53,11 @@ public class ActivityAnalyticsService {
                 currentTotalEvents,
                 currentUniqueUsers,
                 identifiedEventRate(currentTotalEvents, identifiedEvents),
-                eventTypeMappingCoverage(from, to, organizationId, externalUserId, eventType),
-                routeMatchCoverageBetween(from, to, organizationId, externalUserId, eventType),
+                eventTypeAnalysis.eventTypeMappingCoverage(),
+                pathAnalysis.routeMatchCoverage(),
                 toComparison(currentTotalEvents, previousTotalEvents),
-                toRouteSummaries(from, to, organizationId, externalUserId, eventType),
-                toEventTypeSummaries(from, to, organizationId, externalUserId, eventType)
+                pathAnalysis.topRoutes(),
+                eventTypeAnalysis.topEventTypes()
         );
     }
 
@@ -66,38 +68,7 @@ public class ActivityAnalyticsService {
             String externalUserId,
             String eventType
     ) {
-        long totalEventsWithPath = eventQueryRepository.countEventsWithPathBetween(
-                from,
-                to,
-                organizationId,
-                externalUserId,
-                eventType
-        );
-
-        if (totalEventsWithPath == 0) {
-            return null;
-        }
-
-        List<PathCountProjection> rawPathCounts = eventQueryRepository.countRawPathBetween(
-                from,
-                to,
-                organizationId,
-                externalUserId,
-                eventType
-        );
-        Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
-                organizationId,
-                rawPathCounts.stream().map(PathCountProjection::path).toList()
-        );
-
-        long matchedEvents = rawPathCounts.stream()
-                .filter(item -> !RouteKeyResolver.UNMATCHED_ROUTE.equals(
-                        routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE)
-                ))
-                .mapToLong(PathCountProjection::count)
-                .sum();
-
-        return matchedEvents / (double) totalEventsWithPath;
+        return analyzePaths(from, to, organizationId, externalUserId, eventType).routeMatchCoverage();
     }
 
     public Double eventTypeMappingCoverageBetween(
@@ -106,40 +77,7 @@ public class ActivityAnalyticsService {
             Long organizationId,
             String externalUserId
     ) {
-        long totalEventsWithEventType = eventQueryRepository.countEventsWithEventTypeBetween(
-                from,
-                to,
-                organizationId,
-                externalUserId
-        );
-
-        if (totalEventsWithEventType == 0) {
-            return null;
-        }
-
-        List<RawEventTypeCountProjection> rawEventTypeCounts = eventQueryRepository.countRawEventTypeBetween(
-                from,
-                to,
-                organizationId,
-                externalUserId,
-                Integer.MAX_VALUE
-        );
-        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
-                organizationId,
-                rawEventTypeCounts.stream().map(RawEventTypeCountProjection::rawEventType).toList()
-        );
-
-        long mappedEvents = rawEventTypeCounts.stream()
-                .filter(item -> !CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE.equals(
-                        canonicalEventTypesByRawEventType.getOrDefault(
-                                item.rawEventType(),
-                                CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
-                        )
-                ))
-                .mapToLong(RawEventTypeCountProjection::count)
-                .sum();
-
-        return mappedEvents / (double) totalEventsWithEventType;
+        return analyzeEventTypes(from, to, organizationId, externalUserId, null).eventTypeMappingCoverage();
     }
 
     private Instant previousFrom(Instant from, Instant to) {
@@ -168,21 +106,17 @@ public class ActivityAnalyticsService {
         return identifiedEvents / (double) totalEvents;
     }
 
-    private Double eventTypeMappingCoverage(
+    private List<ActivityOverviewResponse.RouteSummary> toRouteSummaries(
             Instant from,
             Instant to,
             Long organizationId,
             String externalUserId,
             String eventType
     ) {
-        if (eventType != null && !eventType.isBlank()) {
-            return null;
-        }
-
-        return eventTypeMappingCoverageBetween(from, to, organizationId, externalUserId);
+        return analyzePaths(from, to, organizationId, externalUserId, eventType).topRoutes();
     }
 
-    private List<ActivityOverviewResponse.RouteSummary> toRouteSummaries(
+    private PathAnalysis analyzePaths(
             Instant from,
             Instant to,
             Long organizationId,
@@ -196,18 +130,30 @@ public class ActivityAnalyticsService {
                 externalUserId,
                 eventType
         );
+
+        if (rawPathCounts.isEmpty()) {
+            return new PathAnalysis(null, List.of());
+        }
+
         Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
                 organizationId,
                 rawPathCounts.stream().map(PathCountProjection::path).toList()
         );
+        long totalEventsWithPath = rawPathCounts.stream()
+                .mapToLong(PathCountProjection::count)
+                .sum();
 
         Map<String, Long> countsByRouteKey = rawPathCounts.stream()
                 .collect(Collectors.groupingBy(
                         item -> routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
                         Collectors.summingLong(PathCountProjection::count)
                 ));
+        long matchedEvents = countsByRouteKey.entrySet().stream()
+                .filter(entry -> !RouteKeyResolver.UNMATCHED_ROUTE.equals(entry.getKey()))
+                .mapToLong(Map.Entry::getValue)
+                .sum();
 
-        return countsByRouteKey.entrySet().stream()
+        List<ActivityOverviewResponse.RouteSummary> topRoutes = countsByRouteKey.entrySet().stream()
                 .map(entry -> new ActivityOverviewResponse.RouteSummary(entry.getKey(), entry.getValue()))
                 .sorted(Comparator
                         .comparingLong(ActivityOverviewResponse.RouteSummary::count)
@@ -215,6 +161,11 @@ public class ActivityAnalyticsService {
                         .thenComparing(ActivityOverviewResponse.RouteSummary::routeKey))
                 .limit(OVERVIEW_SUMMARY_LIMIT)
                 .toList();
+
+        return new PathAnalysis(
+                matchedEvents / (double) totalEventsWithPath,
+                topRoutes
+        );
     }
 
     private List<ActivityOverviewResponse.EventTypeSummary> toEventTypeSummaries(
@@ -224,47 +175,92 @@ public class ActivityAnalyticsService {
             String externalUserId,
             String eventType
     ) {
-        if (eventType == null || eventType.isBlank()) {
-            List<RawEventTypeCountProjection> rawEventTypeCounts = eventQueryRepository.countRawEventTypeBetween(
-                    from,
-                    to,
-                    organizationId,
-                    externalUserId,
-                    Integer.MAX_VALUE
-            );
-            Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
-                    organizationId,
-                    rawEventTypeCounts.stream().map(RawEventTypeCountProjection::rawEventType).toList()
-            );
+        return analyzeEventTypes(from, to, organizationId, externalUserId, eventType).topEventTypes();
+    }
 
-            Map<String, Long> countsByCanonicalEventType = rawEventTypeCounts.stream()
-                    .collect(Collectors.groupingBy(
-                            item -> canonicalEventTypesByRawEventType.getOrDefault(
-                                    item.rawEventType(),
-                                    CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
-                            ),
-                            Collectors.summingLong(RawEventTypeCountProjection::count)
-                    ));
-
-            return countsByCanonicalEventType.entrySet().stream()
-                    .map(entry -> new ActivityOverviewResponse.EventTypeSummary(entry.getKey(), entry.getValue()))
-                    .sorted(Comparator
-                            .comparingLong(ActivityOverviewResponse.EventTypeSummary::count)
-                            .reversed()
-                            .thenComparing(ActivityOverviewResponse.EventTypeSummary::eventType))
-                    .limit(OVERVIEW_SUMMARY_LIMIT)
+    private EventTypeAnalysis analyzeEventTypes(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
+        if (eventType != null && !eventType.isBlank()) {
+            List<ActivityOverviewResponse.EventTypeSummary> topEventTypes = eventQueryRepository.countByEventTypeBetween(
+                            from,
+                            to,
+                            organizationId,
+                            externalUserId,
+                            eventType,
+                            OVERVIEW_SUMMARY_LIMIT
+                    ).stream()
+                    .map(item -> new ActivityOverviewResponse.EventTypeSummary(item.eventType(), item.count()))
                     .toList();
+            return new EventTypeAnalysis(null, topEventTypes);
         }
 
-        return eventQueryRepository.countByEventTypeBetween(
-                        from,
-                        to,
-                        organizationId,
-                        externalUserId,
-                        eventType,
-                        OVERVIEW_SUMMARY_LIMIT
-                ).stream()
-                .map(item -> new ActivityOverviewResponse.EventTypeSummary(item.eventType(), item.count()))
+        List<RawEventTypeCountProjection> rawEventTypeCounts = eventQueryRepository.countRawEventTypeBetween(
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                Integer.MAX_VALUE
+        );
+
+        if (rawEventTypeCounts.isEmpty()) {
+            return new EventTypeAnalysis(null, List.of());
+        }
+
+        Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
+                organizationId,
+                rawEventTypeCounts.stream().map(RawEventTypeCountProjection::rawEventType).toList()
+        );
+        long totalEventsWithEventType = rawEventTypeCounts.stream()
+                .mapToLong(RawEventTypeCountProjection::count)
+                .sum();
+        long mappedEvents = rawEventTypeCounts.stream()
+                .filter(item -> !CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE.equals(
+                        canonicalEventTypesByRawEventType.getOrDefault(
+                                item.rawEventType(),
+                                CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                        )
+                ))
+                .mapToLong(RawEventTypeCountProjection::count)
+                .sum();
+
+        Map<String, Long> countsByCanonicalEventType = rawEventTypeCounts.stream()
+                .collect(Collectors.groupingBy(
+                        item -> canonicalEventTypesByRawEventType.getOrDefault(
+                                item.rawEventType(),
+                                CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
+                        ),
+                        Collectors.summingLong(RawEventTypeCountProjection::count)
+                ));
+
+        List<ActivityOverviewResponse.EventTypeSummary> topEventTypes = countsByCanonicalEventType.entrySet().stream()
+                .map(entry -> new ActivityOverviewResponse.EventTypeSummary(entry.getKey(), entry.getValue()))
+                .sorted(Comparator
+                        .comparingLong(ActivityOverviewResponse.EventTypeSummary::count)
+                        .reversed()
+                        .thenComparing(ActivityOverviewResponse.EventTypeSummary::eventType))
+                .limit(OVERVIEW_SUMMARY_LIMIT)
                 .toList();
+
+        return new EventTypeAnalysis(
+                mappedEvents / (double) totalEventsWithEventType,
+                topEventTypes
+        );
+    }
+
+    private record PathAnalysis(
+            Double routeMatchCoverage,
+            List<ActivityOverviewResponse.RouteSummary> topRoutes
+    ) {
+    }
+
+    private record EventTypeAnalysis(
+            Double eventTypeMappingCoverage,
+            List<ActivityOverviewResponse.EventTypeSummary> topEventTypes
+    ) {
     }
 }

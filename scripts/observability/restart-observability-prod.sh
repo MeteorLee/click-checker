@@ -7,7 +7,7 @@ DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-.env.codedeploy}"
 
 SERVICES=("$@")
 if [ ${#SERVICES[@]} -eq 0 ]; then
-  SERVICES=(prometheus loki promtail alertmanager grafana)
+  SERVICES=(prometheus loki promtail alertmanager renderer grafana)
 fi
 
 compose() {

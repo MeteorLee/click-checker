@@ -1,0 +1,74 @@
+{
+  "scenario": "R1",
+  "runId": "r1-20260319-190013-r30-after-index",
+  "timestamp": "2026-03-19T19:00:13+09:00",
+  "status": "threshold_fail",
+  "isBaseline": false,
+  "compareTo": "r1-20260319-185654-r10-after-index",
+  "env": {
+    "name": "local",
+    "prepareBaseUrl": "http://localhost:8080",
+    "baseUrl": "http://app:8080",
+    "appCount": 1,
+    "dbInstance": "local-postgres"
+  },
+  "auth": {
+    "apiKey": "ck_test_v1_b3f64ae1214a8a496b69_b8196bb528f69a41da6c984afadfa9c37a7ff439aa358b96dff82ffe8dadf457",
+    "apiKeyPrefix": "b3f64ae1"
+  },
+  "dataset": {
+    "orgId": 17,
+    "orgName": "perf-r1-dataset",
+    "datasetVersion": "r1-v1",
+    "totalEvents": 50000,
+    "identifiedUsers": 1000,
+    "identifiedEvents": 40000,
+    "anonymousEvents": 10000,
+    "rawPathCount": 30,
+    "routeTemplateCount": 24,
+    "unmatchedPathCount": 6,
+    "rawEventTypeCount": 5,
+    "mappedEventTypeCount": 4,
+    "unmappedEventTypeCount": 1,
+    "rangeFrom": "2026-03-12T09:00:00Z",
+    "rangeTo": "2026-03-19T09:00:00Z",
+    "queryWindowFrom": "2026-03-18T09:00:00Z",
+    "queryWindowTo": "2026-03-19T09:00:00Z",
+    "seedStartedAt": "2026-03-19T18:09:37+09:00",
+    "seedCompletedAt": "2026-03-19T18:09:40+09:00"
+  },
+  "request": {
+    "endpoint": "/api/v1/events/analytics/aggregates/overview",
+    "from": "2026-03-18T09:00:00Z",
+    "to": "2026-03-19T09:00:00Z",
+    "externalUserId": null,
+    "eventType": null
+  },
+  "load": {
+    "rate": 30,
+    "warmup": "15s",
+    "duration": "30s",
+    "cooldown": "0",
+    "preAllocatedVUs": 60,
+    "maxVUs": 180,
+    "p95ThresholdMs": 3000,
+    "p99ThresholdMs": 5000
+  },
+  "capture": {
+    "mode": "scripted",
+    "profile": "r1",
+    "timeRange": "start-2m ~ end+2m",
+    "status": "success",
+    "generatedAt": "2026-03-19T19:02:39+09:00",
+    "fromMs": 1773914348000,
+    "toMs": 1773914650000
+  },
+  "artifacts": {
+    "outDir": "artifacts/perf/r1/r1-20260319-190013-r30-after-index"
+  },
+  "updatedAt": "2026-03-19T19:02:10+09:00",
+  "run": {
+    "startedAt": "2026-03-19T19:01:08+09:00",
+    "completedAt": "2026-03-19T19:02:10+09:00"
+  }
+}

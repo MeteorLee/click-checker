@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(ApiKeyAuthFilter.class);
+    private static final Duration API_KEY_LAST_USED_REFRESH_INTERVAL = Duration.ofMinutes(1);
 
     public static final String API_KEY_HEADER = "X-API-Key";
     public static final String AUTH_ORG_ID = "AUTH_ORG_ID";
@@ -90,8 +92,11 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        organization.markApiKeyUsed(Instant.now());
-        organizationRepository.save(organization);
+        Instant now = Instant.now();
+        if (shouldRefreshLastUsedAt(organization, now)) {
+            organization.markApiKeyUsed(now);
+            organizationRepository.save(organization);
+        }
         request.setAttribute(AUTH_ORG_ID, organization.getId());
         SentryRequestContextSupport.bindApiKeyAuthContext(organization.getId(), kid);
         log.debug(
@@ -113,5 +118,11 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                 request.getRequestURI(),
                 LogMaskingUtil.maskIdentifier(MDC.get(RequestIdFilter.MDC_KEY))
         );
+    }
+
+    private boolean shouldRefreshLastUsedAt(Organization organization, Instant now) {
+        Instant lastUsedAt = organization.getApiKeyLastUsedAt();
+        return lastUsedAt == null
+                || lastUsedAt.isBefore(now.minus(API_KEY_LAST_USED_REFRESH_INTERVAL));
     }
 }

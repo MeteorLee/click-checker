@@ -218,6 +218,7 @@ gradle-app.setting
 
 ### Gradle Patch ###
 # Java heap dump
+artifacts/perf/
 *.hprof
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,java,intellij+all,gradle,visualstudiocode
@@ -228,3 +229,8 @@ gradle-app.setting
 
 # test용 http 파일
 # *.http
+
+대화-계속.md
+전체-계획표.md
+현재-진행중.md
+/docs/00-실행기록

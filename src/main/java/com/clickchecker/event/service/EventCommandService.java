@@ -8,10 +8,8 @@ import com.clickchecker.eventuser.repository.EventUserRepository;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @RequiredArgsConstructor
 @Service
@@ -23,8 +21,7 @@ public class EventCommandService {
 
     @Transactional
     public Long create(Long authOrgId, EventCreateRequest req) {
-        Organization organization = organizationRepository.findById(authOrgId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organizationId."));
+        Organization organization = organizationRepository.getReferenceById(authOrgId);
 
         EventUser eventUser = null;
         if (req.externalUserId() != null && !req.externalUserId().isBlank()) {
