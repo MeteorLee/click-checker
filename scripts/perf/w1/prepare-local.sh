@@ -18,6 +18,7 @@ SEED_EVENT_TYPE="${SEED_EVENT_TYPE:-loadtest_seed}"
 SEED_PATH_PREFIX="${SEED_PATH_PREFIX:-/loadtest/w1/seed}"
 SEED_CONCURRENCY="${SEED_CONCURRENCY:-10}"
 CAPTURE_MODE="${CAPTURE_MODE:-scripted}"
+CAPTURE_PROFILE="${CAPTURE_PROFILE:-w1}"
 CAPTURE_TIME_RANGE="${CAPTURE_TIME_RANGE:-start-2m ~ end+2m}"
 IS_BASELINE="${IS_BASELINE:-true}"
 COMPARE_TO="${COMPARE_TO:-}"
@@ -261,6 +262,7 @@ main() {
     --argjson p95ThresholdMs "${P95_THRESHOLD_MS}" \
     --argjson p99ThresholdMs "${P99_THRESHOLD_MS}" \
     --arg captureMode "${CAPTURE_MODE}" \
+    --arg captureProfile "${CAPTURE_PROFILE}" \
     --arg captureTimeRange "${CAPTURE_TIME_RANGE}" \
     --arg outDir "${OUT_DIR}" \
     '{
@@ -310,6 +312,7 @@ main() {
       },
       capture: {
         mode: $captureMode,
+        profile: $captureProfile,
         timeRange: $captureTimeRange
       },
       artifacts: {
