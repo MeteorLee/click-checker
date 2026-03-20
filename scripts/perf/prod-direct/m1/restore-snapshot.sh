@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/../common/db-lib.sh"
+
 DATASET_META_PATH="${DATASET_META_PATH:-${1:-}}"
 
 ROUTE_TEMPLATES=(
@@ -133,11 +136,9 @@ sql_text_array() {
   printf "%s" "${values[*]}"
 }
 
-restore_via_postgres() {
+restore_via_rds() {
   local sql_file="$1"
-
-  docker compose exec -T "${POSTGRES_SERVICE}" bash -lc \
-    'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${sql_file}"
+  run_psql_file_via_rds "${sql_file}"
 }
 
 main() {
@@ -145,7 +146,7 @@ main() {
   require_command docker
 
   if [[ -z "${DATASET_META_PATH}" ]]; then
-    echo "Usage: DATASET_META_PATH=artifacts/perf/m1/datasets/<version>/dataset.json scripts/perf/m1/restore-snapshot-local.sh" >&2
+    echo "Usage: DATASET_META_PATH=artifacts/perf/prod-direct/m1/datasets/<version>/dataset.json scripts/perf/prod-direct/m1/restore-snapshot.sh" >&2
     exit 1
   fi
 
@@ -286,7 +287,7 @@ COMMIT;
 SQL
 
   echo "[m1-restore] restore snapshot ${snapshot_version}"
-  restore_via_postgres "${sql_file}"
+  restore_via_rds "${sql_file}"
   rm -f "${sql_file}"
 }
 

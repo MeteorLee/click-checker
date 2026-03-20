@@ -148,7 +148,7 @@ main() {
   require_command jq
 
   if [[ -z "${META_PATH}" ]]; then
-    echo "Usage: META_PATH=artifacts/perf/m1/<runId>/meta.json scripts/perf/m1/run-local.sh" >&2
+    echo "Usage: META_PATH=artifacts/perf/local/m1/<runId>/meta.json scripts/perf/local/m1/run-local.sh" >&2
     exit 1
   fi
 
