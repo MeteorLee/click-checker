@@ -59,9 +59,9 @@ require_command() {
 
 validate_pair_rate() {
   case "${WRITE_RATE}:${READ_RATE}" in
-    10:10|20:20|30:30) ;;
+    10:10|20:20|30:30|40:40|50:50) ;;
     *)
-      echo "WRITE_RATE and READ_RATE must be one of: 10:10, 20:20, 30:30" >&2
+      echo "WRITE_RATE and READ_RATE must be one of: 10:10, 20:20, 30:30, 40:40, 50:50" >&2
       exit 1
       ;;
   esac
