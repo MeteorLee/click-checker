@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/../common/db-lib.sh"
+
 PREPARE_BASE_URL="${PREPARE_BASE_URL:-http://localhost:8080}"
-POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres}"
 DATASET_VERSION="${DATASET_VERSION:-r1-v1}"
-DATASET_DIR="${DATASET_DIR:-artifacts/perf/r1/datasets/${DATASET_VERSION}}"
+DATASET_DIR="${DATASET_DIR:-artifacts/perf/prod-direct/r1/datasets/${DATASET_VERSION}}"
 DATASET_META_PATH="${DATASET_META_PATH:-${DATASET_DIR}/dataset.json}"
 ORG_ID="${ORG_ID:-}"
 ORG_NAME="${ORG_NAME:-perf-r1-dataset}"
@@ -184,11 +187,9 @@ sql_text_array() {
   printf "%s" "${values[*]}"
 }
 
-seed_via_postgres() {
+seed_via_rds() {
   local sql_file="$1"
-
-  docker compose exec -T "${POSTGRES_SERVICE}" bash -lc \
-    'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${sql_file}"
+  run_psql_file_via_rds "${sql_file}"
 }
 
 main() {
@@ -333,7 +334,7 @@ COMMIT;
 SQL
 
   echo "[r1-seed] seed users and events"
-  seed_via_postgres "${sql_file}"
+  seed_via_rds "${sql_file}"
   rm -f "${sql_file}"
 
   local seed_completed_at

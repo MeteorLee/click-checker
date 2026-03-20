@@ -4,7 +4,7 @@ set -euo pipefail
 META_PATH="${META_PATH:-${META:-${1:-}}}"
 K6_IMAGE="${K6_IMAGE:-grafana/k6}"
 K6_NETWORK="${K6_NETWORK:-click-checker_default}"
-K6_SCRIPT="${K6_SCRIPT:-k6/r3/time-buckets-read-heavy.js}"
+K6_SCRIPT="${K6_SCRIPT:-k6/r2/routes-read-heavy.js}"
 CAPTURE_SCRIPT="${CAPTURE_SCRIPT:-scripts/perf/common/capture-grafana-render.sh}"
 
 require_command() {
@@ -42,7 +42,7 @@ build_k6_command() {
   local summary_path="$4"
 
   local base_url api_key run_id rate pre_allocated_vus max_vus p95_threshold_ms p99_threshold_ms
-  local from to bucket timezone external_user_id event_type
+  local from to top external_user_id event_type
 
   base_url=$(jq -r '.env.baseUrl' "${META_PATH}")
   api_key=$(jq -r '.auth.apiKey' "${META_PATH}")
@@ -54,8 +54,7 @@ build_k6_command() {
   p99_threshold_ms=$(jq -r '.load.p99ThresholdMs' "${META_PATH}")
   from=$(jq -r '.request.from' "${META_PATH}")
   to=$(jq -r '.request.to' "${META_PATH}")
-  bucket=$(jq -r '.request.bucket' "${META_PATH}")
-  timezone=$(jq -r '.request.timezone' "${META_PATH}")
+  top=$(jq -r '.request.top' "${META_PATH}")
   external_user_id=$(jq -r '.request.externalUserId // ""' "${META_PATH}")
   event_type=$(jq -r '.request.eventType // ""' "${META_PATH}")
 
@@ -72,7 +71,7 @@ build_k6_command() {
     "${K6_IMAGE}" run \
     -e BASE_URL="${base_url}" \
     -e API_KEY="${api_key}" \
-    -e SCENARIO="R3" \
+    -e SCENARIO="R2" \
     -e RUN_ID="${run_id}" \
     -e RUN_PHASE="${phase}" \
     -e RATE="${rate}" \
@@ -81,8 +80,7 @@ build_k6_command() {
     -e MAX_VUS="${max_vus}" \
     -e FROM="${from}" \
     -e TO="${to}" \
-    -e BUCKET="${bucket}" \
-    -e TIMEZONE="${timezone}" \
+    -e TOP="${top}" \
     -e EXTERNAL_USER_ID="${external_user_id}" \
     -e EVENT_TYPE_FILTER="${event_type}" \
     -e THRESHOLDS_ENABLED="${thresholds_enabled}" \
@@ -95,7 +93,7 @@ build_k6_command() {
 write_command_file() {
   local out_dir="$1"
   local command_file="${out_dir}/command.txt"
-  local base_url run_id rate warmup duration cooldown from to bucket timezone
+  local base_url run_id rate warmup duration cooldown from to top
   base_url=$(jq -r '.env.baseUrl' "${META_PATH}")
   run_id=$(jq -r '.runId' "${META_PATH}")
   rate=$(jq -r '.load.rate' "${META_PATH}")
@@ -104,20 +102,18 @@ write_command_file() {
   cooldown=$(jq -r '.load.cooldown' "${META_PATH}")
   from=$(jq -r '.request.from' "${META_PATH}")
   to=$(jq -r '.request.to' "${META_PATH}")
-  bucket=$(jq -r '.request.bucket' "${META_PATH}")
-  timezone=$(jq -r '.request.timezone' "${META_PATH}")
+  top=$(jq -r '.request.top' "${META_PATH}")
 
   cat > "${command_file}" <<EOF
 docker run --rm --network ${K6_NETWORK} -v "\$PWD":/work -w /work ${K6_IMAGE} run \
   -e BASE_URL=${base_url} \
   -e API_KEY=[REDACTED] \
-  -e SCENARIO=R3 \
+  -e SCENARIO=R2 \
   -e RUN_ID=${run_id} \
   -e RATE=${rate} \
   -e FROM=${from} \
   -e TO=${to} \
-  -e BUCKET=${bucket} \
-  -e TIMEZONE=${timezone} \
+  -e TOP=${top} \
   -e WARMUP=${warmup} \
   -e DURATION=${duration} \
   -e COOLDOWN=${cooldown} \
@@ -130,7 +126,7 @@ main() {
   require_command jq
 
   if [[ -z "${META_PATH}" ]]; then
-    echo "Usage: META_PATH=artifacts/perf/r3/<runId>/meta.json scripts/perf/r3/run-local.sh" >&2
+    echo "Usage: META_PATH=artifacts/perf/local/r2/<runId>/meta.json scripts/perf/local/r2/run-local.sh" >&2
     exit 1
   fi
 
@@ -152,12 +148,12 @@ main() {
   update_meta_status "running"
 
   if [[ "${warmup}" != "0" && "${warmup}" != "0s" ]]; then
-    echo "[r3-run] warmup start (${warmup})"
+    echo "[r2-run] warmup start (${warmup})"
     build_k6_command "warmup" "${warmup}" "false" "" \
       | tee "${out_dir}/warmup-console.log"
   fi
 
-  echo "[r3-run] main start (${duration})"
+  echo "[r2-run] main start (${duration})"
   local main_status=0
   set +e
   build_k6_command "main" "${duration}" "true" "/work/${out_dir}/summary.json" \
@@ -166,7 +162,7 @@ main() {
   set -e
 
   if [[ "${cooldown}" != "0" && "${cooldown}" != "0s" ]]; then
-    echo "[r3-run] cooldown start (${cooldown})"
+    echo "[r2-run] cooldown start (${cooldown})"
     sleep "${cooldown}"
   fi
 
@@ -180,12 +176,12 @@ main() {
   fi
 
   update_meta_status "${status}"
-  echo "[r3-run] status=${status}"
+  echo "[r2-run] status=${status}"
 
   local capture_mode
   capture_mode=$(jq -r '.capture.mode // "manual"' "${META_PATH}")
   if [[ "${capture_mode}" == "scripted" ]]; then
-    echo "[r3-run] grafana capture start"
+    echo "[r2-run] grafana capture start"
     META_PATH="${META_PATH}" "${CAPTURE_SCRIPT}"
   fi
 
