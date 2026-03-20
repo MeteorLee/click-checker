@@ -257,10 +257,10 @@ main() {
     --argjson unmappedEventTypeCount "$(jq -r '.unmappedEventTypeCount' "${DATASET_META_PATH}")" \
     --argjson writeRate "${WRITE_RATE}" \
     --argjson readRate "${READ_RATE}" \
-    --argjson writePreAllocatedVUs "$(case "${WRITE_RATE}" in 10) echo 20 ;; 20) echo 40 ;; 30) echo 60 ;; esac)" \
-    --argjson writeMaxVUs "$(case "${WRITE_RATE}" in 10) echo 60 ;; 20) echo 120 ;; 30) echo 180 ;; esac)" \
-    --argjson readPreAllocatedVUs "$(case "${READ_RATE}" in 10) echo 20 ;; 20) echo 40 ;; 30) echo 60 ;; esac)" \
-    --argjson readMaxVUs "$(case "${READ_RATE}" in 10) echo 60 ;; 20) echo 120 ;; 30) echo 180 ;; esac)" \
+    --argjson writePreAllocatedVUs "$(case "${WRITE_RATE}" in 10) echo 20 ;; 20) echo 40 ;; 30) echo 60 ;; 40) echo 80 ;; 50) echo 100 ;; esac)" \
+    --argjson writeMaxVUs "$(case "${WRITE_RATE}" in 10) echo 60 ;; 20) echo 120 ;; 30) echo 180 ;; 40) echo 240 ;; 50) echo 300 ;; esac)" \
+    --argjson readPreAllocatedVUs "$(case "${READ_RATE}" in 10) echo 20 ;; 20) echo 40 ;; 30) echo 60 ;; 40) echo 80 ;; 50) echo 100 ;; esac)" \
+    --argjson readMaxVUs "$(case "${READ_RATE}" in 10) echo 60 ;; 20) echo 120 ;; 30) echo 180 ;; 40) echo 240 ;; 50) echo 300 ;; esac)" \
     --argjson existingUserPoolSize "${WRITE_EXISTING_USER_POOL_SIZE}" \
     --argjson existingUserRatio "${WRITE_EXISTING_USER_RATIO}" \
     --argjson pathCount "${WRITE_PATH_COUNT}" \
