@@ -25,6 +25,7 @@ P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-3000}"
 P99_THRESHOLD_MS="${P99_THRESHOLD_MS:-5000}"
 EXECUTION_LOCATION="${EXECUTION_LOCATION:-ec2-prod}"
 DB_INSTANCE_LABEL="${DB_INSTANCE_LABEL:-prod-rds}"
+ENV_NAME="${ENV_NAME:-prod-direct}"
 GRAFANA_BASE_URL_META="${GRAFANA_BASE_URL_META:-${GRAFANA_BASE_URL:-}}"
 PREPARE_COMPLETED="false"
 
@@ -198,7 +199,7 @@ main() {
     --arg status "prepared" \
     --argjson isBaseline "$( [[ "${IS_BASELINE}" == "true" ]] && echo true || echo false )" \
     --arg compareTo "${COMPARE_TO}" \
-    --arg envName "prod-direct" \
+    --arg envName "${ENV_NAME}" \
     --arg prepareBaseUrl "${PREPARE_BASE_URL}" \
     --arg baseUrl "${RUN_BASE_URL}" \
     --argjson appCount 1 \
