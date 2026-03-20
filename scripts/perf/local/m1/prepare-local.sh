@@ -5,24 +5,36 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PREPARE_BASE_URL="${PREPARE_BASE_URL:-http://localhost:8080}"
 RUN_BASE_URL="${RUN_BASE_URL:-http://app:8080}"
-RATE="${RATE:-10}"
-RUN_ID="${RUN_ID:-r1-$(date +%Y%m%d-%H%M%S)-r${RATE}}"
-OUT_DIR="${OUT_DIR:-artifacts/perf/r1/${RUN_ID}}"
-DATASET_VERSION="${DATASET_VERSION:-r1-v1}"
-DATASET_DIR="${DATASET_DIR:-artifacts/perf/r1/datasets/${DATASET_VERSION}}"
+PAIR_RATE="${PAIR_RATE:-10}"
+WRITE_RATE="${WRITE_RATE:-${PAIR_RATE}}"
+READ_RATE="${READ_RATE:-${PAIR_RATE}}"
+RUN_ID="${RUN_ID:-m1-$(date +%Y%m%d-%H%M%S)-w${WRITE_RATE}-r${READ_RATE}}"
+OUT_DIR="${OUT_DIR:-artifacts/perf/local/m1/${RUN_ID}}"
+DATASET_VERSION="${DATASET_VERSION:-m1-v1}"
+DATASET_DIR="${DATASET_DIR:-artifacts/perf/local/m1/datasets/${DATASET_VERSION}}"
 DATASET_META_PATH="${DATASET_META_PATH:-${DATASET_DIR}/dataset.json}"
-DATASET_ORG_NAME="${DATASET_ORG_NAME:-perf-r1-dataset}"
+DATASET_ORG_NAME="${DATASET_ORG_NAME:-perf-m1-dataset}"
+SNAPSHOT_VERSION="${SNAPSHOT_VERSION:-${DATASET_VERSION}-snap1}"
 RESET_DATASET="${RESET_DATASET:-false}"
 WARMUP="${WARMUP:-2m}"
 DURATION="${DURATION:-10m}"
 COOLDOWN="${COOLDOWN:-1m}"
+WRITE_EVENT_TYPE="${WRITE_EVENT_TYPE:-loadtest_mixed}"
+WRITE_PATH_PREFIX="${WRITE_PATH_PREFIX:-/loadtest/m1}"
+WRITE_PATH_COUNT="${WRITE_PATH_COUNT:-6}"
+WRITE_EXISTING_USER_POOL_SIZE="${WRITE_EXISTING_USER_POOL_SIZE:-1000}"
+WRITE_EXISTING_USER_RATIO="${WRITE_EXISTING_USER_RATIO:-80}"
+READ_EXTERNAL_USER_ID="${READ_EXTERNAL_USER_ID:-}"
+READ_EVENT_TYPE="${READ_EVENT_TYPE:-}"
 CAPTURE_MODE="${CAPTURE_MODE:-scripted}"
-CAPTURE_PROFILE="${CAPTURE_PROFILE:-r1}"
+CAPTURE_PROFILE="${CAPTURE_PROFILE:-m1}"
 CAPTURE_TIME_RANGE="${CAPTURE_TIME_RANGE:-start-2m ~ end+2m}"
 IS_BASELINE="${IS_BASELINE:-true}"
 COMPARE_TO="${COMPARE_TO:-}"
-P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-3000}"
-P99_THRESHOLD_MS="${P99_THRESHOLD_MS:-5000}"
+WRITE_P95_THRESHOLD_MS="${WRITE_P95_THRESHOLD_MS:-5000}"
+WRITE_P99_THRESHOLD_MS="${WRITE_P99_THRESHOLD_MS:-8000}"
+READ_P95_THRESHOLD_MS="${READ_P95_THRESHOLD_MS:-1500}"
+READ_P99_THRESHOLD_MS="${READ_P99_THRESHOLD_MS:-3000}"
 PREPARE_COMPLETED="false"
 
 cleanup_prepare_out_dir() {
@@ -42,11 +54,11 @@ require_command() {
   fi
 }
 
-validate_rate() {
-  case "${RATE}" in
-    10|30|50) ;;
+validate_pair_rate() {
+  case "${WRITE_RATE}:${READ_RATE}" in
+    10:10|20:20|30:30) ;;
     *)
-      echo "RATE must be one of: 10, 30, 50" >&2
+      echo "WRITE_RATE and READ_RATE must be one of: 10:10, 20:20, 30:30" >&2
       exit 1
       ;;
   esac
@@ -106,18 +118,18 @@ create_dataset_if_needed() {
   fi
 
   if [[ -f "${DATASET_META_PATH}" ]]; then
-    echo "[r1-prepare] reuse dataset ${DATASET_VERSION}"
+    echo "[m1-prepare] reuse dataset ${DATASET_VERSION}"
     return
   fi
 
   mkdir -p "${DATASET_DIR}"
   chmod 700 "${DATASET_DIR}"
 
-  local login_id="r1d$(date +%m%d%H%M%S)"
-  local password="Perfr1pass123"
+  local login_id="m1d$(date +%m%d%H%M%S)"
+  local password="Perfm1pass123"
   local org_name="${DATASET_ORG_NAME}"
 
-  echo "[r1-prepare] signup ${login_id}"
+  echo "[m1-prepare] signup ${login_id}"
   local signup_json access_token
   signup_json=$(signup_account "${login_id}" "${password}")
   access_token=$(jq -r '.accessToken // empty' <<<"${signup_json}")
@@ -127,7 +139,7 @@ create_dataset_if_needed() {
     exit 1
   fi
 
-  echo "[r1-prepare] create dataset organization ${org_name}"
+  echo "[m1-prepare] create dataset organization ${org_name}"
   local org_json org_id api_key api_key_prefix
   org_json=$(create_organization "${access_token}" "${org_name}")
   org_id=$(jq -r '.organizationId // empty' <<<"${org_json}")
@@ -146,17 +158,22 @@ create_dataset_if_needed() {
   API_KEY_PREFIX="${api_key_prefix}" \
   PREPARE_BASE_URL="${PREPARE_BASE_URL}" \
   DATASET_VERSION="${DATASET_VERSION}" \
+  SNAPSHOT_VERSION="${SNAPSHOT_VERSION}" \
   DATASET_DIR="${DATASET_DIR}" \
   DATASET_META_PATH="${DATASET_META_PATH}" \
   CAPTURE_TIME_RANGE="${CAPTURE_TIME_RANGE}" \
   "${SCRIPT_DIR}/seed-dataset-local.sh"
 }
 
+restore_snapshot() {
+  DATASET_META_PATH="${DATASET_META_PATH}" "${SCRIPT_DIR}/restore-snapshot-local.sh"
+}
+
 main() {
   require_command curl
   require_command jq
   require_command date
-  validate_rate
+  validate_pair_rate
   trap cleanup_prepare_out_dir EXIT INT TERM
 
   if [[ -e "${OUT_DIR}" ]]; then
@@ -174,9 +191,12 @@ main() {
     exit 1
   fi
 
+  echo "[m1-prepare] restore snapshot"
+  restore_snapshot
+
   local meta_path="${OUT_DIR}/meta.json"
   jq -nc \
-    --arg scenario "R1" \
+    --arg scenario "M1" \
     --arg runId "${RUN_ID}" \
     --arg timestamp "$(date --iso-8601=seconds)" \
     --arg status "prepared" \
@@ -192,13 +212,18 @@ main() {
     --argjson orgId "$(jq -r '.orgId' "${DATASET_META_PATH}")" \
     --arg orgName "$(jq -r '.orgName' "${DATASET_META_PATH}")" \
     --arg datasetVersion "$(jq -r '.datasetVersion' "${DATASET_META_PATH}")" \
+    --arg snapshotVersion "$(jq -r '.snapshotVersion' "${DATASET_META_PATH}")" \
     --arg rangeFrom "$(jq -r '.rangeFrom' "${DATASET_META_PATH}")" \
     --arg rangeTo "$(jq -r '.rangeTo' "${DATASET_META_PATH}")" \
     --arg queryWindowFrom "$(jq -r '.queryWindowFrom' "${DATASET_META_PATH}")" \
     --arg queryWindowTo "$(jq -r '.queryWindowTo' "${DATASET_META_PATH}")" \
     --arg seedStartedAt "$(jq -r '.seedStartedAt' "${DATASET_META_PATH}")" \
     --arg seedCompletedAt "$(jq -r '.seedCompletedAt' "${DATASET_META_PATH}")" \
-    --arg requestEndpoint "/api/v1/events/analytics/aggregates/overview" \
+    --arg writePathPrefix "${WRITE_PATH_PREFIX}" \
+    --arg writeEventType "${WRITE_EVENT_TYPE}" \
+    --arg readEndpoint "/api/v1/events/analytics/aggregates/overview" \
+    --arg readExternalUserId "${READ_EXTERNAL_USER_ID}" \
+    --arg readEventType "${READ_EVENT_TYPE}" \
     --arg warmup "${WARMUP}" \
     --arg duration "${DURATION}" \
     --arg cooldown "${COOLDOWN}" \
@@ -212,11 +237,19 @@ main() {
     --argjson rawEventTypeCount "$(jq -r '.rawEventTypeCount' "${DATASET_META_PATH}")" \
     --argjson mappedEventTypeCount "$(jq -r '.mappedEventTypeCount' "${DATASET_META_PATH}")" \
     --argjson unmappedEventTypeCount "$(jq -r '.unmappedEventTypeCount' "${DATASET_META_PATH}")" \
-    --argjson rate "${RATE}" \
-    --argjson preAllocatedVUs "$(case "${RATE}" in 10) echo 20 ;; 30) echo 60 ;; 50) echo 100 ;; esac)" \
-    --argjson maxVUs "$(case "${RATE}" in 10) echo 60 ;; 30) echo 180 ;; 50) echo 300 ;; esac)" \
-    --argjson p95ThresholdMs "${P95_THRESHOLD_MS}" \
-    --argjson p99ThresholdMs "${P99_THRESHOLD_MS}" \
+    --argjson writeRate "${WRITE_RATE}" \
+    --argjson readRate "${READ_RATE}" \
+    --argjson writePreAllocatedVUs "$(case "${WRITE_RATE}" in 10) echo 20 ;; 20) echo 40 ;; 30) echo 60 ;; esac)" \
+    --argjson writeMaxVUs "$(case "${WRITE_RATE}" in 10) echo 60 ;; 20) echo 120 ;; 30) echo 180 ;; esac)" \
+    --argjson readPreAllocatedVUs "$(case "${READ_RATE}" in 10) echo 20 ;; 20) echo 40 ;; 30) echo 60 ;; esac)" \
+    --argjson readMaxVUs "$(case "${READ_RATE}" in 10) echo 60 ;; 20) echo 120 ;; 30) echo 180 ;; esac)" \
+    --argjson existingUserPoolSize "${WRITE_EXISTING_USER_POOL_SIZE}" \
+    --argjson existingUserRatio "${WRITE_EXISTING_USER_RATIO}" \
+    --argjson pathCount "${WRITE_PATH_COUNT}" \
+    --argjson writeP95ThresholdMs "${WRITE_P95_THRESHOLD_MS}" \
+    --argjson writeP99ThresholdMs "${WRITE_P99_THRESHOLD_MS}" \
+    --argjson readP95ThresholdMs "${READ_P95_THRESHOLD_MS}" \
+    --argjson readP99ThresholdMs "${READ_P99_THRESHOLD_MS}" \
     --arg captureMode "${CAPTURE_MODE}" \
     --arg captureProfile "${CAPTURE_PROFILE}" \
     --arg captureTimeRange "${CAPTURE_TIME_RANGE}" \
@@ -243,6 +276,7 @@ main() {
         orgId: $orgId,
         orgName: $orgName,
         datasetVersion: $datasetVersion,
+        snapshotVersion: $snapshotVersion,
         totalEvents: $totalEvents,
         identifiedUsers: $identifiedUsers,
         identifiedEvents: $identifiedEvents,
@@ -261,21 +295,35 @@ main() {
         seedCompletedAt: $seedCompletedAt
       },
       request: {
-        endpoint: $requestEndpoint,
-        from: $queryWindowFrom,
-        to: $queryWindowTo,
-        externalUserId: null,
-        eventType: null
+        write: {
+          pathPrefix: $writePathPrefix,
+          eventType: $writeEventType,
+          pathCount: $pathCount,
+          existingUserPoolSize: $existingUserPoolSize,
+          existingUserRatio: $existingUserRatio
+        },
+        read: {
+          endpoint: $readEndpoint,
+          from: $queryWindowFrom,
+          to: $queryWindowTo,
+          externalUserId: (if $readExternalUserId == "" then null else $readExternalUserId end),
+          eventType: (if $readEventType == "" then null else $readEventType end)
+        }
       },
       load: {
-        rate: $rate,
         warmup: $warmup,
         duration: $duration,
         cooldown: $cooldown,
-        preAllocatedVUs: $preAllocatedVUs,
-        maxVUs: $maxVUs,
-        p95ThresholdMs: $p95ThresholdMs,
-        p99ThresholdMs: $p99ThresholdMs
+        writeRate: $writeRate,
+        readRate: $readRate,
+        writePreAllocatedVUs: $writePreAllocatedVUs,
+        writeMaxVUs: $writeMaxVUs,
+        readPreAllocatedVUs: $readPreAllocatedVUs,
+        readMaxVUs: $readMaxVUs,
+        writeP95ThresholdMs: $writeP95ThresholdMs,
+        writeP99ThresholdMs: $writeP99ThresholdMs,
+        readP95ThresholdMs: $readP95ThresholdMs,
+        readP99ThresholdMs: $readP99ThresholdMs
       },
       capture: {
         mode: $captureMode,
@@ -283,13 +331,17 @@ main() {
         timeRange: $captureTimeRange
       },
       artifacts: {
-        outDir: $outDir
+        outDir: $outDir,
+        metaPath: ($outDir + "/meta.json"),
+        summaryPath: ($outDir + "/summary.json"),
+        consolePath: ($outDir + "/console.log")
       }
     }' > "${meta_path}"
 
   chmod 600 "${meta_path}"
   PREPARE_COMPLETED="true"
-  echo "[r1-prepare] meta ready: ${meta_path}"
+  trap - EXIT INT TERM
+  echo "[m1-prepare] meta ready: ${meta_path}"
 }
 
 main "$@"
