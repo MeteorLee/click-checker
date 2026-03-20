@@ -55,6 +55,7 @@ build_psql_conninfo() {
 run_psql_file_via_rds() {
   local sql_file="$1"
   local conninfo
+  ensure_prod_db_env
   conninfo="$(build_psql_conninfo)"
 
   docker run --rm -i \
