@@ -64,3 +64,16 @@ run_psql_file_via_rds() {
     "${DB_CLIENT_IMAGE}" \
     psql -v ON_ERROR_STOP=1 "${conninfo}" < "${sql_file}"
 }
+
+run_psql_query_via_rds() {
+  local sql="$1"
+  local conninfo
+  ensure_prod_db_env
+  conninfo="$(build_psql_conninfo)"
+
+  docker run --rm -i \
+    -e PGPASSWORD="${DB_PASSWORD}" \
+    -e PGCONNECT_TIMEOUT="${DB_CONNECT_TIMEOUT}" \
+    "${DB_CLIENT_IMAGE}" \
+    psql -qtAX -F '|' "${conninfo}" -c "${sql}"
+}
