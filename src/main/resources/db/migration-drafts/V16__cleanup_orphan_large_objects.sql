@@ -1,0 +1,16 @@
+-- Draft only. Do not move into db/migration until the cleanup strategy is finalized.
+--
+-- Purpose:
+--   After V15 moved events.payload from OID large objects to plain TEXT,
+--   old large objects may remain in PostgreSQL storage.
+--
+-- Intended direction:
+--   1. Collect candidate OIDs that were previously referenced by events.payload.
+--   2. Remove only verified orphan large objects.
+--   3. Run as a maintenance migration or one-off admin step with operational review.
+--
+-- Notes:
+--   - This cleanup was intentionally separated from V15 because inline lo_unlink()
+--     hit "out of shared memory / max_locks_per_transaction" during Flyway migration.
+--   - The final cleanup SQL should be designed to avoid locking or transaction-size issues.
+
