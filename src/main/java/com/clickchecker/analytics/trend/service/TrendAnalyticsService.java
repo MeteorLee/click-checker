@@ -4,11 +4,10 @@ import com.clickchecker.analytics.common.model.TimeBucket;
 import com.clickchecker.analytics.trend.controller.response.CanonicalEventTypeTimeBucketItem;
 import com.clickchecker.analytics.trend.controller.response.RouteEventTypeTimeBucketItem;
 import com.clickchecker.analytics.trend.controller.response.RouteTimeBucketItem;
-import com.clickchecker.event.repository.EventQueryRepository;
-import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
+import com.clickchecker.event.repository.EventTrendNativeQueryRepository;
+import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
+import com.clickchecker.event.repository.projection.RawPathEventTypeTimeBucketCountProjection;
+import com.clickchecker.event.repository.projection.RawPathTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
@@ -29,7 +28,7 @@ import java.util.stream.Collectors;
 @Service
 public class TrendAnalyticsService {
 
-    private final EventQueryRepository eventQueryRepository;
+    private final EventTrendNativeQueryRepository eventTrendNativeQueryRepository;
     private final RouteKeyResolver routeKeyResolver;
     private final CanonicalEventTypeResolver canonicalEventTypeResolver;
 
@@ -43,20 +42,22 @@ public class TrendAnalyticsService {
             TimeBucket bucket,
             String timezone
     ) {
-        ZoneId zoneId = ZoneId.of(timezone);
-        return buildTimeBucketCounts(
-                eventQueryRepository.countRawOccurredAtBetween(
+        List<TimeBucketCountProjection> result = fillMissingTimeBuckets(
+                eventTrendNativeQueryRepository.countBucketedOccurredAtBetween(
                         from,
                         to,
                         organizationId,
                         externalUserId,
-                        eventType
+                        eventType,
+                        bucket,
+                        timezone
                 ),
                 from,
                 to,
                 bucket,
-                zoneId
+                ZoneId.of(timezone)
         );
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -71,12 +72,14 @@ public class TrendAnalyticsService {
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
         return buildRouteTimeBucketItems(
-                eventQueryRepository.countRawPathOccurredAtBetween(
+                eventTrendNativeQueryRepository.countBucketedPathOccurredAtBetween(
                         from,
                         to,
                         organizationId,
                         externalUserId,
-                        eventType
+                        eventType,
+                        bucket,
+                        timezone
                 ),
                 organizationId,
                 from,
@@ -97,11 +100,13 @@ public class TrendAnalyticsService {
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
         return buildCanonicalEventTypeTimeBucketItems(
-                eventQueryRepository.countRawEventTypeOccurredAtBetween(
+                eventTrendNativeQueryRepository.countBucketedEventTypeOccurredAtBetween(
                         from,
                         to,
                         organizationId,
-                        externalUserId
+                        externalUserId,
+                        bucket,
+                        timezone
                 ),
                 organizationId,
                 from,
@@ -121,25 +126,27 @@ public class TrendAnalyticsService {
             String timezone
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
-        List<RawPathEventTypeOccurredAtCountProjection> rawPathEventTypeOccurredAtCounts =
-                eventQueryRepository.countRawPathEventTypeOccurredAtBetween(
+        List<RawPathEventTypeTimeBucketCountProjection> rawPathEventTypeBucketCounts =
+                eventTrendNativeQueryRepository.countBucketedPathEventTypeOccurredAtBetween(
                         from,
                         to,
                         organizationId,
-                        externalUserId
+                        externalUserId,
+                        bucket,
+                        timezone
                 );
         Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
                 organizationId,
-                rawPathEventTypeOccurredAtCounts.stream().map(RawPathEventTypeOccurredAtCountProjection::path).toList()
+                rawPathEventTypeBucketCounts.stream().map(RawPathEventTypeTimeBucketCountProjection::path).toList()
         );
         Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
                 organizationId,
-                rawPathEventTypeOccurredAtCounts.stream()
-                        .map(RawPathEventTypeOccurredAtCountProjection::rawEventType)
+                rawPathEventTypeBucketCounts.stream()
+                        .map(RawPathEventTypeTimeBucketCountProjection::rawEventType)
                         .toList()
         );
 
-        Map<RouteEventTypeTimeBucketKey, Long> countsByKey = rawPathEventTypeOccurredAtCounts.stream()
+        Map<RouteEventTypeTimeBucketKey, Long> countsByKey = rawPathEventTypeBucketCounts.stream()
                 .collect(Collectors.groupingBy(
                         item -> new RouteEventTypeTimeBucketKey(
                                 routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
@@ -147,9 +154,9 @@ public class TrendAnalyticsService {
                                         item.rawEventType(),
                                         CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
                                 ),
-                                bucket.floor(item.occurredAt(), zoneId)
+                                item.bucketStart()
                         ),
-                        Collectors.summingLong(RawPathEventTypeOccurredAtCountProjection::count)
+                        Collectors.summingLong(RawPathEventTypeTimeBucketCountProjection::count)
                 ));
 
         List<RouteEventTypeAxis> axes = countsByKey.keySet().stream()
@@ -194,12 +201,14 @@ public class TrendAnalyticsService {
             TimeBucket bucket
     ) {
         return buildRouteTimeBucketItems(
-                eventQueryRepository.countRawPathOccurredAtBetween(
+                eventTrendNativeQueryRepository.countBucketedPathOccurredAtBetween(
                         from,
                         to,
                         organizationId,
                         externalUserId,
-                        eventType
+                        eventType,
+                        bucket,
+                        "UTC"
                 ),
                 organizationId,
                 from,
@@ -217,11 +226,13 @@ public class TrendAnalyticsService {
             TimeBucket bucket
     ) {
         return buildCanonicalEventTypeTimeBucketItems(
-                eventQueryRepository.countRawEventTypeOccurredAtBetween(
+                eventTrendNativeQueryRepository.countBucketedEventTypeOccurredAtBetween(
                         from,
                         to,
                         organizationId,
-                        externalUserId
+                        externalUserId,
+                        bucket,
+                        "UTC"
                 ),
                 organizationId,
                 from,
@@ -231,8 +242,8 @@ public class TrendAnalyticsService {
         );
     }
 
-    private List<TimeBucketCountProjection> buildTimeBucketCounts(
-            List<RawOccurredAtCountProjection> counts,
+    private List<TimeBucketCountProjection> fillMissingTimeBuckets(
+            List<TimeBucketCountProjection> counts,
             Instant from,
             Instant to,
             TimeBucket bucket,
@@ -240,8 +251,8 @@ public class TrendAnalyticsService {
     ) {
         Map<Instant, Long> countsByBucket = counts.stream()
                 .collect(Collectors.groupingBy(
-                        item -> bucket.floor(item.occurredAt(), zoneId),
-                        Collectors.summingLong(RawOccurredAtCountProjection::count)
+                        TimeBucketCountProjection::bucketStart,
+                        Collectors.summingLong(TimeBucketCountProjection::count)
                 ));
 
         return bucketStarts(from, to, bucket, zoneId).stream()
@@ -253,7 +264,7 @@ public class TrendAnalyticsService {
     }
 
     private List<RouteTimeBucketItem> buildRouteTimeBucketItems(
-            List<RawPathOccurredAtCountProjection> counts,
+            List<RawPathTimeBucketCountProjection> counts,
             Long organizationId,
             Instant from,
             Instant to,
@@ -262,15 +273,15 @@ public class TrendAnalyticsService {
     ) {
         Map<String, String> routeKeysByRawPath = routeKeyResolver.resolveAll(
                 organizationId,
-                counts.stream().map(RawPathOccurredAtCountProjection::path).toList()
+                counts.stream().map(RawPathTimeBucketCountProjection::path).toList()
         );
         Map<RouteTimeBucketKey, Long> countsByRouteBucket = counts.stream()
                 .collect(Collectors.groupingBy(
                         item -> new RouteTimeBucketKey(
                                 routeKeysByRawPath.getOrDefault(item.path(), RouteKeyResolver.UNMATCHED_ROUTE),
-                                bucket.floor(item.occurredAt(), zoneId)
+                                item.bucketStart()
                         ),
-                        Collectors.summingLong(RawPathOccurredAtCountProjection::count)
+                        Collectors.summingLong(RawPathTimeBucketCountProjection::count)
                 ));
 
         List<String> routeKeys = countsByRouteBucket.keySet().stream()
@@ -297,7 +308,7 @@ public class TrendAnalyticsService {
     }
 
     private List<CanonicalEventTypeTimeBucketItem> buildCanonicalEventTypeTimeBucketItems(
-            List<RawEventTypeOccurredAtCountProjection> counts,
+            List<RawEventTypeTimeBucketCountProjection> counts,
             Long organizationId,
             Instant from,
             Instant to,
@@ -306,7 +317,7 @@ public class TrendAnalyticsService {
     ) {
         Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
                 organizationId,
-                counts.stream().map(RawEventTypeOccurredAtCountProjection::rawEventType).toList()
+                counts.stream().map(RawEventTypeTimeBucketCountProjection::rawEventType).toList()
         );
         Map<CanonicalEventTypeTimeBucketKey, Long> countsByEventTypeBucket = counts.stream()
                 .collect(Collectors.groupingBy(
@@ -315,9 +326,9 @@ public class TrendAnalyticsService {
                                         item.rawEventType(),
                                         CanonicalEventTypeResolver.UNMAPPED_EVENT_TYPE
                                 ),
-                                bucket.floor(item.occurredAt(), zoneId)
+                                item.bucketStart()
                         ),
-                        Collectors.summingLong(RawEventTypeOccurredAtCountProjection::count)
+                        Collectors.summingLong(RawEventTypeTimeBucketCountProjection::count)
                 ));
 
         List<String> canonicalEventTypes = countsByEventTypeBucket.keySet().stream()

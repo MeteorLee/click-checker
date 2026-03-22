@@ -4,11 +4,10 @@ import com.clickchecker.analytics.common.model.TimeBucket;
 import com.clickchecker.analytics.trend.controller.response.CanonicalEventTypeTimeBucketItem;
 import com.clickchecker.analytics.trend.controller.response.RouteEventTypeTimeBucketItem;
 import com.clickchecker.analytics.trend.controller.response.RouteTimeBucketItem;
-import com.clickchecker.event.repository.EventQueryRepository;
-import com.clickchecker.event.repository.projection.RawEventTypeOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawPathEventTypeOccurredAtCountProjection;
-import com.clickchecker.event.repository.projection.RawPathOccurredAtCountProjection;
+import com.clickchecker.event.repository.EventTrendNativeQueryRepository;
+import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
+import com.clickchecker.event.repository.projection.RawPathEventTypeTimeBucketCountProjection;
+import com.clickchecker.event.repository.projection.RawPathTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
@@ -26,13 +25,13 @@ import static org.mockito.Mockito.when;
 
 class TrendAnalyticsServiceTest {
 
-    private final EventQueryRepository eventQueryRepository = mock(EventQueryRepository.class);
+    private final EventTrendNativeQueryRepository eventTrendNativeQueryRepository = mock(EventTrendNativeQueryRepository.class);
     private final RouteKeyResolver routeKeyResolver = mock(RouteKeyResolver.class);
     private final CanonicalEventTypeResolver canonicalEventTypeResolver = mock(CanonicalEventTypeResolver.class);
 
     private final TrendAnalyticsService trendAnalyticsService =
             new TrendAnalyticsService(
-                    eventQueryRepository,
+                    eventTrendNativeQueryRepository,
                     routeKeyResolver,
                     canonicalEventTypeResolver
             );
@@ -44,11 +43,13 @@ class TrendAnalyticsServiceTest {
         Instant bucket10 = Instant.parse("2026-03-01T10:00:00Z");
         Instant bucket11 = Instant.parse("2026-03-01T11:00:00Z");
 
-        when(eventQueryRepository.countRawPathOccurredAtBetween(from, to, 1L, null, "click"))
+        when(eventTrendNativeQueryRepository.countBucketedPathOccurredAtBetween(
+                from, to, 1L, null, "click", TimeBucket.HOUR, "UTC"
+        ))
                 .thenReturn(List.of(
-                        new RawPathOccurredAtCountProjection("/posts/1", Instant.parse("2026-03-01T10:10:00Z"), 5),
-                        new RawPathOccurredAtCountProjection("/posts/2", Instant.parse("2026-03-01T10:20:00Z"), 4),
-                        new RawPathOccurredAtCountProjection("/landing", Instant.parse("2026-03-01T11:05:00Z"), 3)
+                        new RawPathTimeBucketCountProjection("/posts/1", bucket10, 5),
+                        new RawPathTimeBucketCountProjection("/posts/2", bucket10, 4),
+                        new RawPathTimeBucketCountProjection("/landing", bucket11, 3)
                 ));
 
         when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
@@ -76,12 +77,14 @@ class TrendAnalyticsServiceTest {
         Instant bucket10 = Instant.parse("2026-03-01T10:00:00Z");
         Instant bucket11 = Instant.parse("2026-03-01T11:00:00Z");
 
-        when(eventQueryRepository.countRawEventTypeOccurredAtBetween(from, to, 1L, null))
+        when(eventTrendNativeQueryRepository.countBucketedEventTypeOccurredAtBetween(
+                from, to, 1L, null, TimeBucket.HOUR, "UTC"
+        ))
                 .thenReturn(List.of(
-                        new RawEventTypeOccurredAtCountProjection("button_click", Instant.parse("2026-03-01T10:10:00Z"), 5),
-                        new RawEventTypeOccurredAtCountProjection("post_click", Instant.parse("2026-03-01T10:20:00Z"), 4),
-                        new RawEventTypeOccurredAtCountProjection("page_view", Instant.parse("2026-03-01T11:05:00Z"), 3),
-                        new RawEventTypeOccurredAtCountProjection("mystery_event", Instant.parse("2026-03-01T11:15:00Z"), 1)
+                        new RawEventTypeTimeBucketCountProjection("button_click", bucket10, 5),
+                        new RawEventTypeTimeBucketCountProjection("post_click", bucket10, 4),
+                        new RawEventTypeTimeBucketCountProjection("page_view", bucket11, 3),
+                        new RawEventTypeTimeBucketCountProjection("mystery_event", bucket11, 1)
                 ));
 
         when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
@@ -112,9 +115,11 @@ class TrendAnalyticsServiceTest {
         Instant bucketStartKstDay1 = Instant.parse("2026-03-01T15:00:00Z");
         Instant bucketStartKstDay2 = Instant.parse("2026-03-02T15:00:00Z");
 
-        when(eventQueryRepository.countRawOccurredAtBetween(from, to, 1L, null, null))
+        when(eventTrendNativeQueryRepository.countBucketedOccurredAtBetween(
+                from, to, 1L, null, null, TimeBucket.DAY, "Asia/Seoul"
+        ))
                 .thenReturn(List.of(
-                        new RawOccurredAtCountProjection(Instant.parse("2026-03-02T00:30:00Z"), 3)
+                        new TimeBucketCountProjection(bucketStartKstDay1, 3)
                 ));
 
         List<TimeBucketCountProjection> result =
@@ -133,9 +138,11 @@ class TrendAnalyticsServiceTest {
         Instant bucketStartKstDay1 = Instant.parse("2026-03-01T15:00:00Z");
         Instant bucketStartKstDay2 = Instant.parse("2026-03-02T15:00:00Z");
 
-        when(eventQueryRepository.countRawPathOccurredAtBetween(from, to, 1L, null, "click"))
+        when(eventTrendNativeQueryRepository.countBucketedPathOccurredAtBetween(
+                from, to, 1L, null, "click", TimeBucket.DAY, "Asia/Seoul"
+        ))
                 .thenReturn(List.of(
-                        new RawPathOccurredAtCountProjection("/posts/1", Instant.parse("2026-03-02T00:30:00Z"), 2)
+                        new RawPathTimeBucketCountProjection("/posts/1", bucketStartKstDay1, 2)
                 ));
 
         when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
@@ -165,9 +172,11 @@ class TrendAnalyticsServiceTest {
         Instant bucketStartKstDay1 = Instant.parse("2026-03-01T15:00:00Z");
         Instant bucketStartKstDay2 = Instant.parse("2026-03-02T15:00:00Z");
 
-        when(eventQueryRepository.countRawEventTypeOccurredAtBetween(from, to, 1L, null))
+        when(eventTrendNativeQueryRepository.countBucketedEventTypeOccurredAtBetween(
+                from, to, 1L, null, TimeBucket.DAY, "Asia/Seoul"
+        ))
                 .thenReturn(List.of(
-                        new RawEventTypeOccurredAtCountProjection("button_click", Instant.parse("2026-03-02T00:30:00Z"), 2)
+                        new RawEventTypeTimeBucketCountProjection("button_click", bucketStartKstDay1, 2)
                 ));
 
         when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
@@ -196,10 +205,12 @@ class TrendAnalyticsServiceTest {
         Instant bucket10 = Instant.parse("2026-03-01T10:00:00Z");
         Instant bucket11 = Instant.parse("2026-03-01T11:00:00Z");
 
-        when(eventQueryRepository.countRawPathEventTypeOccurredAtBetween(from, to, 1L, null))
+        when(eventTrendNativeQueryRepository.countBucketedPathEventTypeOccurredAtBetween(
+                from, to, 1L, null, TimeBucket.HOUR, "UTC"
+        ))
                 .thenReturn(List.of(
-                        new RawPathEventTypeOccurredAtCountProjection("/posts/1", "button_click", Instant.parse("2026-03-01T10:10:00Z"), 2),
-                        new RawPathEventTypeOccurredAtCountProjection("/landing", "page_view", Instant.parse("2026-03-01T11:15:00Z"), 1)
+                        new RawPathEventTypeTimeBucketCountProjection("/posts/1", "button_click", bucket10, 2),
+                        new RawPathEventTypeTimeBucketCountProjection("/landing", "page_view", bucket11, 1)
                 ));
 
         when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
