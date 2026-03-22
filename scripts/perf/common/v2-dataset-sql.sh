@@ -490,7 +490,7 @@ v2_append_org_quick_reset_sql() {
 DELETE FROM events
 WHERE organization_id = ${org_id}
   AND (
-    (payload IS NOT NULL AND convert_from(lo_get(payload), 'UTF8') LIKE '%"source":"k6-v2"%')
+    (payload IS NOT NULL AND payload LIKE '%"source":"k6-v2"%')
     OR event_user_id IN (
       SELECT id
       FROM users
@@ -498,10 +498,6 @@ WHERE organization_id = ${org_id}
         AND external_user_id LIKE $(v2_sql_literal "${org_key}-new-%")
     )
   );
-
-DELETE FROM users
-WHERE organization_id = ${org_id}
-  AND external_user_id LIKE $(v2_sql_literal "${org_key}-new-%");
 
 SQL
 }

@@ -25,6 +25,7 @@ query_v2_local() {
 
 verify_v2_dataset_local() {
   local meta_path="$1"
+  local reset_mode="$2"
   local org_ids_csv expected_org_count expected_total_events expected_total_users
   local expected_route_templates expected_event_type_mappings expected_pair_count
   local actual_events_by_org actual_users_by_org expected_events_by_org expected_users_by_org
@@ -48,10 +49,17 @@ verify_v2_dataset_local() {
     echo "v2 local verify failed: total event count mismatch" >&2
     exit 1
   }
-  [[ "$(query_v2_local "select count(*) from users where organization_id in (${org_ids_csv});")" == "${expected_total_users}" ]] || {
-    echo "v2 local verify failed: total user count mismatch" >&2
-    exit 1
-  }
+  if [[ "${reset_mode}" == "quick" ]]; then
+    [[ "$(query_v2_local "select count(*) from users where organization_id in (${org_ids_csv});")" -ge "${expected_total_users}" ]] || {
+      echo "v2 local verify failed: total user count fell below baseline after quick reset" >&2
+      exit 1
+    }
+  else
+    [[ "$(query_v2_local "select count(*) from users where organization_id in (${org_ids_csv});")" == "${expected_total_users}" ]] || {
+      echo "v2 local verify failed: total user count mismatch" >&2
+      exit 1
+    }
+  fi
   [[ "$(query_v2_local "select count(*) from route_templates where organization_id in (${org_ids_csv});")" == "${expected_route_templates}" ]] || {
     echo "v2 local verify failed: route template count mismatch" >&2
     exit 1
@@ -79,11 +87,23 @@ verify_v2_dataset_local() {
 
   actual_users_by_org="$(query_v2_local "select organization_id, count(*) from users where organization_id in (${org_ids_csv}) group by organization_id order by organization_id;")"
   expected_users_by_org="$(v2_meta_expected_users_by_org "${meta_path}")"
-  [[ "${actual_users_by_org}" == "${expected_users_by_org}" ]] || {
-    echo "v2 local verify failed: org user distribution mismatch" >&2
-    printf 'expected:\n%s\nactual:\n%s\n' "${expected_users_by_org}" "${actual_users_by_org}" >&2
-    exit 1
-  }
+  if [[ "${reset_mode}" == "quick" ]]; then
+    while IFS='|' read -r org_id expected_count; do
+      local actual_count
+      actual_count="$(awk -F'|' -v id="${org_id}" '$1 == id { print $2; exit }' <<< "${actual_users_by_org}")"
+      [[ -n "${actual_count}" && "${actual_count}" -ge "${expected_count}" ]] || {
+        echo "v2 local verify failed: org user count fell below baseline after quick reset" >&2
+        printf 'org_id=%s expected_at_least=%s actual=%s\n' "${org_id}" "${expected_count}" "${actual_count:-missing}" >&2
+        exit 1
+      }
+    done <<< "${expected_users_by_org}"
+  else
+    [[ "${actual_users_by_org}" == "${expected_users_by_org}" ]] || {
+      echo "v2 local verify failed: org user distribution mismatch" >&2
+      printf 'expected:\n%s\nactual:\n%s\n' "${expected_users_by_org}" "${actual_users_by_org}" >&2
+      exit 1
+    }
+  fi
 
   funnel_success_orgs="$(query_v2_local "
     with success_users as (
@@ -165,7 +185,7 @@ main() {
   esac
 
   apply_v2_sql_local "${sql_path}"
-  verify_v2_dataset_local "${DATASET_META_PATH}"
+  verify_v2_dataset_local "${DATASET_META_PATH}" "${RESET_MODE}"
   v2_mark_reset_state_clean "${DATASET_META_PATH}" "reset" "${RESET_MODE}" "${RESET_MODE}"
   echo "[v2-restore-local] ${RESET_MODE} complete: ${sql_path}"
 }

@@ -11,7 +11,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -59,7 +58,7 @@ public class Event {
     @Column(nullable = false)
     private Instant occurredAt;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String payload;
 
     @CreatedDate
