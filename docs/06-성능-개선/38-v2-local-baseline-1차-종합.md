@@ -105,6 +105,37 @@
    - realistic 구조 개선 우선순위를 다시 정한다
 4. 필요 시 stage 2 / stage 3와 heavy preset으로 확장한다
 
+## 후속 개선 검증 메모
+
+baseline 확보 이후 local에서 두 가지 후속 검증을 추가로 진행했다.
+
+- local Hikari pool 확장
+  - `maximum-pool-size=40` 적용 뒤 `M2 s2`를 다시 봤지만 throughput `120.47 req/s`, read `p95 12.55s`, write `p95 11.74s`, dropped `22540`로 거의 움직이지 않았다.
+  - 즉 local mixed 포화의 주원인을 pool 기본값으로 보긴 어렵다.
+- `EventUser` select-then-insert 제거
+  - `users (organization_id, external_user_id)` 유니크 키를 활용한 native upsert로 user id를 확보하도록 변경했다.
+  - `M2 s2`는 여전히 fail이지만 throughput이 `136.11 req/s`로 오르고 read/write `p95`가 `9~10s`대로 내려왔다.
+  - `W2 100 RPS`는 같은 변경 뒤 `p95 176.1ms`, fail `0%`로 성공 구간으로 이동했다.
+- `W2` 상단 probe
+  - 같은 변경 뒤 `120 RPS`는 `p95 1.41s`, fail `0%`, achieved `~116 RPS`, dropped `105`로 통과했다.
+  - `140 RPS`도 `p95 2.12s`, fail `0%`, achieved `~136 RPS`, dropped `59`로 통과했다.
+  - `160 RPS`도 `p95 1.42s`, fail `0%`, achieved `~155 RPS`, dropped `22`로 통과했다.
+  - `200 RPS`도 `p95 989.51ms`, fail `0%`, achieved `~191 RPS`, dropped `660`으로 threshold 내 통과했다.
+  - 반면 `250 RPS`는 `p95 7.61s`, `p99 8.81s`, dropped `4606`으로 threshold fail,
+  - `300 RPS`는 `p95 11.02s`, `p99 13.26s`, dropped `15789`로 명확한 failure band였다.
+  - 즉 write-only 기준 ceiling은 이제 `200과 250 사이`로 보는 것이 맞다.
+
+즉 이번 후속 검증의 결론은 아래와 같다.
+
+- `EventUser` 경로는 실제 write 병목이 맞다.
+- 그러나 realistic mixed를 stage 2에서 통과시키기엔 아직 부족하다.
+- write-only 상한은 `200과 250 사이`까지 크게 올라갔으므로, 이제 `W2`보다는 `M2`가 다음 구조 개선 우선순위를 결정하는 지표에 더 가깝다.
+- 다음 1순위는 `payload` OID 저장 비용 또는 mixed shared resource 비용을 더 줄이는 쪽이다.
+
 ## 결론
 
 > v2 local baseline 1차 결과는 **현실형 read는 이미 안정적이고, 현실형 write의 시작선은 `100`이 아니라 `60` 근처**라는 점을 보여줬다. 또한 realistic mixed는 첫 단계부터 이미 약간 빡빡한 신호를 주기 시작했다.
+
+후속 검증까지 포함하면 결론은 한 단계 더 바뀐다.
+
+> `EventUser` 경로 최적화 뒤 write-only ceiling은 `200과 250 사이`까지 올라갔고, 이제 다음 우선 병목은 `W2`보다 `M2` realistic mixed 쪽에 더 가깝다.
