@@ -1,0 +1,110 @@
+# 38. v2 local baseline 1차 종합
+
+## 문서 목적
+
+`W2 / R4 / R5 / R6 / M2` 기반 현실형 부하테스트 v2를 처음 local에서 실제 duration으로 실행한 결과를 한 문서로 묶는다.
+
+이번 문서의 목적은 개별 run 로그를 반복해서 나열하는 것이 아니라,
+
+- v2 realistic read가 얼마나 안정적인지
+- v2 realistic write의 시작선을 어디로 봐야 하는지
+- realistic mixed가 벌써 어느 정도 압박을 주는지
+
+를 한 번에 정리하는 데 있다.
+
+## 실행 범위
+
+이번 1차 local baseline에서 확인한 run은 아래와 같다.
+
+- `W2 s1`
+- `R4 v1 s1`
+- `R5 v1 s1`
+- `M2 s1`
+- `W2 60 RPS` 재보정 probe
+- `W2 80 RPS` 재보정 probe
+- `R6 s1`
+
+## 결과 요약
+
+| 시나리오 | runId | 결과 | 핵심 수치 | 해석 |
+| --- | --- | --- | --- | --- |
+| `W2 s1` | `w2-20260322-100328-s1-baseline` | `threshold_fail` | `p95 16.91s`, fail `2.08%`, achieved `~63 RPS`, dropped `10543` | 기존 `100 RPS` stage 1은 realistic write baseline이 아니라 limit probe에 가까웠다 |
+| `R4 v1 s1` | `r4-20260322-101011-s1-v1-baseline` | `success` | `p95 53.93ms`, `p99 83.78ms`, fail `0%` | 집계 read mix baseline은 충분히 안정적이다 |
+| `R5 v1 s1` | `r5-20260322-102232-s1-v1-baseline` | `success` | `p95 270.67ms`, `p99 435.35ms`, fail `0%` | 분석 read mix baseline도 안정 구간이다 |
+| `M2 s1` | `m2-20260322-103144-s1-baseline` | `success` | read `p95 1.81s`, write `p95 1.41s`, fail `0%`, dropped `165` | threshold는 통과했지만 realistic mixed는 이미 약간 빡빡하다 |
+| `W2 60 probe` | `w2-20260322-105941-r60-probe` | `success` | `p95 187.82ms`, `p99 446.73ms`, fail `0%`, dropped `0` | 새 baseline 후보 `60 RPS`가 안정적으로 통과했다 |
+| `W2 80 probe` | `w2-20260322-114415-r80-probe` | `success` | `p95 83.2ms`, `p99 457.79ms`, fail `0%`, dropped `0` | `80 RPS`도 stable이며 stretch stage로 쓰기 충분하다 |
+| `R6 s1` | `r6-20260322-120522-s1-baseline` | `success` | `p95 183.12ms`, `p99 295.76ms`, fail `0%` | `R4 + R5` combined read도 baseline으로 충분히 안정적이다 |
+
+## 핵심 해석
+
+### 1. 현실형 read는 생각보다 이미 안정적이다
+
+- `R4 v1 s1`
+- `R5 v1 s1`
+- `R6 s1`
+
+셋 모두 threshold를 충분히 여유 있게 통과했다.
+
+즉 v2의 첫 local baseline에서는 read mix 자체가 먼저 무너지기보다,
+현실형 write 쪽 시작선을 다시 잡는 일이 더 우선이라는 점이 드러났다.
+
+### 2. `W2`의 기존 stage 1은 너무 높았다
+
+첫 `W2 s1`은 문서상 정의대로 `100 RPS`로 시작했지만,
+실제론 baseline이 아니라 거의 limit probe처럼 동작했다.
+
+- `p95 16.91s`
+- 실패율 `2.08%`
+- achieved throughput `~63 RPS`
+
+즉 `100 RPS`를 realistic write baseline으로 두는 건 맞지 않았다.
+
+### 3. `W2` 시작선은 `60`이 더 자연스럽다
+
+같은 dataset / same warm state 기준으로 다시 본 결과:
+
+- `60 RPS`는 안정적으로 통과
+- `80 RPS`도 안정적으로 통과
+- `100 RPS`는 실패
+
+따라서 현재 local v2 기준 write ladder는 아래처럼 읽는 게 가장 자연스럽다.
+
+- stage 1: `60`
+- stage 2: `80`
+- stage 3: `100`
+
+### 4. realistic mixed는 첫 단계부터 이미 의미가 있다
+
+`M2 s1`은 threshold는 통과했지만 dropped가 있었다.
+
+이건 곧:
+
+- 현실형 read만 따로 보면 안정적이지만
+- 현실형 write와 같이 붙으면
+- shared resource 경쟁이 벌써 보인다는 뜻이다.
+
+즉 `M2`는 아직 실패는 아니지만,
+이미 구조 개선 우선순위를 읽기에 충분한 시나리오가 되었다.
+
+## 이번 1차 baseline으로 고정할 것
+
+- `R4 v1 s1` local baseline
+- `R5 v1 s1` local baseline
+- `R6 s1` local baseline
+- `W2` ladder `60 / 80 / 100`
+
+`M2 s1`은 baseline으로 쓸 수는 있지만,
+완전 stable이라기보다 **통과한 degraded baseline**에 더 가깝다고 보는 편이 맞다.
+
+## 다음 단계
+
+1. 재조정한 `W2 60 / 80 / 100` 기준으로 realistic write stage별 해석을 확정한다
+2. `M2` stage 2 이상으로 올릴 때 realistic mixed가 어디서부터 limit 쪽으로 들어가는지 확인한다
+3. `W2 / R4 / R5 / R6 / M2`를 함께 읽어
+   - realistic 구조 개선 우선순위를 다시 정한다
+4. 필요 시 stage 2 / stage 3와 heavy preset으로 확장한다
+
+## 결론
+
+> v2 local baseline 1차 결과는 **현실형 read는 이미 안정적이고, 현실형 write의 시작선은 `100`이 아니라 `60` 근처**라는 점을 보여줬다. 또한 realistic mixed는 첫 단계부터 이미 약간 빡빡한 신호를 주기 시작했다.

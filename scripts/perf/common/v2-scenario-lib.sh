@@ -96,9 +96,9 @@ v2_rate_json_for() {
   local stage="$2"
 
   case "${scenario}:${stage}" in
-    W2:1) printf '{"rate":100}\n' ;;
-    W2:2) printf '{"rate":200}\n' ;;
-    W2:3) printf '{"rate":300}\n' ;;
+    W2:1) printf '{"rate":60}\n' ;;
+    W2:2) printf '{"rate":80}\n' ;;
+    W2:3) printf '{"rate":100}\n' ;;
     R4:1) printf '{"rate":10}\n' ;;
     R4:2) printf '{"rate":20}\n' ;;
     R4:3) printf '{"rate":30}\n' ;;
@@ -164,9 +164,9 @@ v2_vus_json_for() {
   local stage="$2"
 
   case "${scenario}:${stage}" in
-    W2:1) printf '{"preAllocatedVUs":200,"maxVUs":500}\n' ;;
-    W2:2) printf '{"preAllocatedVUs":400,"maxVUs":800}\n' ;;
-    W2:3) printf '{"preAllocatedVUs":600,"maxVUs":1200}\n' ;;
+    W2:1) printf '{"preAllocatedVUs":120,"maxVUs":300}\n' ;;
+    W2:2) printf '{"preAllocatedVUs":160,"maxVUs":400}\n' ;;
+    W2:3) printf '{"preAllocatedVUs":200,"maxVUs":500}\n' ;;
     R4:1) printf '{"preAllocatedVUs":20,"maxVUs":60}\n' ;;
     R4:2) printf '{"preAllocatedVUs":40,"maxVUs":120}\n' ;;
     R4:3) printf '{"preAllocatedVUs":60,"maxVUs":180}\n' ;;
