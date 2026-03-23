@@ -360,10 +360,73 @@ DB가 distinct `(rawKey, eventUserId)` pair만 반환하도록 줄였다.
 - 특히 steady-state rerun은 `M2 s2`에서 처음으로 read/write threshold를 모두 통과했다.
 - 즉 unique-user raw pair 경량화는 **aggregate/unique-user 계열의 불필요한 raw group-by 비용이 실제 mixed 병목 일부였음을 보여준 첫 직접 근거**다.
 
+## aggregate regrouping raw count 정렬 제거 검증 메모
+
+후속으로 route/canonical로 다시 합칠 raw count 쿼리에서 DB 정렬을 제거하고,
+aggregate 서비스가 최종 결과만 정렬하도록 경로를 분리했다.
+
+의도는 아래와 같았다.
+
+- raw regrouping 내부에서는 DB가 중간 결과를 굳이 정렬할 필요가 없고
+- 앱이 route/canonical로 합친 뒤 최종 top N만 다시 정렬하므로
+- 중간 sort 비용을 줄이면 mixed가 조금 더 가벼워질 수 있다는 가설
+
+### 변경 후 결과
+
+- 첫 run
+  - runId:
+    - `m2-20260323-125814-s2-after-aggregate-regroup-order-removal`
+  - 결과:
+    - `threshold_fail`
+  - read:
+    - `p95 6.02s`
+    - `p99 7.12s`
+  - write:
+    - `p95 5.64s`
+    - `p99 6.82s`
+  - achieved throughput:
+    - `187.35 req/s`
+  - dropped:
+    - `2047`
+
+- rerun
+  - runId:
+    - `m2-20260323-131125-s2-after-aggregate-regroup-order-removal-rerun`
+  - 결과:
+    - `threshold_fail`
+  - read:
+    - `p95 9.12s`
+    - `p99 11.39s`
+  - write:
+    - `p95 8.30s`
+    - `p99 10.76s`
+  - achieved throughput:
+    - `164.27 req/s`
+  - dropped:
+    - `8784`
+
+### 해석
+
+- 첫 run만 보면 수치가 아주 나쁘진 않았지만, unique-user raw pair 경량화 기준 best를 넘진 못했다.
+- rerun은 오히려 더 나빠져 steady-state 개선으로 보기도 어려웠다.
+- 로컬 Postgres `EXPLAIN ANALYZE`로 실제 ordered/unordered 쿼리를 비교해보면
+  - `path` 집계
+  - `event_type` 집계
+  - `path + event_type` 집계
+  모두 ordered/unordered 차이가 수 ms 수준이었다.
+- 즉 이 변경은 코드 정리성은 있지만, realistic mixed를 좌우하는 큰 레버는 아니었다.
+
+결론적으로 이 시도는
+
+- **구조 정리 관점에서는 의미가 있지만**
+- **`M2 s2`를 더 안정적으로 통과시키는 직접적인 perf win으로 채택하기엔 근거가 약하다**
+
+로 정리하는 편이 맞다.
+
 ## 결론
 
 > v2 local baseline 1차 결과는 **현실형 read는 이미 안정적이고, 현실형 write의 시작선은 `100`이 아니라 `60` 근처**라는 점을 보여줬다. 또한 realistic mixed는 첫 단계부터 이미 약간 빡빡한 신호를 주기 시작했다.
 
 후속 검증까지 포함하면 결론은 한 단계 더 바뀐다.
 
-> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화까지 적용한 뒤 steady-state `M2 s2`는 처음으로 threshold를 통과했다. 따라서 현재 realistic mixed의 다음 우선순위는 “통과 여부”보다 **여유 구간 확대와 cold-start 편차 축소**, 그리고 남은 aggregate/shared DB work 절감 쪽에 더 가깝다.
+> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화까지 적용한 뒤 steady-state `M2 s2`는 처음으로 threshold를 통과했다. 이후 aggregate regrouping raw count 정렬 제거도 시도했지만 perf win 근거는 약했다. 따라서 현재 realistic mixed의 다음 우선순위는 “통과 여부”보다 **여유 구간 확대와 cold-start 편차 축소**, 그리고 더 큰 폭의 shared DB work 절감 쪽에 더 가깝다.

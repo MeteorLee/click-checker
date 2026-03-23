@@ -60,12 +60,11 @@ public class AggregateAnalyticsService {
             String externalUserId,
             int top
     ) {
-        List<RawEventTypeCountProjection> rawEventTypeCounts = eventQueryRepository.countRawEventTypeBetween(
+        List<RawEventTypeCountProjection> rawEventTypeCounts = eventQueryRepository.findRawEventTypeCountsForGroupingBetween(
                 from,
                 to,
                 organizationId,
-                externalUserId,
-                Integer.MAX_VALUE
+                externalUserId
         );
         Map<String, String> canonicalEventTypesByRawEventType = canonicalEventTypeResolver.resolveAll(
                 organizationId,
@@ -112,7 +111,7 @@ public class AggregateAnalyticsService {
             String eventType,
             int top
     ) {
-        List<PathCountProjection> rawPathCounts = eventQueryRepository.countRawPathBetween(
+        List<PathCountProjection> rawPathCounts = eventQueryRepository.findRawPathCountsForGroupingBetween(
                 from,
                 to,
                 organizationId,
@@ -149,7 +148,7 @@ public class AggregateAnalyticsService {
             String eventType,
             int top
     ) {
-        List<PathCountProjection> rawPathCounts = eventQueryRepository.countRawPathBetween(
+        List<PathCountProjection> rawPathCounts = eventQueryRepository.findRawPathCountsForGroupingBetween(
                 from,
                 to,
                 organizationId,
@@ -264,7 +263,8 @@ public class AggregateAnalyticsService {
             String externalUserId,
             int top
     ) {
-        List<RawPathEventTypeCountProjection> rawPathEventTypeCounts = eventQueryRepository.countRawPathEventTypeBetween(
+        List<RawPathEventTypeCountProjection> rawPathEventTypeCounts =
+                eventQueryRepository.findRawPathEventTypeCountsForGroupingBetween(
                 from,
                 to,
                 organizationId,

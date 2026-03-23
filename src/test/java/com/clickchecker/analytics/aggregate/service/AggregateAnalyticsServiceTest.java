@@ -44,7 +44,7 @@ class AggregateAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, "click"))
+        when(eventQueryRepository.findRawPathCountsForGroupingBetween(from, to, 1L, null, "click"))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 5),
                         new PathCountProjection("/posts/2", 4),
@@ -69,7 +69,7 @@ class AggregateAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, "click"))
+        when(eventQueryRepository.findRawPathCountsForGroupingBetween(from, to, 1L, null, "click"))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 5),
                         new PathCountProjection("/unknown/a", 4),
@@ -97,7 +97,7 @@ class AggregateAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countRawEventTypeBetween(from, to, 1L, null, Integer.MAX_VALUE))
+        when(eventQueryRepository.findRawEventTypeCountsForGroupingBetween(from, to, 1L, null))
                 .thenReturn(List.of(
                         new RawEventTypeCountProjection("button_click", 5),
                         new RawEventTypeCountProjection("post_click", 4),
@@ -153,7 +153,7 @@ class AggregateAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countRawPathEventTypeBetween(from, to, 1L, null))
+        when(eventQueryRepository.findRawPathEventTypeCountsForGroupingBetween(from, to, 1L, null))
                 .thenReturn(List.of(
                         new RawPathEventTypeCountProjection("/posts/1", "button_click", 5),
                         new RawPathEventTypeCountProjection("/posts/2", "post_click", 4),

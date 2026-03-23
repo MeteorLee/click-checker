@@ -147,6 +147,26 @@ public class EventQueryRepository {
                 .fetch();
     }
 
+    public List<RawEventTypeCountProjection> findRawEventTypeCountsForGroupingBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(RawEventTypeCountProjection.class, event.eventType, event.id.count()))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId)
+                )
+                .groupBy(event.eventType)
+                .fetch();
+    }
+
     public List<PathCountProjection> countByPathBetween(
             Instant from,
             Instant to,
@@ -197,6 +217,29 @@ public class EventQueryRepository {
                 .fetch();
     }
 
+    public List<PathCountProjection> findRawPathCountsForGroupingBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            String eventType
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(PathCountProjection.class, event.path, event.id.count()))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        eventTypeEq(eventType),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        pathExists()
+                )
+                .groupBy(event.path)
+                .fetch();
+    }
+
     public List<RawPathEventTypeCountProjection> countRawPathEventTypeBetween(
             Instant from,
             Instant to,
@@ -222,6 +265,33 @@ public class EventQueryRepository {
                 )
                 .groupBy(event.path, event.eventType)
                 .orderBy(event.id.count().desc(), event.path.asc(), event.eventType.asc())
+                .fetch();
+    }
+
+    public List<RawPathEventTypeCountProjection> findRawPathEventTypeCountsForGroupingBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId
+    ) {
+        QEvent event = QEvent.event;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        RawPathEventTypeCountProjection.class,
+                        event.path,
+                        event.eventType,
+                        event.id.count()
+                ))
+                .from(event)
+                .where(
+                        occurredAtBetween(from, to),
+                        organizationIdEq(organizationId),
+                        externalUserIdEq(externalUserId),
+                        pathExists(),
+                        eventTypeExists()
+                )
+                .groupBy(event.path, event.eventType)
                 .fetch();
     }
 
