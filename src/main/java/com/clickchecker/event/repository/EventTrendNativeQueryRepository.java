@@ -23,6 +23,235 @@ public class EventTrendNativeQueryRepository {
 
     private final EntityManager entityManager;
 
+    public List<TimeBucketCountProjection> countUtcHourlyOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String eventType
+    ) {
+        return countUtcHourlyOccurredAtBetweenCreatedAfter(from, to, organizationId, eventType, null);
+    }
+
+    public List<TimeBucketCountProjection> countUtcHourlyOccurredAtBetweenCreatedAfter(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String eventType,
+            Instant createdAfter
+    ) {
+        String bucketExpression = bucketStartExpression(TimeBucket.HOUR, "UTC");
+        StringBuilder sql = new StringBuilder("""
+                SELECT %s AS bucket_start, COUNT(*) AS event_count
+                FROM events e
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                """.formatted(bucketExpression));
+
+        if (eventType != null) {
+            sql.append("  AND e.event_type = :eventType\n");
+        }
+        if (createdAfter != null) {
+            sql.append("  AND e.created_at > :createdAfter\n");
+        }
+
+        sql.append("""
+                GROUP BY 1
+                ORDER BY 1
+                """);
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("from", Timestamp.from(from));
+        query.setParameter("to", Timestamp.from(to));
+        query.setParameter("organizationId", organizationId);
+
+        if (eventType != null) {
+            query.setParameter("eventType", eventType);
+        }
+        if (createdAfter != null) {
+            query.setParameter("createdAfter", Timestamp.from(createdAfter));
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new TimeBucketCountProjection(
+                        toEpochInstant(row[0]),
+                        toLong(row[1])
+                ))
+                .toList();
+    }
+
+    public List<RawPathTimeBucketCountProjection> countUtcHourlyPathOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String eventType
+    ) {
+        return countUtcHourlyPathOccurredAtBetweenCreatedAfter(from, to, organizationId, eventType, null);
+    }
+
+    public List<RawPathTimeBucketCountProjection> countUtcHourlyPathOccurredAtBetweenCreatedAfter(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String eventType,
+            Instant createdAfter
+    ) {
+        String bucketExpression = bucketStartExpression(TimeBucket.HOUR, "UTC");
+        StringBuilder sql = new StringBuilder("""
+                SELECT e.path, %s AS bucket_start, COUNT(*) AS event_count
+                FROM events e
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                  AND e.path IS NOT NULL
+                  AND e.path <> ''
+                """.formatted(bucketExpression));
+
+        if (eventType != null) {
+            sql.append("  AND e.event_type = :eventType\n");
+        }
+        if (createdAfter != null) {
+            sql.append("  AND e.created_at > :createdAfter\n");
+        }
+
+        sql.append("""
+                GROUP BY e.path, 2
+                ORDER BY 2, e.path
+                """);
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("from", Timestamp.from(from));
+        query.setParameter("to", Timestamp.from(to));
+        query.setParameter("organizationId", organizationId);
+        if (eventType != null) {
+            query.setParameter("eventType", eventType);
+        }
+        if (createdAfter != null) {
+            query.setParameter("createdAfter", Timestamp.from(createdAfter));
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new RawPathTimeBucketCountProjection(
+                        (String) row[0],
+                        toEpochInstant(row[1]),
+                        toLong(row[2])
+                ))
+                .toList();
+    }
+
+    public List<RawEventTypeTimeBucketCountProjection> countUtcHourlyEventTypeOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId
+    ) {
+        return countUtcHourlyEventTypeOccurredAtBetweenCreatedAfter(from, to, organizationId, null);
+    }
+
+    public List<RawEventTypeTimeBucketCountProjection> countUtcHourlyEventTypeOccurredAtBetweenCreatedAfter(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            Instant createdAfter
+    ) {
+        String bucketExpression = bucketStartExpression(TimeBucket.HOUR, "UTC");
+        StringBuilder sql = new StringBuilder("""
+                SELECT e.event_type, %s AS bucket_start, COUNT(*) AS event_count
+                FROM events e
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                  AND e.event_type IS NOT NULL
+                  AND e.event_type <> ''
+                """.formatted(bucketExpression));
+
+        if (createdAfter != null) {
+            sql.append("  AND e.created_at > :createdAfter\n");
+        }
+
+        sql.append("""
+                GROUP BY e.event_type, 2
+                ORDER BY 2, e.event_type
+                """);
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("from", Timestamp.from(from));
+        query.setParameter("to", Timestamp.from(to));
+        query.setParameter("organizationId", organizationId);
+        if (createdAfter != null) {
+            query.setParameter("createdAfter", Timestamp.from(createdAfter));
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new RawEventTypeTimeBucketCountProjection(
+                        (String) row[0],
+                        toEpochInstant(row[1]),
+                        toLong(row[2])
+                ))
+                .toList();
+    }
+
+    public List<RawPathEventTypeTimeBucketCountProjection> countUtcHourlyPathEventTypeOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId
+    ) {
+        return countUtcHourlyPathEventTypeOccurredAtBetweenCreatedAfter(from, to, organizationId, null);
+    }
+
+    public List<RawPathEventTypeTimeBucketCountProjection> countUtcHourlyPathEventTypeOccurredAtBetweenCreatedAfter(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            Instant createdAfter
+    ) {
+        String bucketExpression = bucketStartExpression(TimeBucket.HOUR, "UTC");
+        StringBuilder sql = new StringBuilder("""
+                SELECT e.path, e.event_type, %s AS bucket_start, COUNT(*) AS event_count
+                FROM events e
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                  AND e.path IS NOT NULL
+                  AND e.path <> ''
+                  AND e.event_type IS NOT NULL
+                  AND e.event_type <> ''
+                """.formatted(bucketExpression));
+
+        if (createdAfter != null) {
+            sql.append("  AND e.created_at > :createdAfter\n");
+        }
+
+        sql.append("""
+                GROUP BY e.path, e.event_type, 3
+                ORDER BY 3, e.path, e.event_type
+                """);
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("from", Timestamp.from(from));
+        query.setParameter("to", Timestamp.from(to));
+        query.setParameter("organizationId", organizationId);
+        if (createdAfter != null) {
+            query.setParameter("createdAfter", Timestamp.from(createdAfter));
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new RawPathEventTypeTimeBucketCountProjection(
+                        (String) row[0],
+                        (String) row[1],
+                        toEpochInstant(row[2]),
+                        toLong(row[3])
+                ))
+                .toList();
+    }
+
     public List<TimeBucketCountProjection> countBucketedOccurredAtBetween(
             Instant from,
             Instant to,

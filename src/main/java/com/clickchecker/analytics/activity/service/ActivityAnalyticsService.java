@@ -3,14 +3,13 @@ package com.clickchecker.analytics.activity.service;
 import com.clickchecker.analytics.activity.controller.response.ActivityOverviewResponse;
 import com.clickchecker.event.repository.ActivityOverviewNativeQueryRepository;
 import com.clickchecker.event.repository.EventQueryRepository;
+import com.clickchecker.event.repository.projection.ActivityOverviewWindowSummaryProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
-import com.clickchecker.event.repository.projection.ActivityOverviewWindowSummaryProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -30,7 +29,6 @@ public class ActivityAnalyticsService {
     private final RouteKeyResolver routeKeyResolver;
     private final CanonicalEventTypeResolver canonicalEventTypeResolver;
 
-    @Transactional(readOnly = true)
     public ActivityOverviewResponse getOverview(
             Instant from,
             Instant to,
@@ -39,6 +37,7 @@ public class ActivityAnalyticsService {
             String eventType
     ) {
         Instant previousFrom = previousFrom(from, to);
+
         ActivityOverviewWindowSummaryProjection summary = activityOverviewNativeQueryRepository.summarizeOverviewWindow(
                 previousFrom,
                 from,

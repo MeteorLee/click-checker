@@ -459,10 +459,99 @@ aggregate 서비스가 최종 결과만 정렬하도록 경로를 분리했다.
 
 이 메모는 `M2` 기본 ladder를 바꾸기보다, realistic mixed 결과를 해석할 때 **cold-start와 steady-state를 분리해 읽어야 한다는 규칙**을 남기기 위한 것이다.
 
+## hourly rollup 적재 인프라 + time-series 전체 전환 메모
+
+후속으로 hourly rollup 적재 인프라를 추가하고, time-series read 전체를 `rollup + partial raw + raw tail` 구조로 전환했다.
+
+### 변경
+
+- `event_hourly_rollups`
+- `event_rollup_watermarks`
+- `events (organization_id, created_at)` 인덱스
+- watermark 이후 증분 집계 refresh service
+- advisory lock 기반 rollup scheduler
+- 전환 대상
+  - `time-buckets`
+  - `route-time-buckets`
+  - `event-type-time-buckets`
+  - `route-event-type-time-buckets`
+
+핵심 규칙은 아래와 같다.
+
+- full hour는 rollup 사용
+- 양 끝 partial hour는 raw 사용
+- watermark 이후 tail은 raw로 보정
+- 저장 bucket은 UTC hour 고정
+- 요청 timezone/day hour 재조합은 read 단계에서 수행
+
+### 변경 후 결과
+
+- `R4 s2`
+  - runId:
+    - `r4-20260323-201254-s2-after-full-timeseries-rollup`
+  - 결과:
+    - `success`
+  - read:
+    - `p95 26.10ms`
+    - `p99 135.23ms`
+  - fail:
+    - `0%`
+  - throughput:
+    - `19.40 req/s`
+
+- `M2 s2` with `2m` warm-up
+  - runId:
+    - `m2-20260323-202035-s2-after-full-timeseries-rollup-warm2m`
+  - 결과:
+    - `success`
+  - read:
+    - `p95 3.48s`
+    - `p99 4.78s`
+  - write:
+    - `p95 3.36s`
+    - `p99 4.58s`
+  - achieved throughput:
+    - `190.25 req/s`
+  - dropped:
+    - `812`
+
+### 해석
+
+- time-series read는 이미 native bucket query로 한 번 줄였지만, 원본 `events`를 계속 직접 읽는 구조 자체도 여전히 mixed 비용에 영향을 주고 있었다.
+- 이번 rollup 전환은 그 비용을 한 단계 더 내려서 `R4`를 더 빠르게 만들었고, `M2 s2`도 threshold 안쪽으로 더 여유 있게 밀어 넣었다.
+- 즉 현재 local 기준 realistic mixed를 지탱하는 축은 아래 세 가지다.
+  - unique-user raw pair 경량화
+  - overview 응답 캐시
+  - time-series rollup read 전환
+
+이후 남은 큰 구조 개선 후보는 overview/aggregate count 계열을 rollup 또는 다른 사전 집계 구조로 더 옮기는 쪽이다.
+
+## overview rollup read 실험 메모
+
+후속으로 overview summary/top 집계도 hourly rollup으로 옮겨봤지만, partial hour 보정과 watermark 이후 raw tail, top regrouping이 겹치면서 mixed에서 반복적으로 나쁜 결과를 보였다.
+
+- overview rollup read 적용 상태
+  - `M2 s2`는 반복 rerun에서도 fail했고, overview 경로에는 같은 rollup 전략이 잘 맞지 않는다는 신호가 나왔다.
+- overview rollup read 제거 후 rerun
+  - runId:
+    - `m2-20260323-231113-s2-after-overview-rollup-revert-warm2m-rerun`
+  - 결과:
+    - `success`
+  - read:
+    - `p95 1.02s`
+    - `p99 2.03s`
+  - write:
+    - `p95 938.73ms`
+    - `p99 1.92s`
+  - achieved throughput:
+    - `193.98 req/s`
+
+즉 overview는 현재 구조상 `5분` 응답 캐시와 기존 native summary/raw top 집계 조합이 더 잘 맞고, rollup read는 채택하지 않는 편이 맞다.
+
 ## 결론
 
 > v2 local baseline 1차 결과는 **현실형 read는 이미 안정적이고, 현실형 write의 시작선은 `100`이 아니라 `60` 근처**라는 점을 보여줬다. 또한 realistic mixed는 첫 단계부터 이미 약간 빡빡한 신호를 주기 시작했다.
 
 후속 검증까지 포함하면 결론은 한 단계 더 바뀐다.
 
-> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화까지 적용한 뒤 steady-state `M2 s2`는 threshold를 통과했고, overview 응답 캐시 + `2m` warm-up 확인에서는 local first-run도 매우 안정적으로 통과했다. 이후 aggregate regrouping raw count 정렬 제거도 시도했지만 perf win 근거는 약했다. 따라서 현재 realistic mixed의 다음 우선순위는 “통과 여부”보다 **여유 구간 확대와 cold-start 편차 축소**, 그리고 더 큰 폭의 shared DB work 절감 쪽에 더 가깝다.
+> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화에 이어 **hourly rollup 적재 인프라와 time-series 전체 read 전환**까지 들어가면서 `R4`와 `M2` 모두 더 안정해졌다. overview는 `5분` 응답 캐시 + 기존 native summary/raw top 집계 조합이 유지 가치가 있고, overview rollup read는 현재 기준으로는 채택하지 않는 편이 맞다. 지금 realistic mixed의 다음 우선순위는 “통과 여부”보다 **overview/aggregate count 계열의 남은 shared DB work를 더 줄여 여유 구간을 넓히는 것**에 가깝다.
