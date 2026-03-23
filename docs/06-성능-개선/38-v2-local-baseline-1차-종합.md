@@ -548,10 +548,27 @@ aggregate 서비스가 최종 결과만 정렬하도록 경로를 분리했다.
 
 즉 overview는 현재 구조상 `5분` 응답 캐시와 기존 native summary/raw top 집계 조합이 더 잘 맞고, rollup read는 채택하지 않는 편이 맞다.
 
+## aggregate rollup 실험 메모
+
+후속으로 `routes`, `event-types` aggregate count 계열도 같은 hourly rollup으로 옮겨봤지만, 이쪽은 overview보다 더 명확하게 mixed 회귀를 보였다.
+
+- aggregate rollup 적용 상태
+  - `m2-20260324-002627-s2-after-aggregate-rollup-routes-event-types`
+  - `m2-20260324-004204-s2-after-aggregate-rollup-routes-event-types-rerun`
+  - 두 run 모두 threshold fail이었고, rerun에서도 throughput `140.03 req/s`, read `p95 10.00s`, write `p95 9.30s`, dropped `15773` 수준에 머물렀다.
+  - 반면 같은 코드 상태의 `R4`는 `r4-20260324-001909-s2-after-aggregate-rollup-routes-event-types`에서 `p95 20.29ms`, `p99 33.97ms`로 더 좋아졌다.
+- 해석
+  - time-series와 달리 aggregate `routes/event-types`는 최종 route/canonical 재집계가 앱에 그대로 남아 있어서, rollup 조회 이득보다 요청당 쿼리 fan-out 증가 비용이 더 컸다.
+  - 즉 같은 hourly rollup 전략을 aggregate count 계열로 단순 확장하는 방향은 현재 구조에 잘 맞지 않았다.
+- 제거 후 baseline 복구 확인
+  - aggregate rollup을 제거한 뒤 첫 두 번의 `M2 s2`는 noisy fail이었지만,
+  - `m2-20260324-015022-s2-after-aggregate-rollup-revert-check-rerun2`는 throughput `193.09 req/s`, read `p95 1.09s`, write `p95 1.00s`, dropped `120`으로 다시 threshold를 통과했다.
+  - 현재 keep 상태는 `overview cache + time-series rollup` baseline이다.
+
 ## 결론
 
 > v2 local baseline 1차 결과는 **현실형 read는 이미 안정적이고, 현실형 write의 시작선은 `100`이 아니라 `60` 근처**라는 점을 보여줬다. 또한 realistic mixed는 첫 단계부터 이미 약간 빡빡한 신호를 주기 시작했다.
 
 후속 검증까지 포함하면 결론은 한 단계 더 바뀐다.
 
-> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화에 이어 **hourly rollup 적재 인프라와 time-series 전체 read 전환**까지 들어가면서 `R4`와 `M2` 모두 더 안정해졌다. overview는 `5분` 응답 캐시 + 기존 native summary/raw top 집계 조합이 유지 가치가 있고, overview rollup read는 현재 기준으로는 채택하지 않는 편이 맞다. 지금 realistic mixed의 다음 우선순위는 “통과 여부”보다 **overview/aggregate count 계열의 남은 shared DB work를 더 줄여 여유 구간을 넓히는 것**에 가깝다.
+> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화에 이어 **hourly rollup 적재 인프라와 time-series 전체 read 전환**까지 들어가면서 `R4`와 `M2` 모두 더 안정해졌다. overview는 `5분` 응답 캐시 + 기존 native summary/raw top 집계 조합이 유지 가치가 있고, overview rollup read와 aggregate `routes/event-types` rollup은 현재 기준으로는 채택하지 않는 편이 맞다. 지금 realistic mixed의 다음 우선순위는 같은 hourly rollup을 더 넓히는 것보다 **더 큰 shared DB work를 직접 줄이는 구조 변경 후보를 다시 좁히는 것**에 가깝다.
