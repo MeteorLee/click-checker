@@ -51,3 +51,5 @@ app:
   api-key:
     env: test
     pepper: ${API_KEY_PEPPER:local-dev-pepper}
+  rollup:
+    enabled: true

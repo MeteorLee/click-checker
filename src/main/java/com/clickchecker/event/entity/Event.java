@@ -32,6 +32,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
                 @Index(
                         name = "idx_events_organization_id_occurred_at",
                         columnList = "organization_id, occurred_at"
+                ),
+                @Index(
+                        name = "idx_events_organization_id_created_at",
+                        columnList = "organization_id, created_at"
                 )
         }
 )
