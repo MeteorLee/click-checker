@@ -310,10 +310,60 @@ native 단일 쿼리로 통합했다.
 - 즉 overview summary 단일 쿼리는 **steady-state mixed 기준으로는 keep할 가치가 있는 소폭 개선**으로 보는 편이 맞다.
 - 다만 threshold 자체를 넘기지는 못했으므로, 다음 병목은 여전히 aggregate/unique-user와 shared DB work 쪽에 더 가깝다.
 
+## unique-user raw pair 경량화 검증 메모
+
+후속으로 route/event-type unique-user 집계에서 불필요한 `count(*)`와 count 기반 정렬을 제거하고,
+DB가 distinct `(rawKey, eventUserId)` pair만 반환하도록 줄였다.
+
+### 변경 후 결과
+
+- 첫 run
+  - runId:
+    - `m2-20260323-122707-s2-after-unique-user-pairs`
+  - 결과:
+    - `threshold_fail`
+  - read:
+    - `p95 13.91s`
+    - `p99 16.75s`
+  - write:
+    - `p95 12.57s`
+    - `p99 15.51s`
+  - achieved throughput:
+    - `133.61 req/s`
+  - dropped:
+    - `18260`
+
+- steady-state rerun
+  - runId:
+    - `m2-20260323-123609-s2-after-unique-user-pairs-rerun`
+  - 결과:
+    - `success`
+  - read:
+    - `p95 4.63s`
+    - `p99 6.08s`
+  - write:
+    - `p95 4.30s`
+    - `p99 5.87s`
+  - achieved throughput:
+    - `188.76 req/s`
+  - dropped:
+    - `977`
+
+### 해석
+
+- 앱 재기동 직후 첫 run은 again cold-start outlier 성격이 강했다.
+- 같은 앱 인스턴스에서 rerun하면 기존 best였던 overview summary 단일 쿼리 기준 결과보다
+  - throughput 증가
+  - read/write `p95` 대폭 감소
+  - dropped 대폭 감소
+가 모두 확인됐다.
+- 특히 steady-state rerun은 `M2 s2`에서 처음으로 read/write threshold를 모두 통과했다.
+- 즉 unique-user raw pair 경량화는 **aggregate/unique-user 계열의 불필요한 raw group-by 비용이 실제 mixed 병목 일부였음을 보여준 첫 직접 근거**다.
+
 ## 결론
 
 > v2 local baseline 1차 결과는 **현실형 read는 이미 안정적이고, 현실형 write의 시작선은 `100`이 아니라 `60` 근처**라는 점을 보여줬다. 또한 realistic mixed는 첫 단계부터 이미 약간 빡빡한 신호를 주기 시작했다.
 
 후속 검증까지 포함하면 결론은 한 단계 더 바뀐다.
 
-> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리까지 적용한 뒤에도 `M2 s2`는 여전히 fail이다. 다만 steady-state mixed 수치는 조금씩 계속 좋아지고 있으므로, 다음 우선 병목은 `W2`보다 `M2` realistic mixed의 aggregate/unique-user와 shared DB work 쪽에 더 가깝다.
+> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화까지 적용한 뒤 steady-state `M2 s2`는 처음으로 threshold를 통과했다. 따라서 현재 realistic mixed의 다음 우선순위는 “통과 여부”보다 **여유 구간 확대와 cold-start 편차 축소**, 그리고 남은 aggregate/shared DB work 절감 쪽에 더 가깝다.

@@ -9,9 +9,9 @@ import com.clickchecker.analytics.aggregate.controller.response.UnmatchedPathIte
 import com.clickchecker.event.repository.EventQueryRepository;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
-import com.clickchecker.event.repository.projection.RawEventTypeUserCountProjection;
+import com.clickchecker.event.repository.projection.RawEventTypeUserProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeCountProjection;
-import com.clickchecker.event.repository.projection.RawPathUserCountProjection;
+import com.clickchecker.event.repository.projection.RawPathUserProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import org.junit.jupiter.api.Test;
@@ -125,11 +125,11 @@ class AggregateAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countRawEventTypeUserBetween(from, to, 1L, null))
+        when(eventQueryRepository.findDistinctRawEventTypeUserPairsBetween(from, to, 1L, null))
                 .thenReturn(List.of(
-                        new RawEventTypeUserCountProjection("button_click", 101L, 2L),
-                        new RawEventTypeUserCountProjection("post_click", 102L, 1L),
-                        new RawEventTypeUserCountProjection("page_view", 201L, 3L)
+                        new RawEventTypeUserProjection("button_click", 101L),
+                        new RawEventTypeUserProjection("post_click", 102L),
+                        new RawEventTypeUserProjection("page_view", 201L)
                 ));
 
         when(canonicalEventTypeResolver.resolveAll(eq(1L), anyCollection()))
@@ -190,11 +190,11 @@ class AggregateAnalyticsServiceTest {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
 
-        when(eventQueryRepository.countRawPathUserBetween(from, to, 1L, null, "click"))
+        when(eventQueryRepository.findDistinctRawPathUserPairsBetween(from, to, 1L, null, "click"))
                 .thenReturn(List.of(
-                        new RawPathUserCountProjection("/posts/1", 101L, 2L),
-                        new RawPathUserCountProjection("/posts/2", 102L, 1L),
-                        new RawPathUserCountProjection("/landing", 201L, 3L)
+                        new RawPathUserProjection("/posts/1", 101L),
+                        new RawPathUserProjection("/posts/2", 102L),
+                        new RawPathUserProjection("/landing", 201L)
                 ));
 
         when(routeKeyResolver.resolveAll(eq(1L), anyCollection()))
