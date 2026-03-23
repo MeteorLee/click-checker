@@ -1,5 +1,6 @@
 package com.clickchecker.config;
 
+import com.clickchecker.analytics.activity.service.ActivityOverviewCacheService;
 import com.clickchecker.eventtype.service.EventTypeMappingCacheService;
 import com.clickchecker.route.service.RouteTemplateCacheService;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -22,6 +23,13 @@ public class CacheConfig {
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(1000)
                 .expireAfterAccess(Duration.ofMinutes(10)));
+        cacheManager.registerCustomCache(
+                ActivityOverviewCacheService.OVERVIEW_BY_WINDOW_CACHE,
+                Caffeine.newBuilder()
+                        .maximumSize(1000)
+                        .expireAfterWrite(Duration.ofMinutes(5))
+                        .build()
+        );
         return cacheManager;
     }
 }

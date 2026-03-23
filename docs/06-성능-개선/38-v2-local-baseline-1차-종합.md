@@ -423,10 +423,46 @@ aggregate 서비스가 최종 결과만 정렬하도록 경로를 분리했다.
 
 로 정리하는 편이 맞다.
 
+## overview 응답 캐시 + `2m` warm-up 검증 메모
+
+후속으로 overview 응답을 `5분` TTL로 캐시했고, app restart 직후 first-run 편차를 줄이기 위해 `M2 s2` warm-up을 `2m`로 늘려 다시 확인했다.
+
+### 변경 후 결과
+
+- run
+  - runId:
+    - `m2-20260323-135843-s2-after-overview-cache-warm2m`
+  - 결과:
+    - `success`
+  - read:
+    - `p95 1.24s`
+    - `p99 2.27s`
+  - write:
+    - `p95 1.11s`
+    - `p99 1.99s`
+  - achieved throughput:
+    - `193.94 req/s`
+  - dropped:
+    - `29`
+
+### 해석
+
+- 이번 결과는 local `M2 s2` 기준으로 가장 안정적인 통과 구간이다.
+- overview 응답 캐시는 keep할 가치가 있고, 동시에 app restart 직후 first-run 결과를 그대로 steady-state 결론으로 읽으면 안 된다는 점도 더 분명해졌다.
+- 즉 `M2`는 코드 개선만이 아니라 **warm-up 프로토콜**에도 민감하다.
+- 현재 local 기준 가장 보수적인 해석은 아래와 같다.
+  - steady-state 비교용 표준 run:
+    - 기존 `30s / 5m / 0`
+  - app restart 직후 cold-start 편차 제거용 확인:
+    - sacrificial warm run 1회
+    - 또는 `2m` warm-up run
+
+이 메모는 `M2` 기본 ladder를 바꾸기보다, realistic mixed 결과를 해석할 때 **cold-start와 steady-state를 분리해 읽어야 한다는 규칙**을 남기기 위한 것이다.
+
 ## 결론
 
 > v2 local baseline 1차 결과는 **현실형 read는 이미 안정적이고, 현실형 write의 시작선은 `100`이 아니라 `60` 근처**라는 점을 보여줬다. 또한 realistic mixed는 첫 단계부터 이미 약간 빡빡한 신호를 주기 시작했다.
 
 후속 검증까지 포함하면 결론은 한 단계 더 바뀐다.
 
-> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화까지 적용한 뒤 steady-state `M2 s2`는 처음으로 threshold를 통과했다. 이후 aggregate regrouping raw count 정렬 제거도 시도했지만 perf win 근거는 약했다. 따라서 현재 realistic mixed의 다음 우선순위는 “통과 여부”보다 **여유 구간 확대와 cold-start 편차 축소**, 그리고 더 큰 폭의 shared DB work 절감 쪽에 더 가깝다.
+> `EventUser` 경로 최적화, payload text 전환, resolver metadata cache, overview summary 단일 쿼리, unique-user raw pair 경량화까지 적용한 뒤 steady-state `M2 s2`는 threshold를 통과했고, overview 응답 캐시 + `2m` warm-up 확인에서는 local first-run도 매우 안정적으로 통과했다. 이후 aggregate regrouping raw count 정렬 제거도 시도했지만 perf win 근거는 약했다. 따라서 현재 realistic mixed의 다음 우선순위는 “통과 여부”보다 **여유 구간 확대와 cold-start 편차 축소**, 그리고 더 큰 폭의 shared DB work 절감 쪽에 더 가깝다.
