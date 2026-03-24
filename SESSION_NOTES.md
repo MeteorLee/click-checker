@@ -49,6 +49,27 @@
   - 앱 내부에는 `TrafficState`, `ActiveRequestTracker`, `/internal/drain/*`가 추가됐다.
   - 운영 nginx는 `/internal/` 외부 접근을 차단한다.
   - 배포 중 infra 단계와 `prometheus -> app-blue` 의존성 때문에 active app 조기 recreate가 발생할 수 있음을 확인했고, 현재는 그 수정까지 반영된 상태다.
+- 성능 개선 사이클은 현재 기준으로 종료했다.
+  - keep:
+    - `overview cache`
+    - `time-series rollup`
+  - drop:
+    - overview rollup read
+    - aggregate `routes/event-types` rollup
+- realistic mixed 검증 기준:
+  - prod-public + local run
+  - `M2 200`: `2m warm-up + 3m main` 안정 통과
+  - `M2 300`: `2m warm-up + 1m main` 안정 통과
+  - `350`: quick reset 후에도 실패
+  - 현재 public realistic mixed 안전 upper bound는 `300`
+- Grafana renderer 캡처는 public URL보다 내부 Grafana 기준이 더 적합하다.
+  - `scripts/perf/common/capture-grafana-render.sh`
+  - `GRAFANA_CAPTURE_BASE_URL` 지원
+  - `m2` profile 지원
+  - full dashboard 실패 시 panel-only fallback
+- `EventCommand`의 `externalUserId` 성공 경로 테스트는 Postgres/Testcontainers로 분리했다.
+  - H2 fast lane은 validation/auth 경계 중심
+  - Postgres success path는 `postgresTest`에서 검증
 
 ## 구현된 파일 (상위)
 - EventUser 도메인:
@@ -123,6 +144,9 @@
 - 최근 기준 검증:
   - `./gradlew test` 통과
   - `./gradlew postgresTest` 통과
+- CI 기준:
+  - `develop`: `./gradlew test`
+  - `main`: `./gradlew test` + `./gradlew postgresTest`
 
 ## 참고 사항
 - ingest `POST /api/events`는 유지하고, analytics read만 `/api/v1/events/analytics/**`로 올렸다.
@@ -137,16 +161,29 @@
   - `scripts/codedeploy`
 - analytics 응답 전면 `meta / summary / data` 표준화는 시도 후 롤백했다.
   - 포트폴리오 기준으로 변경량 대비 실익이 낮다고 판단했다.
+- legacy 공개 관리자 API가 아직 남아 있다.
+  - `POST /api/organizations`
+  - `/api/events/route-templates`
+  - `/api/events/event-type-mappings`
+  - 다만 현재 메인 우선순위는 이 정리 작업보다 JWT 기반 admin analytics API와 화면 작업 쪽이다.
 
 ## 다음 권장 작업
-1. 16단계 계획 수립
-   - 현재 후보는 분석 API를 실제로 소비하는 대시보드/리포트 UI다.
-2. 샘플 시나리오 / 문서 계약 정합화
-   - `k6`, `api-scenarios`, 오래된 예시를 현재 `/api/v1/events/analytics/**` 기준으로 맞춘다.
-3. EventUser API 정리 여부 판단
-   - `/api/event-users`를 계속 유지할지, 인증 org 기준으로 어떻게 가져갈지 결정한다.
-4. 운영 관측 고도화는 별도 후속 단계로 이관
-   - Loki S3 저장, retention/compactor, Alertmanager 고도화는 별도 슬라이스로 본다.
+1. JWT 기반 admin analytics API
+   - `/api/v1/admin/organizations/{organizationId}/analytics/**`
+   - 브라우저는 `X-API-Key` 없이 JWT로만 대시보드 데이터를 읽게 만든다.
+2. 화면 작업 1: 대시보드 화면
+   - 로그인 후 organization 선택
+   - overview / routes / event-types / time-buckets 중심으로 먼저 붙인다.
+3. 화면 작업 2: 운영/관리 화면
+   - organization 정보
+   - API key 메타 조회 / rotate
+   - member 관리
+4. 이력서/포트폴리오 실전 작성
+   - 제품 흐름, 데모 시나리오, 성능/운영 경험까지 묶어서 정리한다.
+5. 보조 backlog
+   - 관리자성 공개 API 정리
+   - `develop` CI의 `postgresTest` 정책
+   - SecurityContext 중심 인가 구조 정식화 여부
 
 ## 최근 업데이트 (추가)
 - RDS 전환 완료:
