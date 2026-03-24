@@ -1,7 +1,5 @@
 package com.clickchecker.route.service;
 
-import com.clickchecker.route.entity.RouteTemplate;
-import com.clickchecker.route.repository.RouteTemplateRepository;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,18 +13,18 @@ public class RouteKeyResolver {
 
     public static final String UNMATCHED_ROUTE = "UNMATCHED_ROUTE";
 
-    private final RouteTemplateRepository routeTemplateRepository;
+    private final RouteTemplateCacheService routeTemplateCacheService;
     private final RoutePathMatcher routePathMatcher;
 
     public String resolve(Long organizationId, String rawPath) {
-        List<RouteTemplate> templates =
-                routeTemplateRepository.findByOrganizationIdAndActiveTrueOrderByPriorityDescIdAsc(organizationId);
+        List<RouteTemplateCacheService.CachedRouteTemplate> templates =
+                routeTemplateCacheService.getActiveTemplates(organizationId);
         return resolve(rawPath, templates);
     }
 
     public Map<String, String> resolveAll(Long organizationId, Collection<String> rawPaths) {
-        List<RouteTemplate> templates =
-                routeTemplateRepository.findByOrganizationIdAndActiveTrueOrderByPriorityDescIdAsc(organizationId);
+        List<RouteTemplateCacheService.CachedRouteTemplate> templates =
+                routeTemplateCacheService.getActiveTemplates(organizationId);
 
         Map<String, String> resolved = new LinkedHashMap<>();
         rawPaths.stream()
@@ -35,14 +33,14 @@ public class RouteKeyResolver {
         return resolved;
     }
 
-    private String resolve(String rawPath, List<RouteTemplate> templates) {
+    private String resolve(String rawPath, List<RouteTemplateCacheService.CachedRouteTemplate> templates) {
         if (rawPath == null || rawPath.isBlank()) {
             return UNMATCHED_ROUTE;
         }
 
-        for (RouteTemplate template : templates) {
-            if (routePathMatcher.matches(template.getTemplate(), rawPath)) {
-                return template.getRouteKey();
+        for (RouteTemplateCacheService.CachedRouteTemplate template : templates) {
+            if (routePathMatcher.matches(template.template(), rawPath)) {
+                return template.routeKey();
             }
         }
 

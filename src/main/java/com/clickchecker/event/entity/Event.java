@@ -11,7 +11,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -33,6 +32,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
                 @Index(
                         name = "idx_events_organization_id_occurred_at",
                         columnList = "organization_id, occurred_at"
+                ),
+                @Index(
+                        name = "idx_events_organization_id_created_at",
+                        columnList = "organization_id, created_at"
                 )
         }
 )
@@ -59,7 +62,7 @@ public class Event {
     @Column(nullable = false)
     private Instant occurredAt;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String payload;
 
     @CreatedDate

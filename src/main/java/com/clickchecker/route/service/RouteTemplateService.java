@@ -23,6 +23,7 @@ public class RouteTemplateService {
 
     private final RouteTemplateRepository routeTemplateRepository;
     private final OrganizationRepository organizationRepository;
+    private final RouteTemplateCacheService routeTemplateCacheService;
 
     @Transactional
     public RouteTemplate create(Long organizationId, RouteTemplateCreateRequest request) {
@@ -37,7 +38,9 @@ public class RouteTemplateService {
                 .active(true)
                 .build();
 
-        return routeTemplateRepository.save(routeTemplate);
+        RouteTemplate saved = routeTemplateRepository.save(routeTemplate);
+        routeTemplateCacheService.evictActiveTemplatesAfterCommit(organizationId);
+        return saved;
     }
 
     @Transactional
@@ -51,6 +54,7 @@ public class RouteTemplateService {
                 request.priority()
         );
 
+        routeTemplateCacheService.evictActiveTemplatesAfterCommit(organizationId);
         return routeTemplate;
     }
 
@@ -65,6 +69,7 @@ public class RouteTemplateService {
             routeTemplate.deactivate();
         }
 
+        routeTemplateCacheService.evictActiveTemplatesAfterCommit(organizationId);
         return routeTemplate;
     }
 
@@ -74,6 +79,7 @@ public class RouteTemplateService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.ROUTE_TEMPLATE_NOT_FOUND));
 
         routeTemplateRepository.delete(routeTemplate);
+        routeTemplateCacheService.evictActiveTemplatesAfterCommit(organizationId);
     }
 
     @Transactional(readOnly = true)

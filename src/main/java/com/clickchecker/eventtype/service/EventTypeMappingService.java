@@ -23,6 +23,7 @@ public class EventTypeMappingService {
 
     private final EventTypeMappingRepository eventTypeMappingRepository;
     private final OrganizationRepository organizationRepository;
+    private final EventTypeMappingCacheService eventTypeMappingCacheService;
 
     @Transactional
     public EventTypeMapping create(Long organizationId, EventTypeMappingCreateRequest request) {
@@ -36,7 +37,9 @@ public class EventTypeMappingService {
                 .active(true)
                 .build();
 
-        return eventTypeMappingRepository.save(eventTypeMapping);
+        EventTypeMapping saved = eventTypeMappingRepository.save(eventTypeMapping);
+        eventTypeMappingCacheService.evictActiveMappingsAfterCommit(organizationId);
+        return saved;
     }
 
     @Transactional
@@ -49,6 +52,7 @@ public class EventTypeMappingService {
                 request.canonicalEventType()
         );
 
+        eventTypeMappingCacheService.evictActiveMappingsAfterCommit(organizationId);
         return eventTypeMapping;
     }
 
@@ -67,6 +71,7 @@ public class EventTypeMappingService {
             eventTypeMapping.deactivate();
         }
 
+        eventTypeMappingCacheService.evictActiveMappingsAfterCommit(organizationId);
         return eventTypeMapping;
     }
 
@@ -76,6 +81,7 @@ public class EventTypeMappingService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.EVENT_TYPE_MAPPING_NOT_FOUND));
 
         eventTypeMappingRepository.delete(eventTypeMapping);
+        eventTypeMappingCacheService.evictActiveMappingsAfterCommit(organizationId);
     }
 
     @Transactional(readOnly = true)

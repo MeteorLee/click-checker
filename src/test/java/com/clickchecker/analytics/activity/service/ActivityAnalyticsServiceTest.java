@@ -1,7 +1,9 @@
 package com.clickchecker.analytics.activity.service;
 
 import com.clickchecker.analytics.activity.controller.response.ActivityOverviewResponse;
+import com.clickchecker.event.repository.ActivityOverviewNativeQueryRepository;
 import com.clickchecker.event.repository.EventQueryRepository;
+import com.clickchecker.event.repository.projection.ActivityOverviewWindowSummaryProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
@@ -23,12 +25,14 @@ import static org.mockito.Mockito.when;
 class ActivityAnalyticsServiceTest {
 
     private final EventQueryRepository eventQueryRepository = mock(EventQueryRepository.class);
+    private final ActivityOverviewNativeQueryRepository activityOverviewNativeQueryRepository = mock(ActivityOverviewNativeQueryRepository.class);
     private final RouteKeyResolver routeKeyResolver = mock(RouteKeyResolver.class);
     private final CanonicalEventTypeResolver canonicalEventTypeResolver = mock(CanonicalEventTypeResolver.class);
 
     private final ActivityAnalyticsService activityAnalyticsService =
             new ActivityAnalyticsService(
                     eventQueryRepository,
+                    activityOverviewNativeQueryRepository,
                     routeKeyResolver,
                     canonicalEventTypeResolver
             );
@@ -39,10 +43,8 @@ class ActivityAnalyticsServiceTest {
         Instant to = Instant.parse("2026-03-02T00:00:00Z");
         Instant previousFrom = Instant.parse("2026-02-28T00:00:00Z");
 
-        when(eventQueryRepository.countBetween(from, to, 1L, null, null)).thenReturn(3L);
-        when(eventQueryRepository.countBetween(previousFrom, from, 1L, null, null)).thenReturn(0L);
-        when(eventQueryRepository.countUniqueUsersBetween(from, to, 1L, null, null)).thenReturn(2L);
-        when(eventQueryRepository.countIdentifiedEventsBetween(from, to, 1L, null, null)).thenReturn(2L);
+        when(activityOverviewNativeQueryRepository.summarizeOverviewWindow(previousFrom, from, to, 1L, null, null))
+                .thenReturn(new ActivityOverviewWindowSummaryProjection(3L, 2L, 2L, 0L));
         when(eventQueryRepository.countRawPathBetween(from, to, 1L, null, null))
                 .thenReturn(List.of(
                         new PathCountProjection("/posts/1", 2),

@@ -1,7 +1,5 @@
 package com.clickchecker.route.service;
 
-import com.clickchecker.route.entity.RouteTemplate;
-import com.clickchecker.route.repository.RouteTemplateRepository;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -11,26 +9,22 @@ import static org.mockito.Mockito.when;
 
 class RouteKeyResolverTest {
 
-    private final RouteTemplateRepository repository = mock(RouteTemplateRepository.class);
+    private final RouteTemplateCacheService routeTemplateCacheService = mock(RouteTemplateCacheService.class);
     private final RoutePathMatcher matcher = new RoutePathMatcher();
-    private final RouteKeyResolver resolver = new RouteKeyResolver(repository, matcher);
+    private final RouteKeyResolver resolver = new RouteKeyResolver(routeTemplateCacheService, matcher);
 
     @Test
     void resolve_returnsFirstMatchingRouteKeyInRepositoryOrder() {
-        when(repository.findByOrganizationIdAndActiveTrueOrderByPriorityDescIdAsc(1L))
+        when(routeTemplateCacheService.getActiveTemplates(1L))
                 .thenReturn(List.of(
-                        RouteTemplate.builder()
-                                .template("/orders/{orderId}/items/{itemId}")
-                                .routeKey("/orders/{orderId}/items/{itemId}")
-                                .priority(200)
-                                .active(true)
-                                .build(),
-                        RouteTemplate.builder()
-                                .template("/orders/{orderId}")
-                                .routeKey("/orders/{orderId}")
-                                .priority(100)
-                                .active(true)
-                                .build()
+                        new RouteTemplateCacheService.CachedRouteTemplate(
+                                "/orders/{orderId}/items/{itemId}",
+                                "/orders/{orderId}/items/{itemId}"
+                        ),
+                        new RouteTemplateCacheService.CachedRouteTemplate(
+                                "/orders/{orderId}",
+                                "/orders/{orderId}"
+                        )
                 ));
 
         String routeKey = resolver.resolve(1L, "/orders/10/items/3");
@@ -40,14 +34,12 @@ class RouteKeyResolverTest {
 
     @Test
     void resolve_returnsUnmatchedRoute_whenNoTemplateMatches() {
-        when(repository.findByOrganizationIdAndActiveTrueOrderByPriorityDescIdAsc(1L))
+        when(routeTemplateCacheService.getActiveTemplates(1L))
                 .thenReturn(List.of(
-                        RouteTemplate.builder()
-                                .template("/posts/{id}")
-                                .routeKey("/posts/{id}")
-                                .priority(100)
-                                .active(true)
-                                .build()
+                        new RouteTemplateCacheService.CachedRouteTemplate(
+                                "/posts/{id}",
+                                "/posts/{id}"
+                        )
                 ));
 
         String routeKey = resolver.resolve(1L, "/comments/1");
