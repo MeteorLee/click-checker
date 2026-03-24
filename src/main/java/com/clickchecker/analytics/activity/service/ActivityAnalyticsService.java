@@ -1,14 +1,15 @@
 package com.clickchecker.analytics.activity.service;
 
 import com.clickchecker.analytics.activity.controller.response.ActivityOverviewResponse;
+import com.clickchecker.event.repository.ActivityOverviewNativeQueryRepository;
 import com.clickchecker.event.repository.EventQueryRepository;
+import com.clickchecker.event.repository.projection.ActivityOverviewWindowSummaryProjection;
 import com.clickchecker.event.repository.projection.PathCountProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeCountProjection;
 import com.clickchecker.eventtype.service.CanonicalEventTypeResolver;
 import com.clickchecker.route.service.RouteKeyResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -24,10 +25,10 @@ public class ActivityAnalyticsService {
     private static final int OVERVIEW_SUMMARY_LIMIT = 3;
 
     private final EventQueryRepository eventQueryRepository;
+    private final ActivityOverviewNativeQueryRepository activityOverviewNativeQueryRepository;
     private final RouteKeyResolver routeKeyResolver;
     private final CanonicalEventTypeResolver canonicalEventTypeResolver;
 
-    @Transactional(readOnly = true)
     public ActivityOverviewResponse getOverview(
             Instant from,
             Instant to,
@@ -35,14 +36,18 @@ public class ActivityAnalyticsService {
             String externalUserId,
             String eventType
     ) {
-        long currentTotalEvents = eventQueryRepository.countBetween(from, to, organizationId, externalUserId, eventType);
-        long currentUniqueUsers = eventQueryRepository.countUniqueUsersBetween(from, to, organizationId, externalUserId, eventType);
-        long identifiedEvents = eventQueryRepository.countIdentifiedEventsBetween(from, to, organizationId, externalUserId, eventType);
+        Instant previousFrom = previousFrom(from, to);
+
+        ActivityOverviewWindowSummaryProjection summary = activityOverviewNativeQueryRepository.summarizeOverviewWindow(
+                previousFrom,
+                from,
+                to,
+                organizationId,
+                externalUserId,
+                eventType
+        );
         PathAnalysis pathAnalysis = analyzePaths(from, to, organizationId, externalUserId, eventType);
         EventTypeAnalysis eventTypeAnalysis = analyzeEventTypes(from, to, organizationId, externalUserId, eventType);
-
-        Instant previousFrom = previousFrom(from, to);
-        long previousTotalEvents = eventQueryRepository.countBetween(previousFrom, from, organizationId, externalUserId, eventType);
 
         return new ActivityOverviewResponse(
                 organizationId,
@@ -50,12 +55,12 @@ public class ActivityAnalyticsService {
                 from,
                 to,
                 eventType,
-                currentTotalEvents,
-                currentUniqueUsers,
-                identifiedEventRate(currentTotalEvents, identifiedEvents),
+                summary.currentTotalEvents(),
+                summary.currentUniqueUsers(),
+                identifiedEventRate(summary.currentTotalEvents(), summary.currentIdentifiedEvents()),
                 eventTypeAnalysis.eventTypeMappingCoverage(),
                 pathAnalysis.routeMatchCoverage(),
-                toComparison(currentTotalEvents, previousTotalEvents),
+                toComparison(summary.currentTotalEvents(), summary.previousTotalEvents()),
                 pathAnalysis.topRoutes(),
                 eventTypeAnalysis.topEventTypes()
         );

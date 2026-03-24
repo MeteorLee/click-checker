@@ -1,7 +1,5 @@
 package com.clickchecker.eventtype.service;
 
-import com.clickchecker.eventtype.entity.EventTypeMapping;
-import com.clickchecker.eventtype.repository.EventTypeMappingRepository;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -11,18 +9,14 @@ import static org.mockito.Mockito.when;
 
 class CanonicalEventTypeResolverTest {
 
-    private final EventTypeMappingRepository repository = mock(EventTypeMappingRepository.class);
-    private final CanonicalEventTypeResolver resolver = new CanonicalEventTypeResolver(repository);
+    private final EventTypeMappingCacheService eventTypeMappingCacheService = mock(EventTypeMappingCacheService.class);
+    private final CanonicalEventTypeResolver resolver = new CanonicalEventTypeResolver(eventTypeMappingCacheService);
 
     @Test
     void resolve_returnsCanonicalEventType_whenExactRawEventTypeMatches() {
-        when(repository.findByOrganizationIdAndActiveTrueOrderByRawEventTypeAsc(1L))
+        when(eventTypeMappingCacheService.getActiveMappings(1L))
                 .thenReturn(List.of(
-                        EventTypeMapping.builder()
-                                .rawEventType("button_click")
-                                .canonicalEventType("click")
-                                .active(true)
-                                .build()
+                        new EventTypeMappingCacheService.CachedEventTypeMapping("button_click", "click")
                 ));
 
         String canonicalEventType = resolver.resolve(1L, "button_click");
@@ -32,13 +26,9 @@ class CanonicalEventTypeResolverTest {
 
     @Test
     void resolve_returnsUnmappedEventType_whenNoMappingMatches() {
-        when(repository.findByOrganizationIdAndActiveTrueOrderByRawEventTypeAsc(1L))
+        when(eventTypeMappingCacheService.getActiveMappings(1L))
                 .thenReturn(List.of(
-                        EventTypeMapping.builder()
-                                .rawEventType("button_click")
-                                .canonicalEventType("click")
-                                .active(true)
-                                .build()
+                        new EventTypeMappingCacheService.CachedEventTypeMapping("button_click", "click")
                 ));
 
         String canonicalEventType = resolver.resolve(1L, "page_view");
