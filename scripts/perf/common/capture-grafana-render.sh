@@ -3,6 +3,7 @@ set -euo pipefail
 
 META_PATH="${META_PATH:-${META:-${1:-}}}"
 GRAFANA_BASE_URL="${GRAFANA_BASE_URL:-http://localhost:3000}"
+GRAFANA_CAPTURE_BASE_URL="${GRAFANA_CAPTURE_BASE_URL:-${GRAFANA_BASE_URL}}"
 GRAFANA_USER="${GRAFANA_USER:-admin}"
 GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-admin}"
 GRAFANA_ORG_ID="${GRAFANA_ORG_ID:-1}"
@@ -17,6 +18,7 @@ PANEL_WIDTH="${PANEL_WIDTH:-1400}"
 PANEL_HEIGHT="${PANEL_HEIGHT:-500}"
 FROM_MS="${FROM_MS:-}"
 TO_MS="${TO_MS:-}"
+CAPTURE_SKIP_DASHBOARD="${CAPTURE_SKIP_DASHBOARD:-false}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -62,7 +64,7 @@ render_dashboard() {
   curl -fsS \
     -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
     -o "${file_path}" \
-    "${GRAFANA_BASE_URL}/render/d/${DASHBOARD_UID}/${DASHBOARD_SLUG}?orgId=${GRAFANA_ORG_ID}&from=${from_ms}&to=${to_ms}&width=${DASHBOARD_WIDTH}&height=${DASHBOARD_HEIGHT}&tz=${GRAFANA_TZ}"
+    "${GRAFANA_CAPTURE_BASE_URL}/render/d/${DASHBOARD_UID}/${DASHBOARD_SLUG}?orgId=${GRAFANA_ORG_ID}&from=${from_ms}&to=${to_ms}&width=${DASHBOARD_WIDTH}&height=${DASHBOARD_HEIGHT}&tz=${GRAFANA_TZ}"
 }
 
 render_panel() {
@@ -74,7 +76,7 @@ render_panel() {
   curl -fsS \
     -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
     -o "${file_path}" \
-    "${GRAFANA_BASE_URL}/render/d-solo/${DASHBOARD_UID}/${DASHBOARD_SLUG}?orgId=${GRAFANA_ORG_ID}&panelId=${panel_id}&from=${from_ms}&to=${to_ms}&width=${PANEL_WIDTH}&height=${PANEL_HEIGHT}&tz=${GRAFANA_TZ}"
+    "${GRAFANA_CAPTURE_BASE_URL}/render/d-solo/${DASHBOARD_UID}/${DASHBOARD_SLUG}?orgId=${GRAFANA_ORG_ID}&panelId=${panel_id}&from=${from_ms}&to=${to_ms}&width=${PANEL_WIDTH}&height=${PANEL_HEIGHT}&tz=${GRAFANA_TZ}"
 }
 
 resolve_capture_profile() {
@@ -93,7 +95,7 @@ resolve_capture_profile() {
   local scenario
   scenario=$(jq -r '.scenario // empty' "${META_PATH}" | tr '[:upper:]' '[:lower:]')
   case "${scenario}" in
-    w1|r1|m1)
+    w1|r1|m1|m2)
       echo "${scenario}"
       ;;
     *)
@@ -126,7 +128,7 @@ configure_profile_panels() {
         "jvm-heap-by-app.png:9"
       )
       ;;
-    m1)
+    m1|m2)
       PANEL_SPECS=(
         "api-request-mix.png:1"
         "ingest-latency.png:4"
@@ -197,7 +199,12 @@ main() {
   mkdir -p "${out_dir}"
   clear_known_panel_outputs "${out_dir}"
 
-  render_dashboard "${out_dir}/dashboard-overview.png" "${from_ms}" "${to_ms}"
+  if [[ "${CAPTURE_SKIP_DASHBOARD}" != "true" ]]; then
+    if ! render_dashboard "${out_dir}/dashboard-overview.png" "${from_ms}" "${to_ms}"; then
+      echo "[grafana-capture] warning: full dashboard render failed; continuing with panel-only capture" >&2
+      rm -f "${out_dir}/dashboard-overview.png"
+    fi
+  fi
   local panel_spec panel_file panel_id
   for panel_spec in "${PANEL_SPECS[@]}"; do
     panel_file="${panel_spec%%:*}"
@@ -207,7 +214,7 @@ main() {
 
   update_capture_meta "success" "${from_ms}" "${to_ms}" "${capture_profile}"
   trap - ERR
-  echo "[grafana-capture] profile=${capture_profile} saved dashboard and core panels to ${out_dir}"
+  echo "[grafana-capture] profile=${capture_profile} saved core panels to ${out_dir}"
 }
 
 main "$@"
