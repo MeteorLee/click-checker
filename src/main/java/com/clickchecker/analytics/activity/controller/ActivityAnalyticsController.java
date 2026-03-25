@@ -2,9 +2,10 @@ package com.clickchecker.analytics.activity.controller;
 
 import com.clickchecker.analytics.activity.controller.response.ActivityOverviewResponse;
 import com.clickchecker.analytics.activity.service.ActivityOverviewCacheService;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,12 +23,13 @@ public class ActivityAnalyticsController {
 
     @GetMapping("/aggregates/overview")
     public ActivityOverviewResponse aggregateOverview(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
 
         return activityOverviewCacheService.getOverview(from, to, authOrgId, externalUserId, eventType);

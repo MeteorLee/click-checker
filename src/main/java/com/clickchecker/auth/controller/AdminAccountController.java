@@ -4,9 +4,10 @@ import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.service.AccountQueryService;
 import com.clickchecker.auth.controller.response.AdminMeMembershipResponse;
 import com.clickchecker.auth.controller.response.AdminMeResponse;
-import com.clickchecker.web.resolver.CurrentAccountId;
+import com.clickchecker.security.principal.AdminPrincipal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,7 +20,8 @@ public class AdminAccountController {
     private final AccountQueryService accountQueryService;
 
     @GetMapping("/me")
-    public AdminMeResponse me(@CurrentAccountId Long accountId) {
+    public AdminMeResponse me(@AuthenticationPrincipal AdminPrincipal principal) {
+        Long accountId = principal.accountId();
         Account account = accountQueryService.getById(accountId);
         List<AdminMeMembershipResponse> memberships = accountQueryService.getMemberships(accountId).stream()
                 .map(membership -> new AdminMeMembershipResponse(

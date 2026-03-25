@@ -11,11 +11,12 @@ import com.clickchecker.organization.service.AdminOrganizationService;
 import com.clickchecker.organization.service.result.AdminOrganizationApiKeyMetadataResult;
 import com.clickchecker.organization.service.result.AdminOrganizationApiKeyRotateResult;
 import com.clickchecker.organization.service.result.AdminOrganizationCreateResult;
-import com.clickchecker.web.resolver.CurrentAccountId;
+import com.clickchecker.security.principal.AdminPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,18 +36,20 @@ public class AdminOrganizationController {
 
     @PostMapping
     public ResponseEntity<AdminOrganizationCreateResponse> create(
-            @CurrentAccountId Long accountId,
+            @AuthenticationPrincipal AdminPrincipal principal,
             @RequestBody @Valid AdminOrganizationCreateRequest request
     ) {
+        Long accountId = principal.accountId();
         AdminOrganizationCreateResult result = adminOrganizationService.create(accountId, request.name());
         return ResponseEntity.status(HttpStatus.CREATED).body(adminOrganizationResponseMapper.toCreateResponse(result));
     }
 
     @GetMapping("/{organizationId}/api-key")
     public ResponseEntity<AdminOrganizationApiKeyMetadataResponse> getApiKeyMetadata(
-            @CurrentAccountId Long accountId,
+            @AuthenticationPrincipal AdminPrincipal principal,
             @PathVariable Long organizationId
     ) {
+        Long accountId = principal.accountId();
         AdminOrganizationApiKeyMetadataResult result =
                 adminOrganizationApiKeyQueryService.getMetadata(accountId, organizationId);
         return ResponseEntity.ok(adminOrganizationResponseMapper.toApiKeyMetadataResponse(result));
@@ -54,9 +57,10 @@ public class AdminOrganizationController {
 
     @PostMapping("/{organizationId}/api-key/rotate")
     public ResponseEntity<AdminOrganizationApiKeyRotateResponse> rotateApiKey(
-            @CurrentAccountId Long accountId,
+            @AuthenticationPrincipal AdminPrincipal principal,
             @PathVariable Long organizationId
     ) {
+        Long accountId = principal.accountId();
         AdminOrganizationApiKeyRotateResult result =
                 adminOrganizationApiKeyCommandService.rotate(accountId, organizationId);
         return ResponseEntity.ok(adminOrganizationResponseMapper.toApiKeyRotateResponse(result));

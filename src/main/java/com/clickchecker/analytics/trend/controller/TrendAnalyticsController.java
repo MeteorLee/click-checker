@@ -5,11 +5,12 @@ import com.clickchecker.analytics.trend.controller.response.CanonicalEventTypeTi
 import com.clickchecker.analytics.trend.controller.response.RouteEventTypeTimeBucketAggregateResponse;
 import com.clickchecker.analytics.trend.controller.response.RouteTimeBucketAggregateResponse;
 import com.clickchecker.analytics.trend.controller.response.TimeBucketAggregateResponse;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import com.clickchecker.analytics.trend.service.TrendAnalyticsService;
 import com.clickchecker.event.repository.projection.TimeBucketCountProjection;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,13 +33,14 @@ public class TrendAnalyticsController {
 
     @GetMapping("/aggregates/route-event-type-time-buckets")
     public RouteEventTypeTimeBucketAggregateResponse aggregateRouteEventTypeTimeBuckets(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
         validateBucketRange(from, to, bucket, zoneId);
@@ -63,7 +65,7 @@ public class TrendAnalyticsController {
 
     @GetMapping("/aggregates/route-time-buckets")
     public RouteTimeBucketAggregateResponse aggregateRouteTimeBuckets(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
@@ -71,6 +73,7 @@ public class TrendAnalyticsController {
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
         validateBucketRange(from, to, bucket, zoneId);
@@ -97,13 +100,14 @@ public class TrendAnalyticsController {
 
     @GetMapping("/aggregates/event-type-time-buckets")
     public CanonicalEventTypeTimeBucketAggregateResponse aggregateEventTypeTimeBuckets(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
         validateBucketRange(from, to, bucket, zoneId);
@@ -128,7 +132,7 @@ public class TrendAnalyticsController {
 
     @GetMapping("/aggregates/time-buckets")
     public TimeBucketAggregateResponse aggregateTimeBuckets(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
@@ -136,6 +140,7 @@ public class TrendAnalyticsController {
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam TimeBucket bucket
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         ZoneId zoneId = validateTimezone(timezone);
         validateBucketRange(from, to, bucket, zoneId);

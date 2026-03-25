@@ -8,11 +8,12 @@ import com.clickchecker.analytics.aggregate.controller.response.RouteAggregateRe
 import com.clickchecker.analytics.aggregate.controller.response.RouteEventTypeAggregateResponse;
 import com.clickchecker.analytics.aggregate.controller.response.RouteUniqueUserAggregateResponse;
 import com.clickchecker.analytics.aggregate.controller.response.UnmatchedPathAggregateResponse;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import com.clickchecker.analytics.aggregate.service.AggregateAnalyticsService;
 import com.clickchecker.event.repository.projection.PathCountProjection;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,12 +35,13 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/raw-event-types")
     public RawEventTypeAggregateResponse aggregateRawEventTypes(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
@@ -55,12 +57,13 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/event-types")
     public CanonicalEventTypeAggregateResponse aggregateCanonicalEventTypes(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
@@ -76,12 +79,13 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/event-types/unique-users")
     public CanonicalEventTypeUniqueUserAggregateResponse aggregateCanonicalEventTypeUniqueUsers(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
@@ -103,13 +107,14 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/paths")
     public PathAggregateResponse aggregatePaths(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
@@ -126,13 +131,14 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/routes")
     public RouteAggregateResponse aggregateRoutes(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
@@ -156,13 +162,14 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/routes/unmatched-paths")
     public UnmatchedPathAggregateResponse aggregateUnmatchedPaths(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
@@ -186,13 +193,14 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/routes/unique-users")
     public RouteUniqueUserAggregateResponse aggregateRouteUniqueUsers(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String eventType,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
@@ -216,12 +224,13 @@ public class AggregateAnalyticsController {
 
     @GetMapping("/aggregates/route-event-types")
     public RouteEventTypeAggregateResponse aggregateRouteEventTypes(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "10") int top
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         validateTop(top);
 
