@@ -8,10 +8,13 @@ import com.clickchecker.organization.entity.ApiKeyStatus;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyIssuer;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -43,6 +46,7 @@ class ApiKeyAuthFilterTest {
     @AfterEach
     void tearDown() {
         MDC.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -121,7 +125,9 @@ class ApiKeyAuthFilterTest {
 
         filter.doFilter(request, response, new MockFilterChain());
 
-        assertThat(request.getAttribute(ApiKeyAuthFilter.AUTH_ORG_ID)).isEqualTo(ORGANIZATION_ID);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(authentication).isNotNull();
+        assertThat(authentication.getPrincipal()).isEqualTo(new ApiKeyPrincipal(ORGANIZATION_ID, "abcd1234"));
         assertThat(joinedMessages(appender))
                 .contains("api key auth success")
                 .contains("orgId=" + ORGANIZATION_ID)
