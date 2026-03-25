@@ -152,6 +152,11 @@
 - ingest `POST /api/events`는 유지하고, analytics read만 `/api/v1/events/analytics/**`로 올렸다.
 - `/api/v1/events/**`도 API key 인증 보호 범위에 포함된다.
 - `EventUser` API(`/api/event-users`)는 아직 `organizationId` 요청 방식 유지(후속 정리 대상)
+- 인증 전달은 이제 `request attribute + resolver`가 아니라 `SecurityContext + @AuthenticationPrincipal` 기준이다.
+- `SecurityConfig`는 경로별 `SecurityFilterChain`으로 분리되어 있다.
+  - `/api/v1/admin/auth/**` 공개 체인
+  - `/api/v1/admin/**` JWT 체인
+  - `/api/events/**`, `/api/v1/events/**` API key 체인
 - prod 배포는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` 기준으로 동작
 - `POSTGRES_*`는 local postgres 컨테이너 기동용으로만 본다
 - scripts 구조는 현재 역할별 디렉토리 기준이다.
@@ -186,6 +191,17 @@
    - SecurityContext 중심 인가 구조 정식화 여부
 
 ## 최근 업데이트 (추가)
+- Spring Security 인증 컨텍스트 전환 완료:
+  - `ApiKeyPrincipal`, `AdminPrincipal` 추가
+  - `ApiKeyAuthFilter`, `JwtAuthFilter`가 인증 성공 결과를 `SecurityContext`에 저장
+  - admin/event/analytics 컨트롤러를 `@AuthenticationPrincipal` 기반으로 전환
+  - `CurrentAccountId`, `CurrentOrganizationId` 계열 annotation/resolver 제거
+  - `SecurityConfig`를 경로별 `SecurityFilterChain` 구조로 정리
+  - `./gradlew test` 전체 통과
+- API/운영 문서 갱신:
+  - `docs/03-API-설계/01-api-key-인증-정책.md`
+  - `docs/03-API-설계/02-요청-흐름-api-key-auth.md`
+  - `docs/04-운영-설계/코딩-규칙.md`
 - RDS 전환 완료:
   - EC2 운영 DB -> RDS `pg_dump` / `pg_restore` 완료
   - row count(`organizations=11`, `users=16`, `events=72`) 일치 확인
