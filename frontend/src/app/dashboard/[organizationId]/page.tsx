@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/auth";
 import { fetchOverview } from "@/lib/api/analytics";
 import { getAccessToken } from "@/lib/session/token-store";
-import { getOverviewRange } from "@/lib/utils/date";
+import { getCustomOverviewRange, getOverviewRange } from "@/lib/utils/date";
 import {
   formatDateTime,
   formatNumber,
@@ -32,12 +32,14 @@ import {
   Group,
   Loader,
   Modal,
+  Popover,
   Paper,
   Select,
   SegmentedControl,
   SimpleGrid,
   Stack,
   Text,
+  TextInput,
   Title,
 } from "@mantine/core";
 import {
@@ -50,7 +52,7 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-type OverviewRangePreset = "1d" | "7d" | "30d";
+type OverviewRangePreset = "1d" | "7d" | "30d" | "custom";
 
 type DashboardState = {
   organizationName: string;
@@ -78,6 +80,13 @@ type RotatedApiKeyState = {
   rotatedAt: string | null;
 };
 
+type AppliedRange = {
+  from: string;
+  to: string;
+  displayFrom: string;
+  displayTo: string;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const params = useParams<{ organizationId: string }>();
@@ -85,9 +94,22 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<OverviewRangePreset>("7d");
+  const [appliedRange, setAppliedRange] = useState<AppliedRange>(getOverviewRange(7));
+  const [customFrom, setCustomFrom] = useState<string>(getOverviewRange(7).displayFrom);
+  const [customTo, setCustomTo] = useState<string>(getOverviewRange(7).displayTo);
+  const [rangeValidationMessage, setRangeValidationMessage] = useState<string | null>(null);
+  const [isRangePopoverOpened, setIsRangePopoverOpened] = useState(false);
   const [isRotatingApiKey, setIsRotatingApiKey] = useState(false);
   const [apiKeyActionError, setApiKeyActionError] = useState<string | null>(null);
   const [rotatedApiKey, setRotatedApiKey] = useState<RotatedApiKeyState | null>(null);
+
+  function getRangeLengthDays(range: AppliedRange) {
+    const start = new Date(`${range.displayFrom}T00:00:00`);
+    const end = new Date(`${range.displayTo}T00:00:00`);
+    const diff = end.getTime() - start.getTime();
+
+    return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+  }
 
   function resolveRangeDays(rangePreset: OverviewRangePreset) {
     if (rangePreset === "1d") {
@@ -102,6 +124,18 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    if (selectedRange === "custom") {
+      return;
+    }
+
+    const nextRange = getOverviewRange(resolveRangeDays(selectedRange));
+    setAppliedRange(nextRange);
+    setCustomFrom(nextRange.displayFrom);
+    setCustomTo(nextRange.displayTo);
+    setRangeValidationMessage(null);
+  }, [selectedRange]);
+
+  useEffect(() => {
     async function load() {
       const accessToken = getAccessToken();
 
@@ -111,7 +145,7 @@ export default function DashboardPage() {
       }
 
       const organizationId = params.organizationId;
-      const range = getOverviewRange(resolveRangeDays(selectedRange));
+      const range = appliedRange;
 
       setIsLoading(true);
       setErrorMessage(null);
@@ -175,7 +209,7 @@ export default function DashboardPage() {
     }
 
     void load();
-  }, [params.organizationId, router, selectedRange]);
+  }, [appliedRange, params.organizationId, router]);
 
   if (isLoading) {
     return (
@@ -276,6 +310,24 @@ export default function DashboardPage() {
     }
   }
 
+  function handleApplyCustomRange() {
+    if (!customFrom || !customTo) {
+      setRangeValidationMessage("시작일과 종료일을 모두 선택하세요.");
+      return;
+    }
+
+    if (customFrom > customTo) {
+      setRangeValidationMessage("시작일은 종료일보다 늦을 수 없습니다.");
+      return;
+    }
+
+    const nextRange = getCustomOverviewRange(customFrom, customTo);
+    setSelectedRange("custom");
+    setAppliedRange(nextRange);
+    setRangeValidationMessage(null);
+    setIsRangePopoverOpened(false);
+  }
+
   return (
     <ConsoleFrame>
       <Modal
@@ -353,7 +405,7 @@ export default function DashboardPage() {
 
       <ConsoleHeader
         title={data.organizationName}
-        subtitle={`${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : "최근 7일"} 기준 overview입니다. 조회 기간은 ${data.range.displayFrom}부터 ${data.range.displayTo}까지입니다.`}
+        subtitle={`${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : selectedRange === "custom" ? "사용자 지정 기간" : "최근 7일"} 기준 overview입니다.`}
         backHref="/organizations"
         badge="Analytics"
       />
@@ -391,16 +443,83 @@ export default function DashboardPage() {
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
                   </Text>
-                  <SegmentedControl
-                    data={[
-                      { label: "1일", value: "1d" },
-                      { label: "7일", value: "7d" },
-                      { label: "30일", value: "30d" },
-                    ]}
-                    radius="xl"
-                    value={selectedRange}
-                    onChange={(value) => setSelectedRange(value as OverviewRangePreset)}
-                  />
+                  <Popover
+                    opened={isRangePopoverOpened}
+                    position="bottom-end"
+                    shadow="md"
+                    width={420}
+                    withArrow
+                    onChange={setIsRangePopoverOpened}
+                  >
+                    <Popover.Target>
+                      <Button
+                        radius="xl"
+                        variant="light"
+                        onClick={() => setIsRangePopoverOpened((opened) => !opened)}
+                      >
+                        {selectedRange === "custom"
+                          ? `${data.range.displayFrom} ~ ${data.range.displayTo} · ${getRangeLengthDays(data.range)}일`
+                          : `${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : "최근 7일"} · ${getRangeLengthDays(data.range)}일`}
+                      </Button>
+                    </Popover.Target>
+                    <Popover.Dropdown>
+                      <Stack gap="md">
+                        <div>
+                          <Text fw={700}>조회 기간 설정</Text>
+                          <Text c="dimmed" size="sm">
+                            현재 적용 중인 기간은 {data.range.displayFrom}부터 {data.range.displayTo}
+                            까지, 총 {getRangeLengthDays(data.range)}일입니다.
+                          </Text>
+                        </div>
+
+                        <SegmentedControl
+                          data={[
+                            { label: "1일", value: "1d" },
+                            { label: "7일", value: "7d" },
+                            { label: "30일", value: "30d" },
+                          ]}
+                          radius="xl"
+                          value={selectedRange === "custom" ? "7d" : selectedRange}
+                          onChange={(value) => setSelectedRange(value as OverviewRangePreset)}
+                        />
+
+                        {rangeValidationMessage ? (
+                          <Alert
+                            color="red"
+                            icon={<IconAlertCircle size={18} />}
+                            radius="lg"
+                            variant="light"
+                          >
+                            {rangeValidationMessage}
+                          </Alert>
+                        ) : null}
+
+                        <Group align="flex-end" wrap="wrap">
+                          <TextInput
+                            label="시작일"
+                            radius="xl"
+                            type="date"
+                            value={customFrom}
+                            onChange={(event) => setCustomFrom(event.currentTarget.value)}
+                          />
+                          <TextInput
+                            label="종료일"
+                            radius="xl"
+                            type="date"
+                            value={customTo}
+                            onChange={(event) => setCustomTo(event.currentTarget.value)}
+                          />
+                          <Button radius="xl" onClick={handleApplyCustomRange}>
+                            적용
+                          </Button>
+                        </Group>
+
+                        <Text c="dimmed" size="sm">
+                          종료일은 포함해서 계산합니다.
+                        </Text>
+                      </Stack>
+                    </Popover.Dropdown>
+                  </Popover>
                 </Stack>
               </Group>
 
@@ -437,87 +556,6 @@ export default function DashboardPage() {
                 </Paper>
               </SimpleGrid>
 
-              <Paper radius="24px" p="lg" withBorder bg="gray.0">
-                <Stack gap="md">
-                  <Group justify="space-between" align="flex-start">
-                    <Group gap="sm" wrap="nowrap">
-                      <Badge color="dark" leftSection={<IconKey size={12} />} variant="light">
-                        API Key
-                      </Badge>
-                      <Stack gap={0}>
-                        <Text fw={700}>수집용 API key 관리</Text>
-                        <Text c="dimmed" size="sm">
-                          현재 key의 상태를 확인하고 필요하면 새 키로 재발급할 수 있습니다.
-                        </Text>
-                      </Stack>
-                    </Group>
-                    <Button
-                      color="dark"
-                      leftSection={<IconRefresh size={16} />}
-                      disabled={!data.apiKeyMetadata || data.currentRole !== "OWNER"}
-                      loading={isRotatingApiKey}
-                      radius="xl"
-                      variant="light"
-                      onClick={handleRotateApiKey}
-                    >
-                      API Key 재발급
-                    </Button>
-                  </Group>
-
-                  {apiKeyActionError ? (
-                    <Alert
-                      color="red"
-                      icon={<IconAlertCircle size={18} />}
-                      radius="lg"
-                      variant="light"
-                    >
-                      {apiKeyActionError}
-                    </Alert>
-                  ) : null}
-
-                  {data.apiKeyMetadata ? (
-                    <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="md">
-                      <Paper radius="20px" p="md" withBorder bg="white">
-                        <Stack gap={4}>
-                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                            Prefix
-                          </Text>
-                          <Text fw={700}>{data.apiKeyMetadata.apiKeyPrefix}</Text>
-                        </Stack>
-                      </Paper>
-                      <Paper radius="20px" p="md" withBorder bg="white">
-                        <Stack gap={4}>
-                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                            Status
-                          </Text>
-                          <Text fw={700}>{data.apiKeyMetadata.status}</Text>
-                        </Stack>
-                      </Paper>
-                      <Paper radius="20px" p="md" withBorder bg="white">
-                        <Stack gap={4}>
-                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                            Last Used
-                          </Text>
-                          <Text fw={700}>{formatDateTime(data.apiKeyMetadata.lastUsedAt)}</Text>
-                        </Stack>
-                      </Paper>
-                      <Paper radius="20px" p="md" withBorder bg="white">
-                        <Stack gap={4}>
-                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                            Rotated At
-                          </Text>
-                          <Text fw={700}>{formatDateTime(data.apiKeyMetadata.rotatedAt)}</Text>
-                        </Stack>
-                      </Paper>
-                    </SimpleGrid>
-                  ) : (
-                    <Alert color="gray" radius="lg" variant="light">
-                      현재 역할은 <strong>{data.currentRole ?? "UNKNOWN"}</strong> 입니다. API key 정보 조회는
-                      ADMIN 이상, 재발급은 OWNER만 가능합니다. overview 조회는 계속 사용할 수 있습니다.
-                    </Alert>
-                  )}
-                </Stack>
-              </Paper>
             </Stack>
           </Paper>
 
@@ -544,16 +582,87 @@ export default function DashboardPage() {
             />
           </SimpleGrid>
 
-          <Group justify="space-between" wrap="wrap">
-            <Alert color="blue" radius="lg" variant="light" style={{ flex: 1 }}>
-              현재 선택된 기간은{" "}
-              {selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : "최근 7일"}입니다.
-              organization은 상단에서 바로 전환할 수 있고, overview와 API key 상태를 같은 화면에서 확인할 수 있습니다.
-            </Alert>
-            <Button radius="xl" variant="light" onClick={() => setSelectedRange("7d")}>
-              기본 기간으로 되돌리기
-            </Button>
-          </Group>
+          <Paper radius="28px" p="xl" withBorder className="console-panel">
+            <Stack gap="lg">
+              <Group justify="space-between" align="flex-start">
+                <Group gap="sm" wrap="nowrap">
+                  <Badge color="dark" leftSection={<IconKey size={12} />} variant="light">
+                    API Key
+                  </Badge>
+                  <Stack gap={0}>
+                    <Text fw={700}>수집용 API key 관리</Text>
+                    <Text c="dimmed" size="sm">
+                      overview 아래에서 현재 key 상태를 확인하고, 필요한 경우 새 키로 재발급합니다.
+                    </Text>
+                  </Stack>
+                </Group>
+                <Button
+                  color="dark"
+                  leftSection={<IconRefresh size={16} />}
+                  disabled={!data.apiKeyMetadata || data.currentRole !== "OWNER"}
+                  loading={isRotatingApiKey}
+                  radius="xl"
+                  variant="light"
+                  onClick={handleRotateApiKey}
+                >
+                  API Key 재발급
+                </Button>
+              </Group>
+
+              {apiKeyActionError ? (
+                <Alert
+                  color="red"
+                  icon={<IconAlertCircle size={18} />}
+                  radius="lg"
+                  variant="light"
+                >
+                  {apiKeyActionError}
+                </Alert>
+              ) : null}
+
+              {data.apiKeyMetadata ? (
+                <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="md">
+                  <Paper radius="20px" p="md" withBorder bg="gray.0">
+                    <Stack gap={4}>
+                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                        Prefix
+                      </Text>
+                      <Text fw={700}>{data.apiKeyMetadata.apiKeyPrefix}</Text>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="20px" p="md" withBorder bg="gray.0">
+                    <Stack gap={4}>
+                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                        Status
+                      </Text>
+                      <Text fw={700}>{data.apiKeyMetadata.status}</Text>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="20px" p="md" withBorder bg="gray.0">
+                    <Stack gap={4}>
+                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                        Last Used
+                      </Text>
+                      <Text fw={700}>{formatDateTime(data.apiKeyMetadata.lastUsedAt)}</Text>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="20px" p="md" withBorder bg="gray.0">
+                    <Stack gap={4}>
+                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                        Rotated At
+                      </Text>
+                      <Text fw={700}>{formatDateTime(data.apiKeyMetadata.rotatedAt)}</Text>
+                    </Stack>
+                  </Paper>
+                </SimpleGrid>
+              ) : (
+                <Alert color="gray" radius="lg" variant="light">
+                  현재 역할은 <strong>{data.currentRole ?? "UNKNOWN"}</strong> 입니다. API key 정보 조회는
+                  ADMIN 이상, 재발급은 OWNER만 가능합니다. overview 조회는 계속 사용할 수 있습니다.
+                </Alert>
+              )}
+            </Stack>
+          </Paper>
         </Stack>
       </Container>
     </ConsoleFrame>

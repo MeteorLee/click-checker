@@ -27,3 +27,17 @@ export function getOverviewRange(days: number) {
     displayTo: formatLocalDate(displayEnd),
   };
 }
+
+export function getCustomOverviewRange(from: string, to: string) {
+  const start = new Date(`${from}T00:00:00`);
+  const displayEnd = new Date(`${to}T00:00:00`);
+  const endExclusive = new Date(displayEnd);
+  endExclusive.setDate(endExclusive.getDate() + 1);
+
+  return {
+    from: formatLocalDate(start),
+    to: formatLocalDate(endExclusive),
+    displayFrom: formatLocalDate(start),
+    displayTo: formatLocalDate(displayEnd),
+  };
+}
