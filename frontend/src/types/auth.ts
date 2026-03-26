@@ -3,7 +3,20 @@ export type AdminLoginRequest = {
   password: string;
 };
 
+export type AdminSignupRequest = {
+  loginId: string;
+  password: string;
+};
+
 export type AdminLoginResponse = {
+  accountId: number;
+  accessToken: string;
+  accessTokenExpiresIn: number;
+  refreshToken: string;
+  refreshTokenExpiresIn: number;
+};
+
+export type AdminSignupResponse = {
   accountId: number;
   accessToken: string;
   accessTokenExpiresIn: number;
@@ -24,4 +37,3 @@ export type AdminMeResponse = {
   status: string;
   memberships: AdminMeMembership[];
 };
-

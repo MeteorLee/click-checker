@@ -3,6 +3,8 @@ import type {
   AdminLoginRequest,
   AdminLoginResponse,
   AdminMeResponse,
+  AdminSignupRequest,
+  AdminSignupResponse,
 } from "@/types/auth";
 
 export class ApiError extends Error {
@@ -43,6 +45,26 @@ export async function login(request: AdminLoginRequest) {
   return (await response.json()) as AdminLoginResponse;
 }
 
+export async function signup(request: AdminSignupRequest) {
+  const response = await fetch(buildApiUrl("/api/v1/admin/auth/signup"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const message =
+      response.status === 400
+        ? "회원가입 규칙에 맞지 않는 입력입니다."
+        : await parseErrorMessage(response);
+    throw new ApiError(message, response.status);
+  }
+
+  return (await response.json()) as AdminSignupResponse;
+}
+
 export async function fetchMe(accessToken: string) {
   const response = await fetch(buildApiUrl("/api/v1/admin/me"), {
     headers: {
@@ -56,4 +78,3 @@ export async function fetchMe(accessToken: string) {
 
   return (await response.json()) as AdminMeResponse;
 }
-

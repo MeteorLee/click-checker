@@ -1,6 +1,6 @@
 "use client";
 
-import { login } from "@/lib/api/auth";
+import { signup } from "@/lib/api/auth";
 import { setAccessToken } from "@/lib/session/token-store";
 import {
   Alert,
@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-export function LoginForm() {
+export function SignupForm() {
   const router = useRouter();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -32,14 +32,14 @@ export function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      const result = await login({ loginId, password });
+      const result = await signup({ loginId, password });
       setAccessToken(result.accessToken);
       router.push("/organizations");
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "로그인 중 알 수 없는 오류가 발생했습니다.";
+          : "회원가입 중 알 수 없는 오류가 발생했습니다.";
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -53,9 +53,9 @@ export function LoginForm() {
           <Text fw={700} size="sm" c="blue.7" tt="uppercase">
             Admin Console
           </Text>
-          <Title order={1}>로그인</Title>
+          <Title order={1}>회원가입</Title>
           <Text c="dimmed">
-            JWT 기반 관리자 콘솔에 로그인해 organization별 overview를 확인합니다.
+            관리자 계정을 생성하고 바로 organization 선택 화면으로 이동합니다.
           </Text>
         </Stack>
 
@@ -70,6 +70,11 @@ export function LoginForm() {
           </Alert>
         ) : null}
 
+        <Alert color="blue" radius="lg" variant="light">
+          loginId는 영문자로 시작하는 4~20자여야 하고, 비밀번호는 영문과 숫자를 모두 포함한
+          8자 이상이어야 합니다.
+        </Alert>
+
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
             <TextInput
@@ -82,9 +87,9 @@ export function LoginForm() {
               onChange={(event) => setLoginId(event.currentTarget.value)}
             />
             <PasswordInput
-              autoComplete="current-password"
+              autoComplete="new-password"
               label="Password"
-              placeholder="비밀번호를 입력하세요"
+              placeholder="영문과 숫자를 포함한 8자 이상"
               required
               size="md"
               value={password}
@@ -97,14 +102,14 @@ export function LoginForm() {
               loading={isSubmitting}
               rightSection={<IconArrowRight size={18} />}
             >
-              로그인
+              계정 만들기
             </Button>
             <Group justify="space-between" mt={4}>
               <Text c="dimmed" size="sm">
-                계정이 없나요?
+                이미 계정이 있나요?
               </Text>
-              <Text component={Link} href="/signup" c="blue.7" fw={700} size="sm">
-                회원가입으로 이동
+              <Text component={Link} href="/login" c="blue.7" fw={700} size="sm">
+                로그인으로 이동
               </Text>
             </Group>
           </Stack>
@@ -113,3 +118,4 @@ export function LoginForm() {
     </Paper>
   );
 }
+
