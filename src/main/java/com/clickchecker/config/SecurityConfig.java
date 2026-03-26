@@ -7,9 +7,13 @@ import com.clickchecker.organization.service.ApiKeyIssuer;
 import com.clickchecker.web.filter.ApiKeyAuthFilter;
 import com.clickchecker.web.filter.JwtAuthFilter;
 import jakarta.servlet.Filter;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -50,6 +54,7 @@ public class SecurityConfig {
     public SecurityFilterChain adminAuthSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/api/v1/admin/auth/**")
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -69,6 +74,7 @@ public class SecurityConfig {
     ) throws Exception {
         http
                 .securityMatcher("/api/v1/admin/**")
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -92,6 +98,7 @@ public class SecurityConfig {
     ) throws Exception {
         http
                 .securityMatcher("/api/events/**", "/api/v1/events/**")
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -111,6 +118,7 @@ public class SecurityConfig {
     @Order(4)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -137,5 +145,22 @@ public class SecurityConfig {
         FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(jwtAuthFilter);
         registration.setEnabled(false);
         return registration;
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3001",
+                "http://127.0.0.1:3001"
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(false);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
