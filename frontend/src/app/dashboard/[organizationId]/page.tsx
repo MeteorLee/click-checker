@@ -459,7 +459,11 @@ export default function DashboardPage() {
                       >
                         {selectedRange === "custom"
                           ? `${data.range.displayFrom} ~ ${data.range.displayTo} · ${getRangeLengthDays(data.range)}일`
-                          : `${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : "최근 7일"} · ${getRangeLengthDays(data.range)}일`}
+                          : selectedRange === "1d"
+                            ? "오늘"
+                            : selectedRange === "30d"
+                              ? "최근 30일"
+                              : "최근 7일"}
                       </Button>
                     </Popover.Target>
                     <Popover.Dropdown>
