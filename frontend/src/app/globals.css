@@ -1,0 +1,9 @@
+@import "@mantine/core/styles.css";
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #f3f5f8;
+  color: #111827;
+}
