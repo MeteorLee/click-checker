@@ -30,11 +30,11 @@ export default function SignupPage() {
                     Click Checker
                   </Badge>
                   <Title order={1} fz={{ base: 36, md: 48 }} maw={520}>
-                    새 관리자 계정을 만들고 콘솔로 바로 진입합니다.
+                    새 관리자 계정을 만들고 바로 organization 작업을 시작합니다.
                   </Title>
                   <Text c="dimmed" maw={520} size="lg">
-                    계정 생성이 완료되면 access token을 받아 organization 선택 화면으로 바로
-                    이동합니다.
+                    계정 생성이 완료되면 바로 로그인된 상태가 되고, organization을 만들거나
+                    기존 조직을 선택해 overview 대시보드로 들어갈 수 있습니다.
                   </Text>
                 </Stack>
 
@@ -44,9 +44,9 @@ export default function SignupPage() {
                       <IconUserPlus size={20} />
                     </ThemeIcon>
                     <div>
-                      <Text fw={700}>즉시 로그인된 상태로 시작</Text>
+                      <Text fw={700}>생성 즉시 콘솔 진입</Text>
                       <Text c="dimmed" size="sm">
-                        signup 응답으로 받은 JWT를 저장한 뒤 별도 로그인 없이 다음 화면으로
+                        계정이 만들어지면 별도 로그인 없이 바로 organization 선택 화면으로
                         이동합니다.
                       </Text>
                     </div>
@@ -57,10 +57,10 @@ export default function SignupPage() {
                       <IconBuildingSkyscraper size={20} />
                     </ThemeIcon>
                     <div>
-                      <Text fw={700}>Organization 기반 콘솔 흐름</Text>
+                      <Text fw={700}>Organization 단위 운영 흐름</Text>
                       <Text c="dimmed" size="sm">
-                        계정 생성 뒤에는 접근 가능한 organization 목록을 기준으로 overview
-                        대시보드로 진입합니다.
+                        계정 생성 뒤에는 organization을 만들거나 선택하고, 각 조직의 overview와
+                        API key 상태를 확인합니다.
                       </Text>
                     </div>
                   </Group>
@@ -70,10 +70,10 @@ export default function SignupPage() {
                       <IconKey size={20} />
                     </ThemeIcon>
                     <div>
-                      <Text fw={700}>간단한 개발용 진입 경로</Text>
+                      <Text fw={700}>빠른 로컬 시작</Text>
                       <Text c="dimmed" size="sm">
-                        지금 단계에서는 프런트에서 직접 회원가입을 열어 로컬 테스트와 데모
-                        확인을 쉽게 합니다.
+                        로컬 환경에서도 계정을 바로 만들고, 첫 organization 생성부터 overview
+                        조회까지 한 흐름으로 확인할 수 있습니다.
                       </Text>
                     </div>
                   </Group>

@@ -59,6 +59,7 @@ type DashboardState = {
     label: string;
     role: string;
   }[];
+  currentRole: string | null;
   range: {
     from: string;
     to: string;
@@ -66,7 +67,7 @@ type DashboardState = {
     displayTo: string;
   };
   overview: ActivityOverviewResponse;
-  apiKeyMetadata: AdminOrganizationApiKeyMetadataResponse;
+  apiKeyMetadata: AdminOrganizationApiKeyMetadataResponse | null;
 };
 
 type RotatedApiKeyState = {
@@ -125,10 +126,23 @@ export default function DashboardPage() {
           (membership) => String(membership.organizationId) === organizationId,
         );
 
-        const apiKeyMetadata = await fetchOrganizationApiKeyMetadata(
-          accessToken,
-          organizationId,
-        );
+        let apiKeyMetadata: AdminOrganizationApiKeyMetadataResponse | null = null;
+
+        try {
+          apiKeyMetadata = await fetchOrganizationApiKeyMetadata(
+            accessToken,
+            organizationId,
+          );
+        } catch (error) {
+          const status =
+            "status" in (error as object)
+              ? (error as { status?: number }).status
+              : undefined;
+
+          if (status !== 403) {
+            throw error;
+          }
+        }
 
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${organizationId}`,
@@ -137,6 +151,7 @@ export default function DashboardPage() {
             label: membership.organizationName,
             role: membership.role,
           })),
+          currentRole: currentMembership?.role ?? null,
           range,
           overview,
           apiKeyMetadata,
@@ -232,11 +247,13 @@ export default function DashboardPage() {
         previous
           ? {
               ...previous,
-              apiKeyMetadata: {
-                ...previous.apiKeyMetadata,
-                apiKeyPrefix: result.apiKeyPrefix,
-                rotatedAt: result.rotatedAt,
-              },
+              apiKeyMetadata: previous.apiKeyMetadata
+                ? {
+                    ...previous.apiKeyMetadata,
+                    apiKeyPrefix: result.apiKeyPrefix,
+                    rotatedAt: result.rotatedAt,
+                  }
+                : previous.apiKeyMetadata,
             }
           : previous,
       );
@@ -309,7 +326,7 @@ export default function DashboardPage() {
             </SimpleGrid>
 
             <Alert color="yellow" radius="lg" variant="light">
-              기존 키는 더 이상 사용되지 않습니다. 클라이언트 설정을 새 키로 바로 교체하세요.
+              기존 키는 더 이상 사용할 수 없습니다. 이벤트를 보내는 클라이언트 설정을 새 키로 바로 교체하세요.
             </Alert>
 
             <Group justify="space-between">
@@ -336,7 +353,7 @@ export default function DashboardPage() {
 
       <ConsoleHeader
         title={data.organizationName}
-        subtitle={`${selectedRange === "1d" ? "최근 1일" : selectedRange === "30d" ? "최근 30일" : "최근 7일"} 기준 overview입니다. 기간은 ${data.range.displayFrom}부터 ${data.range.displayTo}까지입니다.`}
+        subtitle={`${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : "최근 7일"} 기준 overview입니다. 조회 기간은 ${data.range.displayFrom}부터 ${data.range.displayTo}까지입니다.`}
         backHref="/organizations"
         badge="Analytics"
       />
@@ -351,8 +368,7 @@ export default function DashboardPage() {
                   </Badge>
                   <Title order={1}>핵심 overview</Title>
                   <Text c="dimmed" mt="sm">
-                    현재 organization의 핵심 KPI와 정규화 커버리지, 상위 route/event type
-                    요약을 한 화면에서 확인합니다.
+                    현재 organization의 핵심 지표, 정규화 상태, 상위 경로와 이벤트 타입 요약을 한 화면에서 확인합니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
@@ -431,13 +447,14 @@ export default function DashboardPage() {
                       <Stack gap={0}>
                         <Text fw={700}>수집용 API key 관리</Text>
                         <Text c="dimmed" size="sm">
-                          prefix와 사용 상태를 확인하고 필요하면 새 키로 rotate할 수 있습니다.
+                          현재 key의 상태를 확인하고 필요하면 새 키로 재발급할 수 있습니다.
                         </Text>
                       </Stack>
                     </Group>
                     <Button
                       color="dark"
                       leftSection={<IconRefresh size={16} />}
+                      disabled={!data.apiKeyMetadata || data.currentRole !== "OWNER"}
                       loading={isRotatingApiKey}
                       radius="xl"
                       variant="light"
@@ -458,40 +475,47 @@ export default function DashboardPage() {
                     </Alert>
                   ) : null}
 
-                  <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="md">
-                    <Paper radius="20px" p="md" withBorder bg="white">
-                      <Stack gap={4}>
-                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                          Prefix
-                        </Text>
-                        <Text fw={700}>{data.apiKeyMetadata.apiKeyPrefix}</Text>
-                      </Stack>
-                    </Paper>
-                    <Paper radius="20px" p="md" withBorder bg="white">
-                      <Stack gap={4}>
-                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                          Status
-                        </Text>
-                        <Text fw={700}>{data.apiKeyMetadata.status}</Text>
-                      </Stack>
-                    </Paper>
-                    <Paper radius="20px" p="md" withBorder bg="white">
-                      <Stack gap={4}>
-                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                          Last Used
-                        </Text>
-                        <Text fw={700}>{formatDateTime(data.apiKeyMetadata.lastUsedAt)}</Text>
-                      </Stack>
-                    </Paper>
-                    <Paper radius="20px" p="md" withBorder bg="white">
-                      <Stack gap={4}>
-                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                          Rotated At
-                        </Text>
-                        <Text fw={700}>{formatDateTime(data.apiKeyMetadata.rotatedAt)}</Text>
-                      </Stack>
-                    </Paper>
-                  </SimpleGrid>
+                  {data.apiKeyMetadata ? (
+                    <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="md">
+                      <Paper radius="20px" p="md" withBorder bg="white">
+                        <Stack gap={4}>
+                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                            Prefix
+                          </Text>
+                          <Text fw={700}>{data.apiKeyMetadata.apiKeyPrefix}</Text>
+                        </Stack>
+                      </Paper>
+                      <Paper radius="20px" p="md" withBorder bg="white">
+                        <Stack gap={4}>
+                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                            Status
+                          </Text>
+                          <Text fw={700}>{data.apiKeyMetadata.status}</Text>
+                        </Stack>
+                      </Paper>
+                      <Paper radius="20px" p="md" withBorder bg="white">
+                        <Stack gap={4}>
+                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                            Last Used
+                          </Text>
+                          <Text fw={700}>{formatDateTime(data.apiKeyMetadata.lastUsedAt)}</Text>
+                        </Stack>
+                      </Paper>
+                      <Paper radius="20px" p="md" withBorder bg="white">
+                        <Stack gap={4}>
+                          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                            Rotated At
+                          </Text>
+                          <Text fw={700}>{formatDateTime(data.apiKeyMetadata.rotatedAt)}</Text>
+                        </Stack>
+                      </Paper>
+                    </SimpleGrid>
+                  ) : (
+                    <Alert color="gray" radius="lg" variant="light">
+                      현재 역할은 <strong>{data.currentRole ?? "UNKNOWN"}</strong> 입니다. API key 정보 조회는
+                      ADMIN 이상, 재발급은 OWNER만 가능합니다. overview 조회는 계속 사용할 수 있습니다.
+                    </Alert>
+                  )}
                 </Stack>
               </Paper>
             </Stack>
@@ -502,7 +526,7 @@ export default function DashboardPage() {
           <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="lg">
             <SummaryCard
               title="Top Routes"
-              description="Route template 정규화 기준 상위 경로"
+              description="정규화된 route 기준 상위 경로"
               emptyMessage="표시할 route 데이터가 없습니다."
               items={data.overview.topRoutes.map((route) => ({
                 label: route.routeKey,
@@ -511,7 +535,7 @@ export default function DashboardPage() {
             />
             <SummaryCard
               title="Top Event Types"
-              description="Canonical event type 기준 상위 이벤트 타입"
+              description="정규화된 event type 기준 상위 이벤트"
               emptyMessage="표시할 event type 데이터가 없습니다."
               items={data.overview.topEventTypes.map((eventType) => ({
                 label: eventType.eventType,
@@ -522,10 +546,9 @@ export default function DashboardPage() {
 
           <Group justify="space-between" wrap="wrap">
             <Alert color="blue" radius="lg" variant="light" style={{ flex: 1 }}>
-              현재 선택된 preset은{" "}
-              {selectedRange === "1d" ? "최근 1일" : selectedRange === "30d" ? "최근 30일" : "최근 7일"}입니다.
-              organization은 상단 select에서 바로 전환할 수 있고, 이후에는 사용자 지정 날짜
-              선택도 추가할 수 있습니다.
+              현재 선택된 기간은{" "}
+              {selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : "최근 7일"}입니다.
+              organization은 상단에서 바로 전환할 수 있고, overview와 API key 상태를 같은 화면에서 확인할 수 있습니다.
             </Alert>
             <Button radius="xl" variant="light" onClick={() => setSelectedRange("7d")}>
               기본 기간으로 되돌리기

@@ -242,15 +242,14 @@ export default function OrganizationsPage() {
                     다음 단계
                   </Text>
                   <Text size="sm">
-                    프런트 overview를 확인하거나, 클라이언트에서 이 키로 이벤트를 전송할 수
-                    있습니다.
+                    overview를 확인하거나, 이벤트를 보내는 클라이언트 설정에 이 키를 바로 사용할 수 있습니다.
                   </Text>
                 </Stack>
               </Paper>
             </SimpleGrid>
 
             <Alert color="yellow" radius="lg" variant="light">
-              이후에는 전체 API key를 다시 조회할 수 없고, prefix와 rotate 기능만 사용합니다.
+              이후에는 전체 API key를 다시 조회할 수 없고, prefix 확인과 rotate만 사용할 수 있습니다.
             </Alert>
 
             <Divider />
@@ -285,17 +284,17 @@ export default function OrganizationsPage() {
 
       <ConsoleHeader
         title="Organization 선택"
-        subtitle={`${data.loginId} 계정이 접근 가능한 organization 목록입니다. organization을 하나 고르면 overview 대시보드로 이동합니다.`}
+        subtitle={`${data.loginId} 계정으로 접근 가능한 organization을 선택하거나 새 organization을 만들어 overview 대시보드로 이동합니다.`}
       />
       <Container size="lg" pb={72}>
         <Stack gap="xl">
           <Group justify="space-between" align="center">
             <Stack gap={4}>
               <Text fw={700} size="xl">
-                접근 가능한 organization
+                작업할 organization 선택
               </Text>
               <Text c="dimmed" size="sm">
-                현재 계정의 membership을 기준으로 접근 가능한 조직만 표시합니다.
+                현재 계정의 membership 기준으로 접근 가능한 organization만 표시합니다.
               </Text>
             </Stack>
             <Badge color="dark" radius="xl" size="lg" variant="light">
@@ -315,8 +314,7 @@ export default function OrganizationsPage() {
                       새 organization 만들기
                     </Text>
                     <Text c="dimmed" size="sm">
-                      organization 이름을 입력하면 OWNER membership과 API key가 함께
-                      생성됩니다.
+                      이름을 입력하면 OWNER 권한과 수집용 API key가 함께 생성됩니다.
                     </Text>
                   </div>
                 </Group>
@@ -370,8 +368,8 @@ export default function OrganizationsPage() {
                     아직 접근 가능한 organization이 없습니다
                   </Text>
                   <Text c="dimmed" size="sm" ta="center" maw={440}>
-                    위의 생성 폼으로 첫 organization을 만들면, OWNER 권한으로 overview
-                    대시보드에 바로 들어갈 수 있습니다.
+                    위에서 첫 organization을 만들면 OWNER 권한으로 overview 대시보드에 바로
+                    들어갈 수 있습니다.
                   </Text>
                 </Stack>
               </Stack>

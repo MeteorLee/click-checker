@@ -55,7 +55,7 @@ export function SignupForm() {
           </Text>
           <Title order={1}>회원가입</Title>
           <Text c="dimmed">
-            관리자 계정을 생성하고 바로 organization 선택 화면으로 이동합니다.
+            관리자 계정을 만들고 organization 선택 화면으로 바로 이동합니다.
           </Text>
         </Stack>
 
@@ -71,8 +71,7 @@ export function SignupForm() {
         ) : null}
 
         <Alert color="blue" radius="lg" variant="light">
-          loginId는 영문자로 시작하는 4~20자여야 하고, 비밀번호는 영문과 숫자를 모두 포함한
-          8자 이상이어야 합니다.
+          loginId는 영문자로 시작하는 4~20자, 비밀번호는 영문과 숫자를 모두 포함한 8자 이상이어야 합니다.
         </Alert>
 
         <form onSubmit={handleSubmit}>
@@ -118,4 +117,3 @@ export function SignupForm() {
     </Paper>
   );
 }
-

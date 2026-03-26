@@ -55,7 +55,7 @@ export function LoginForm() {
           </Text>
           <Title order={1}>로그인</Title>
           <Text c="dimmed">
-            JWT 기반 관리자 콘솔에 로그인해 organization별 overview를 확인합니다.
+            관리자 콘솔에 로그인해 organization별 overview와 API key 상태를 확인합니다.
           </Text>
         </Stack>
 
@@ -101,7 +101,7 @@ export function LoginForm() {
             </Button>
             <Group justify="space-between" mt={4}>
               <Text c="dimmed" size="sm">
-                계정이 없나요?
+                아직 계정이 없나요?
               </Text>
               <Text component={Link} href="/signup" c="blue.7" fw={700} size="sm">
                 회원가입으로 이동
