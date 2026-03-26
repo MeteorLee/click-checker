@@ -4,19 +4,34 @@ import { ConsoleFrame } from "@/components/common/console-frame";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { SummaryCard } from "@/components/dashboard/summary-card";
-import { fetchMe } from "@/lib/api/auth";
+import {
+  fetchMe,
+  fetchOrganizationApiKeyMetadata,
+  rotateOrganizationApiKey,
+} from "@/lib/api/auth";
 import { fetchOverview } from "@/lib/api/analytics";
 import { getAccessToken } from "@/lib/session/token-store";
 import { getOverviewRange } from "@/lib/utils/date";
-import { formatNumber, formatPercent } from "@/lib/utils/format";
+import {
+  formatDateTime,
+  formatNumber,
+  formatPercent,
+} from "@/lib/utils/format";
 import type { ActivityOverviewResponse } from "@/types/analytics";
+import type {
+  AdminOrganizationApiKeyMetadataResponse,
+  AdminOrganizationApiKeyRotateResponse,
+} from "@/types/auth";
 import {
   Alert,
   Badge,
   Button,
+  Code,
   Container,
+  CopyButton,
   Group,
   Loader,
+  Modal,
   Paper,
   Select,
   SegmentedControl,
@@ -25,7 +40,13 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconCheck,
+  IconCopy,
+  IconKey,
+  IconRefresh,
+} from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -41,8 +62,19 @@ type DashboardState = {
   range: {
     from: string;
     to: string;
+    displayFrom: string;
+    displayTo: string;
   };
   overview: ActivityOverviewResponse;
+  apiKeyMetadata: AdminOrganizationApiKeyMetadataResponse;
+};
+
+type RotatedApiKeyState = {
+  organizationId: string;
+  organizationName: string;
+  apiKey: string;
+  apiKeyPrefix: string;
+  rotatedAt: string | null;
 };
 
 export default function DashboardPage() {
@@ -52,6 +84,9 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<OverviewRangePreset>("7d");
+  const [isRotatingApiKey, setIsRotatingApiKey] = useState(false);
+  const [apiKeyActionError, setApiKeyActionError] = useState<string | null>(null);
+  const [rotatedApiKey, setRotatedApiKey] = useState<RotatedApiKeyState | null>(null);
 
   function resolveRangeDays(rangePreset: OverviewRangePreset) {
     if (rangePreset === "1d") {
@@ -90,6 +125,11 @@ export default function DashboardPage() {
           (membership) => String(membership.organizationId) === organizationId,
         );
 
+        const apiKeyMetadata = await fetchOrganizationApiKeyMetadata(
+          accessToken,
+          organizationId,
+        );
+
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${organizationId}`,
           memberships: me.memberships.map((membership) => ({
@@ -99,6 +139,7 @@ export default function DashboardPage() {
           })),
           range,
           overview,
+          apiKeyMetadata,
         });
       } catch (error) {
         const status = "status" in (error as object) ? (error as { status?: number }).status : undefined;
@@ -167,11 +208,135 @@ export default function DashboardPage() {
     return null;
   }
 
+  async function handleRotateApiKey() {
+    const accessToken = getAccessToken();
+    const currentData = data;
+
+    if (!accessToken) {
+      router.replace("/login");
+      return;
+    }
+
+    if (!currentData) {
+      return;
+    }
+
+    setApiKeyActionError(null);
+    setIsRotatingApiKey(true);
+
+    try {
+      const result: AdminOrganizationApiKeyRotateResponse =
+        await rotateOrganizationApiKey(accessToken, params.organizationId);
+
+      setData((previous) =>
+        previous
+          ? {
+              ...previous,
+              apiKeyMetadata: {
+                ...previous.apiKeyMetadata,
+                apiKeyPrefix: result.apiKeyPrefix,
+                rotatedAt: result.rotatedAt,
+              },
+            }
+          : previous,
+      );
+
+      setRotatedApiKey({
+        organizationId: params.organizationId,
+        organizationName: currentData.organizationName,
+        apiKey: result.apiKey,
+        apiKeyPrefix: result.apiKeyPrefix,
+        rotatedAt: result.rotatedAt,
+      });
+    } catch (error) {
+      setApiKeyActionError(
+        error instanceof Error
+          ? error.message
+          : "API key를 회전하지 못했습니다.",
+      );
+    } finally {
+      setIsRotatingApiKey(false);
+    }
+  }
+
   return (
     <ConsoleFrame>
+      <Modal
+        centered
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        opened={rotatedApiKey !== null}
+        radius="28px"
+        size="lg"
+        title="새 API Key가 발급되었습니다"
+        onClose={() => setRotatedApiKey(null)}
+      >
+        {rotatedApiKey ? (
+          <Stack gap="lg">
+            <Text c="dimmed" size="sm">
+              <Text component="span" fw={700} inherit>
+                {rotatedApiKey.organizationName}
+              </Text>
+              의 새 수집용 API key입니다. 전체 키는 지금 한 번만 확인할 수 있습니다.
+            </Text>
+
+            <Paper radius="24px" p="lg" withBorder bg="gray.0">
+              <Stack gap="xs">
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                  New API Key
+                </Text>
+                <Code block>{rotatedApiKey.apiKey}</Code>
+              </Stack>
+            </Paper>
+
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              <Paper radius="20px" p="md" withBorder>
+                <Stack gap={4}>
+                  <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                    Prefix
+                  </Text>
+                  <Text fw={700}>{rotatedApiKey.apiKeyPrefix}</Text>
+                </Stack>
+              </Paper>
+              <Paper radius="20px" p="md" withBorder>
+                <Stack gap={4}>
+                  <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                    Rotated At
+                  </Text>
+                  <Text fw={700}>{formatDateTime(rotatedApiKey.rotatedAt)}</Text>
+                </Stack>
+              </Paper>
+            </SimpleGrid>
+
+            <Alert color="yellow" radius="lg" variant="light">
+              기존 키는 더 이상 사용되지 않습니다. 클라이언트 설정을 새 키로 바로 교체하세요.
+            </Alert>
+
+            <Group justify="space-between">
+              <CopyButton value={rotatedApiKey.apiKey}>
+                {({ copied, copy }) => (
+                  <Button
+                    color={copied ? "teal" : "dark"}
+                    leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                    radius="xl"
+                    variant={copied ? "filled" : "light"}
+                    onClick={copy}
+                  >
+                    {copied ? "복사됨" : "API Key 복사"}
+                  </Button>
+                )}
+              </CopyButton>
+              <Button radius="xl" onClick={() => setRotatedApiKey(null)}>
+                확인
+              </Button>
+            </Group>
+          </Stack>
+        ) : null}
+      </Modal>
+
       <ConsoleHeader
         title={data.organizationName}
-        subtitle={`${selectedRange === "1d" ? "최근 1일" : selectedRange === "30d" ? "최근 30일" : "최근 7일"} 기준 overview입니다. 기간은 ${data.range.from}부터 ${data.range.to}까지입니다.`}
+        subtitle={`${selectedRange === "1d" ? "최근 1일" : selectedRange === "30d" ? "최근 30일" : "최근 7일"} 기준 overview입니다. 기간은 ${data.range.displayFrom}부터 ${data.range.displayTo}까지입니다.`}
         backHref="/organizations"
         badge="Analytics"
       />
@@ -255,6 +420,80 @@ export default function DashboardPage() {
                   </Stack>
                 </Paper>
               </SimpleGrid>
+
+              <Paper radius="24px" p="lg" withBorder bg="gray.0">
+                <Stack gap="md">
+                  <Group justify="space-between" align="flex-start">
+                    <Group gap="sm" wrap="nowrap">
+                      <Badge color="dark" leftSection={<IconKey size={12} />} variant="light">
+                        API Key
+                      </Badge>
+                      <Stack gap={0}>
+                        <Text fw={700}>수집용 API key 관리</Text>
+                        <Text c="dimmed" size="sm">
+                          prefix와 사용 상태를 확인하고 필요하면 새 키로 rotate할 수 있습니다.
+                        </Text>
+                      </Stack>
+                    </Group>
+                    <Button
+                      color="dark"
+                      leftSection={<IconRefresh size={16} />}
+                      loading={isRotatingApiKey}
+                      radius="xl"
+                      variant="light"
+                      onClick={handleRotateApiKey}
+                    >
+                      API Key 재발급
+                    </Button>
+                  </Group>
+
+                  {apiKeyActionError ? (
+                    <Alert
+                      color="red"
+                      icon={<IconAlertCircle size={18} />}
+                      radius="lg"
+                      variant="light"
+                    >
+                      {apiKeyActionError}
+                    </Alert>
+                  ) : null}
+
+                  <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="md">
+                    <Paper radius="20px" p="md" withBorder bg="white">
+                      <Stack gap={4}>
+                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                          Prefix
+                        </Text>
+                        <Text fw={700}>{data.apiKeyMetadata.apiKeyPrefix}</Text>
+                      </Stack>
+                    </Paper>
+                    <Paper radius="20px" p="md" withBorder bg="white">
+                      <Stack gap={4}>
+                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                          Status
+                        </Text>
+                        <Text fw={700}>{data.apiKeyMetadata.status}</Text>
+                      </Stack>
+                    </Paper>
+                    <Paper radius="20px" p="md" withBorder bg="white">
+                      <Stack gap={4}>
+                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                          Last Used
+                        </Text>
+                        <Text fw={700}>{formatDateTime(data.apiKeyMetadata.lastUsedAt)}</Text>
+                      </Stack>
+                    </Paper>
+                    <Paper radius="20px" p="md" withBorder bg="white">
+                      <Stack gap={4}>
+                        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                          Rotated At
+                        </Text>
+                        <Text fw={700}>{formatDateTime(data.apiKeyMetadata.rotatedAt)}</Text>
+                      </Stack>
+                    </Paper>
+                  </SimpleGrid>
+                </Stack>
+              </Paper>
             </Stack>
           </Paper>
 

@@ -31,3 +31,18 @@ export function formatSignedPercent(value: number | null | undefined) {
   return value > 0 ? `+${percent}%` : `${percent}%`;
 }
 
+export function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Seoul",
+  }).format(new Date(value));
+}

@@ -11,12 +11,19 @@ export function formatLocalDate(date: Date) {
 }
 
 export function getOverviewRange(days: number) {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - (days - 1));
+  const endExclusive = new Date();
+  endExclusive.setDate(endExclusive.getDate() + 1);
+
+  const start = new Date(endExclusive);
+  start.setDate(endExclusive.getDate() - days);
+
+  const displayEnd = new Date(endExclusive);
+  displayEnd.setDate(endExclusive.getDate() - 1);
 
   return {
     from: formatLocalDate(start),
-    to: formatLocalDate(end),
+    to: formatLocalDate(endExclusive),
+    displayFrom: formatLocalDate(start),
+    displayTo: formatLocalDate(displayEnd),
   };
 }

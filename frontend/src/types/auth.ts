@@ -37,3 +37,30 @@ export type AdminMeResponse = {
   status: string;
   memberships: AdminMeMembership[];
 };
+
+export type AdminOrganizationCreateRequest = {
+  name: string;
+};
+
+export type AdminOrganizationCreateResponse = {
+  organizationId: number;
+  name: string;
+  ownerMembershipId: number;
+  apiKey: string;
+  apiKeyPrefix: string;
+};
+
+export type AdminOrganizationApiKeyMetadataResponse = {
+  kid: string;
+  apiKeyPrefix: string;
+  status: string;
+  createdAt: string | null;
+  rotatedAt: string | null;
+  lastUsedAt: string | null;
+};
+
+export type AdminOrganizationApiKeyRotateResponse = {
+  apiKey: string;
+  apiKeyPrefix: string;
+  rotatedAt: string | null;
+};
