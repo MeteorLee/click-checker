@@ -580,6 +580,8 @@ export default function DashboardPage() {
             <SummaryCard
               title="Top Event Types"
               description="정규화된 event type 기준 상위 이벤트"
+              actionHref={`/dashboard/${params.organizationId}/event-types`}
+              actionLabel="전체 보기"
               emptyMessage="표시할 event type 데이터가 없습니다."
               items={data.overview.topEventTypes.map((eventType) => ({
                 label: eventType.eventType,

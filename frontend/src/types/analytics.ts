@@ -46,3 +46,17 @@ export type RouteAggregateResponse = {
   top: number;
   items: RouteAggregateItem[];
 };
+
+export type CanonicalEventTypeAggregateItem = {
+  canonicalEventType: string;
+  count: number;
+};
+
+export type CanonicalEventTypeAggregateResponse = {
+  organizationId: number;
+  externalUserId: string | null;
+  from: string;
+  to: string;
+  top: number;
+  items: CanonicalEventTypeAggregateItem[];
+};

@@ -2,6 +2,7 @@ import { ApiError } from "@/lib/api/auth";
 import { buildApiUrl } from "@/lib/api/config";
 import type {
   ActivityOverviewResponse,
+  CanonicalEventTypeAggregateResponse,
   RouteAggregateResponse,
 } from "@/types/analytics";
 
@@ -15,10 +16,10 @@ function formatErrorMessage(status: number) {
   }
 
   if (status === 400) {
-    return "overview 조회 파라미터가 올바르지 않습니다.";
+    return "analytics 조회 파라미터가 올바르지 않습니다.";
   }
 
-  return "overview 데이터를 불러오지 못했습니다.";
+  return "analytics 데이터를 불러오지 못했습니다.";
 }
 
 export async function fetchOverview(
@@ -71,4 +72,31 @@ export async function fetchRoutes(
   }
 
   return (await response.json()) as RouteAggregateResponse;
+}
+
+export async function fetchEventTypes(
+  accessToken: string,
+  organizationId: string,
+  from: string,
+  to: string,
+  top = 30,
+) {
+  const url = new URL(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/event-types`),
+  );
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+  url.searchParams.set("top", String(top));
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as CanonicalEventTypeAggregateResponse;
 }
