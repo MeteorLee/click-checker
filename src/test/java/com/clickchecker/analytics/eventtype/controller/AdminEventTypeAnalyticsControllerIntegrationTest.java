@@ -92,6 +92,21 @@ class AdminEventTypeAnalyticsControllerIntegrationTest extends AnalyticsControll
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void eventTypes_returnsBadRequest_whenRangeExceedsNinetyDays() throws Exception {
+        Organization organization = saveOrganization("acme");
+        Account viewer = saveAccount("viewer02");
+        saveMembership(viewer, organization, OrganizationRole.VIEWER);
+
+        mockMvc.perform(
+                        get("/api/v1/admin/organizations/{organizationId}/analytics/event-types", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, bearerToken(viewer))
+                                .param("from", "2026-01-01")
+                                .param("to", "2026-04-02")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
     private Account saveAccount(String loginId) {
         return accountRepository.save(Account.builder()
                 .loginId(loginId)

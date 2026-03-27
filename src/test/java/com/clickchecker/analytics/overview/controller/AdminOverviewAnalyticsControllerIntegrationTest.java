@@ -127,6 +127,21 @@ class AdminOverviewAnalyticsControllerIntegrationTest extends AnalyticsControlle
     }
 
     @Test
+    void overview_returnsBadRequest_whenRangeExceedsNinetyDays() throws Exception {
+        Organization organization = saveOrganization("acme");
+        Account viewer = saveAccount("viewer02");
+        saveMembership(viewer, organization, OrganizationRole.VIEWER);
+
+        mockMvc.perform(
+                        get("/api/v1/admin/organizations/{organizationId}/analytics/overview", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, bearerToken(viewer))
+                                .param("from", "2026-01-01")
+                                .param("to", "2026-04-02")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void overview_matchesKeyBasedOverviewForCoreMetrics() throws Exception {
         Organization organization = saveOrganization("acme");
         String apiKey = issueApiKey(organization);

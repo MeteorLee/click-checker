@@ -4,6 +4,7 @@ import com.clickchecker.analytics.activity.controller.response.ActivityOverviewR
 import com.clickchecker.analytics.overview.service.AdminOverviewAnalyticsService;
 import com.clickchecker.security.principal.AdminPrincipal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/v1/admin/organizations/{organizationId}/analytics")
 public class AdminOverviewAnalyticsController {
+
+    private static final long MAX_RANGE_DAYS = 90;
 
     private final AdminOverviewAnalyticsService adminOverviewAnalyticsService;
 
@@ -41,6 +44,13 @@ public class AdminOverviewAnalyticsController {
     private void validateTimeRange(LocalDate from, LocalDate to) {
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+
+        if (ChronoUnit.DAYS.between(from, to) > MAX_RANGE_DAYS) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "`from` and `to` must span at most " + MAX_RANGE_DAYS + " days."
+            );
         }
     }
 }

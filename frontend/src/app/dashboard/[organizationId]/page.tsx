@@ -11,7 +11,12 @@ import {
 } from "@/lib/api/auth";
 import { fetchOverview } from "@/lib/api/analytics";
 import { getAccessToken } from "@/lib/session/token-store";
-import { getCustomOverviewRange, getOverviewRange } from "@/lib/utils/date";
+import {
+  getCustomOverviewRange,
+  getInclusiveDateRangeLengthDays,
+  getOverviewRange,
+  MAX_ANALYTICS_RANGE_DAYS,
+} from "@/lib/utils/date";
 import {
   formatDateTime,
   formatNumber,
@@ -318,6 +323,12 @@ export default function DashboardPage() {
 
     if (customFrom > customTo) {
       setRangeValidationMessage("시작일은 종료일보다 늦을 수 없습니다.");
+      return;
+    }
+
+    const rangeLengthDays = getInclusiveDateRangeLengthDays(customFrom, customTo);
+    if (rangeLengthDays > MAX_ANALYTICS_RANGE_DAYS) {
+      setRangeValidationMessage(`조회 기간은 최대 ${MAX_ANALYTICS_RANGE_DAYS}일까지 선택할 수 있습니다.`);
       return;
     }
 

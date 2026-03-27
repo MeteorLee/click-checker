@@ -4,6 +4,7 @@ import com.clickchecker.analytics.aggregate.controller.response.RouteAggregateRe
 import com.clickchecker.analytics.routes.service.AdminRouteAnalyticsService;
 import com.clickchecker.security.principal.AdminPrincipal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +22,7 @@ public class AdminRouteAnalyticsController {
 
     private static final int MIN_TOP = 1;
     private static final int MAX_TOP = 100;
+    private static final long MAX_RANGE_DAYS = 90;
 
     private final AdminRouteAnalyticsService adminRouteAnalyticsService;
 
@@ -55,6 +57,13 @@ public class AdminRouteAnalyticsController {
     private void validateTimeRange(LocalDate from, LocalDate to) {
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "`from` must be before `to`.");
+        }
+
+        if (ChronoUnit.DAYS.between(from, to) > MAX_RANGE_DAYS) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "`from` and `to` must span at most " + MAX_RANGE_DAYS + " days."
+            );
         }
     }
 
