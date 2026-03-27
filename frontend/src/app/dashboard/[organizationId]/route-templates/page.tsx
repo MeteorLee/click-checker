@@ -306,9 +306,14 @@ export default function RouteTemplatesPage() {
                     path를 어떤 route key로 묶을지와 우선순위를 관리합니다.
                   </Text>
                 </div>
-                <Badge color="dark" radius="xl" variant="light">
-                  {data.items.length} rules
-                </Badge>
+                <Stack gap="xs" align="flex-end">
+                  <Badge color="dark" radius="xl" variant="light">
+                    {data.items.length} rules
+                  </Badge>
+                  <Badge color={canManage ? "blue" : "gray"} radius="xl" variant="light">
+                    {canManage ? "ADMIN 이상 수정 가능" : "VIEWER는 조회만 가능"}
+                  </Badge>
+                </Stack>
               </Group>
 
               {submitErrorMessage ? (
@@ -319,12 +324,7 @@ export default function RouteTemplatesPage() {
 
               <Paper p="lg" radius="24px" withBorder>
                 <Stack gap="md">
-                  <Group justify="space-between" align="center">
-                    <Text fw={700}>새 route template 추가</Text>
-                    <Badge color={canManage ? "blue" : "gray"} variant="light">
-                      {canManage ? "ADMIN 이상 수정 가능" : "VIEWER는 조회만 가능"}
-                    </Badge>
-                  </Group>
+                  <Text fw={700}>새 route template 추가</Text>
                   <Group align="flex-end" grow>
                     <TextInput
                       disabled={!canManage}

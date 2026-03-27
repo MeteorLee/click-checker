@@ -294,9 +294,14 @@ export default function EventTypeMappingsPage() {
                     raw event type를 어떤 canonical event type으로 묶을지 관리합니다.
                   </Text>
                 </div>
-                <Badge color="dark" radius="xl" variant="light">
-                  {data.items.length} mappings
-                </Badge>
+                <Stack gap="xs" align="flex-end">
+                  <Badge color="dark" radius="xl" variant="light">
+                    {data.items.length} mappings
+                  </Badge>
+                  <Badge color={canManage ? "teal" : "gray"} radius="xl" variant="light">
+                    {canManage ? "ADMIN 이상 수정 가능" : "VIEWER는 조회만 가능"}
+                  </Badge>
+                </Stack>
               </Group>
 
               {submitErrorMessage ? (
@@ -307,12 +312,7 @@ export default function EventTypeMappingsPage() {
 
               <Paper p="lg" radius="24px" withBorder>
                 <Stack gap="md">
-                  <Group justify="space-between" align="center">
-                    <Text fw={700}>새 canonical event type 규칙 추가</Text>
-                    <Badge color={canManage ? "teal" : "gray"} variant="light">
-                      {canManage ? "ADMIN 이상 수정 가능" : "VIEWER는 조회만 가능"}
-                    </Badge>
-                  </Group>
+                  <Text fw={700}>새 canonical event type 규칙 추가</Text>
                   <Group align="flex-end" grow>
                     <TextInput
                       disabled={!canManage}

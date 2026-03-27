@@ -300,17 +300,22 @@ export default function ApiKeyPage() {
                     현재 key 상태를 확인하고, 필요한 경우 새 키로 재발급합니다.
                   </Text>
                 </div>
-                <Button
-                  color="dark"
-                  leftSection={<IconRefresh size={16} />}
-                  disabled={!data.metadata || data.currentRole !== "OWNER"}
-                  loading={isRotating}
-                  radius="xl"
-                  variant="light"
-                  onClick={handleRotate}
-                >
-                  API Key 재발급
-                </Button>
+                <Stack gap="xs" align="flex-end">
+                  <Badge color={data.currentRole === "OWNER" ? "dark" : "gray"} radius="xl" variant="light">
+                    현재 역할: {data.currentRole ?? "UNKNOWN"}
+                  </Badge>
+                  <Button
+                    color="dark"
+                    leftSection={<IconRefresh size={16} />}
+                    disabled={!data.metadata || data.currentRole !== "OWNER"}
+                    loading={isRotating}
+                    radius="xl"
+                    variant="light"
+                    onClick={handleRotate}
+                  >
+                    API Key 재발급
+                  </Button>
+                </Stack>
               </Group>
 
               {actionError ? (

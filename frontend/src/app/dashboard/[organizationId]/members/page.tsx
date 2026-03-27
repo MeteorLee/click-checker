@@ -311,9 +311,14 @@ export default function MembersPage() {
                     </Text>
                   </div>
                 </Group>
-                <Badge color={isOwner ? "blue" : "gray"} variant="light">
-                  현재 역할: {data.currentRole ?? "UNKNOWN"}
-                </Badge>
+                <Stack gap="xs" align="flex-end">
+                  <Badge color={isOwner ? "blue" : "gray"} variant="light">
+                    현재 역할: {data.currentRole ?? "UNKNOWN"}
+                  </Badge>
+                  <Badge color="dark" radius="xl" variant="light">
+                    {data.members.length} members
+                  </Badge>
+                </Stack>
               </Group>
 
               <Paper bg="gray.0" p="md" radius="20px" withBorder>
@@ -394,9 +399,9 @@ export default function MembersPage() {
                 <Text fw={700} size="lg">
                   현재 멤버
                 </Text>
-                <Badge color="dark" radius="xl" variant="light">
-                  {data.members.length} members
-                </Badge>
+                <Text c="dimmed" size="sm">
+                  계정 상태와 역할을 함께 확인합니다.
+                </Text>
               </Group>
 
               <Table highlightOnHover horizontalSpacing="md" verticalSpacing="md">

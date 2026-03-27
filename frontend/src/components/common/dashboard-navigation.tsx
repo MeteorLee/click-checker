@@ -15,6 +15,9 @@ import {
   IconChartLine,
   IconFilterBolt,
   IconGitBranch,
+  IconKey,
+  IconRoute2,
+  IconTags,
   IconUsers,
   IconUsersGroup,
 } from "@tabler/icons-react";
@@ -98,17 +101,17 @@ export function DashboardNavigation() {
         {
           label: "Route Rules",
           href: `/dashboard/${organizationId}/route-templates`,
-          icon: IconAdjustments,
+          icon: IconRoute2,
         },
         {
           label: "Event Type Rules",
           href: `/dashboard/${organizationId}/event-type-mappings`,
-          icon: IconAdjustments,
+          icon: IconTags,
         },
         {
           label: "API Key",
           href: `/dashboard/${organizationId}/api-key`,
-          icon: IconAdjustments,
+          icon: IconKey,
         },
         {
           label: "Members",
@@ -123,6 +126,15 @@ export function DashboardNavigation() {
     <aside className="dashboard-sidebar">
       <Paper className="console-panel dashboard-sidebar-panel" p="md" radius="24px" shadow="xs" withBorder>
         <Stack gap="md">
+          <Stack gap={4}>
+            <Text fw={800} size="lg">
+              Click Checker
+            </Text>
+            <Text c="dimmed" size="sm">
+              Admin Console
+            </Text>
+          </Stack>
+
           {sections.map((section) => (
             <Stack key={section.title} gap="xs">
               <Group justify="space-between" align="center">
@@ -162,14 +174,16 @@ export function DashboardNavigation() {
                     >
                       <Group gap="xs" justify="space-between" wrap="nowrap">
                         <Group gap="xs" wrap="nowrap">
-                        <Icon size={16} />
-                        <Text fw={active ? 700 : 600} size="sm">
-                          {item.label}
-                        </Text>
+                          <Icon size={16} />
+                          <Text fw={active ? 700 : 600} size="sm">
+                            {item.label}
+                          </Text>
                         </Group>
-                        <Text c={active ? "blue.7" : "dimmed"} fw={700} size="xs">
-                          OPEN
-                        </Text>
+                        {active ? (
+                          <Badge color="blue" radius="xl" size="xs" variant="light">
+                            현재
+                          </Badge>
+                        ) : null}
                       </Group>
                     </UnstyledButton>
                   );
