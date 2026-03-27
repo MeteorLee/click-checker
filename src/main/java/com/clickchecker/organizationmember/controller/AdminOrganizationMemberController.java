@@ -1,6 +1,7 @@
 package com.clickchecker.organizationmember.controller;
 
 import com.clickchecker.organizationmember.controller.request.AdminOrganizationMemberCreateRequest;
+import com.clickchecker.organizationmember.controller.request.AdminOrganizationLeaveRequest;
 import com.clickchecker.organizationmember.controller.request.AdminOrganizationMemberUpdateRoleRequest;
 import com.clickchecker.organizationmember.controller.response.AdminOrganizationMemberListResponse;
 import com.clickchecker.organizationmember.mapper.AdminOrganizationMemberResponseMapper;
@@ -76,6 +77,21 @@ public class AdminOrganizationMemberController {
     ) {
         Long accountId = principal.accountId();
         organizationMemberCommandService.removeMember(accountId, organizationId, memberId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/membership")
+    public ResponseEntity<Void> leaveOrganization(
+            @AuthenticationPrincipal AdminPrincipal principal,
+            @PathVariable Long organizationId,
+            @RequestBody(required = false) AdminOrganizationLeaveRequest request
+    ) {
+        Long accountId = principal.accountId();
+        organizationMemberCommandService.leaveOrganization(
+                accountId,
+                organizationId,
+                request == null ? null : request.confirmationText()
+        );
         return ResponseEntity.noContent().build();
     }
 

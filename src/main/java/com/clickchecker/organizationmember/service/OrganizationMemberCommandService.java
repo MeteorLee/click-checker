@@ -22,6 +22,9 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class OrganizationMemberCommandService {
 
+    public static final String SOLE_OWNER_LEAVE_CONFIRMATION =
+            "혼자 남은 OWNER라 삭제 후 복구할 수 없음을 이해했습니다";
+
     private final AccountRepository accountRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
@@ -131,5 +134,33 @@ public class OrganizationMemberCommandService {
         }
 
         organizationMemberRepository.delete(targetMembership);
+    }
+
+    @Transactional
+    public void leaveOrganization(Long requesterAccountId, Long organizationId, String confirmationText) {
+        organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.ORGANIZATION_NOT_FOUND));
+
+        OrganizationMember requesterMembership = organizationMemberRepository
+                .findByAccountIdAndOrganizationId(requesterAccountId, organizationId)
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, ApiErrorMessages.FORBIDDEN));
+
+        if (requesterMembership.isOwner()) {
+            long ownerCount = organizationMemberRepository.countByOrganizationIdAndRole(organizationId, OrganizationRole.OWNER);
+
+            if (ownerCount == 1) {
+                long memberCount = organizationMemberRepository.countByOrganizationId(organizationId);
+
+                if (memberCount > 1) {
+                    throw new ResponseStatusException(CONFLICT, ApiErrorMessages.LAST_OWNER_CANNOT_BE_REMOVED);
+                }
+
+                if (!SOLE_OWNER_LEAVE_CONFIRMATION.equals(confirmationText)) {
+                    throw new ResponseStatusException(CONFLICT, ApiErrorMessages.SOLE_OWNER_CONFIRMATION_REQUIRED);
+                }
+            }
+        }
+
+        organizationMemberRepository.delete(requesterMembership);
     }
 }

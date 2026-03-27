@@ -500,6 +500,112 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
+    void leaveOrganization_returnsNoContent_whenRequesterIsAdminMember() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account admin = saveAccount("admin", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        OrganizationMember adminMembership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(admin)
+                .organization(organization)
+                .role(OrganizationRole.ADMIN)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(admin.getId()))
+                )
+                .andExpect(status().isNoContent());
+
+        assert organizationMemberRepository.findById(adminMembership.getId()).isEmpty();
+    }
+
+    @Test
+    void leaveOrganization_returnsConflict_whenRequesterIsLastOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Sole owner confirmation is required."));
+    }
+
+    @Test
+    void leaveOrganization_returnsConflict_whenRequesterIsLastOwnerButOtherMembersRemain() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Last owner cannot be removed."));
+    }
+
+    @Test
+    void leaveOrganization_returnsNoContent_whenRequesterIsSoleOwnerWithConfirmation() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "confirmationText": "혼자 남은 OWNER라 삭제 후 복구할 수 없음을 이해했습니다"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void getMembers_returnsMembers_whenRequesterIsAdmin() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()

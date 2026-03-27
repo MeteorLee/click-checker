@@ -107,6 +107,30 @@ export async function createOrganization(
   return (await response.json()) as AdminOrganizationCreateResponse;
 }
 
+export async function leaveOrganization(
+  accessToken: string,
+  organizationId: number,
+  confirmationText?: string,
+) {
+  const response = await fetch(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/members/membership`),
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        confirmationText: confirmationText ?? null,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new ApiError(await parseErrorMessage(response), response.status);
+  }
+}
+
 export async function fetchOrganizationApiKeyMetadata(
   accessToken: string,
   organizationId: string,
