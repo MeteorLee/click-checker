@@ -49,6 +49,7 @@ import {
 } from "@mantine/core";
 import {
   IconAlertCircle,
+  IconBolt,
   IconChartLine,
   IconCheck,
   IconCopy,
@@ -455,6 +456,16 @@ export default function DashboardPage() {
                     onClick={() => router.push(`/dashboard/${params.organizationId}/users`)}
                   >
                     사용자 현황 보기
+                  </Button>
+                  <Button
+                    color="orange"
+                    leftSection={<IconBolt size={18} />}
+                    radius="xl"
+                    size="md"
+                    variant="light"
+                    onClick={() => router.push(`/dashboard/${params.organizationId}/activity`)}
+                  >
+                    활동량 보기
                   </Button>
                   <Select
                     aria-label="organization 전환"

@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/api/auth";
 import { buildApiUrl } from "@/lib/api/config";
 import type {
+  AdminActivityAnalyticsResponse,
   AdminTrendResponse,
   ActivityOverviewResponse,
   CanonicalEventTypeAggregateResponse,
@@ -153,4 +154,29 @@ export async function fetchUsers(
   }
 
   return (await response.json()) as UserAnalyticsOverviewResponse;
+}
+
+export async function fetchActivity(
+  accessToken: string,
+  organizationId: string,
+  from: string,
+  to: string,
+) {
+  const url = new URL(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/activity`),
+  );
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as AdminActivityAnalyticsResponse;
 }

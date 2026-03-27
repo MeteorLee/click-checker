@@ -86,3 +86,28 @@ export type UserAnalyticsOverviewResponse = {
   returningUsers: number;
   avgEventsPerIdentifiedUser: number | null;
 };
+
+export type AdminActivityDailyItemResponse = {
+  bucketStart: string;
+  eventCount: number;
+  uniqueUserCount: number;
+};
+
+export type AdminActivityHourlyItemResponse = {
+  hourOfDay: number;
+  eventCount: number;
+};
+
+export type AdminActivityAnalyticsResponse = {
+  organizationId: number;
+  from: string;
+  to: string;
+  timezone: string;
+  totalEvents: number;
+  averageEventsPerDay: number;
+  activeDays: number;
+  peakDayBucketStart: string;
+  peakDayEventCount: number;
+  dailyActivity: AdminActivityDailyItemResponse[];
+  hourlyDistribution: AdminActivityHourlyItemResponse[];
+};
