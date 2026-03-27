@@ -64,6 +64,7 @@ export default function OrganizationsPage() {
   const [newOrganizationName, setNewOrganizationName] = useState("");
   const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreateModalOpened, setIsCreateModalOpened] = useState(false);
   const [createdOrganization, setCreatedOrganization] =
     useState<CreatedOrganizationState | null>(null);
   const [pendingDeleteMembership, setPendingDeleteMembership] =
@@ -126,6 +127,7 @@ export default function OrganizationsPage() {
         name: newOrganizationName,
       });
       setNewOrganizationName("");
+      setIsCreateModalOpened(false);
       setCreatedOrganization({
         organizationId: result.organizationId,
         organizationName: result.name,
@@ -370,6 +372,68 @@ export default function OrganizationsPage() {
 
       <Modal
         centered
+        opened={isCreateModalOpened}
+        radius="28px"
+        title="새 organization 만들기"
+        onClose={() => {
+          if (isCreating) {
+            return;
+          }
+          setIsCreateModalOpened(false);
+          setCreateErrorMessage(null);
+          setNewOrganizationName("");
+        }}
+      >
+        <Stack gap="lg">
+          <Text c="dimmed" size="sm">
+            이름을 입력하면 OWNER 권한과 수집용 API key가 함께 생성됩니다.
+          </Text>
+
+          {createErrorMessage ? (
+            <Alert color="red" icon={<IconAlertCircle size={18} />} radius="lg" variant="light">
+              {createErrorMessage}
+            </Alert>
+          ) : null}
+
+          <form onSubmit={handleCreateOrganization}>
+            <Stack gap="md">
+              <TextInput
+                label="Organization Name"
+                placeholder="My Product Team"
+                required
+                radius="xl"
+                size="md"
+                value={newOrganizationName}
+                onChange={(event) => setNewOrganizationName(event.currentTarget.value)}
+              />
+              <Group justify="flex-end">
+                <Button
+                  radius="xl"
+                  variant="subtle"
+                  onClick={() => {
+                    setIsCreateModalOpened(false);
+                    setCreateErrorMessage(null);
+                    setNewOrganizationName("");
+                  }}
+                >
+                  취소
+                </Button>
+                <Button
+                  type="submit"
+                  radius="xl"
+                  loading={isCreating}
+                  rightSection={<IconArrowRight size={16} />}
+                >
+                  생성하고 바로 보기
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Stack>
+      </Modal>
+
+      <Modal
+        centered
         closeOnClickOutside={false}
         closeOnEscape={false}
         opened={createdOrganization !== null}
@@ -491,42 +555,17 @@ export default function OrganizationsPage() {
                     </Text>
                   </div>
                 </Group>
-              </Group>
-
-              {createErrorMessage ? (
-                <Alert
-                  color="red"
-                  icon={<IconAlertCircle size={18} />}
-                  radius="lg"
-                  variant="light"
+                <Button
+                  radius="xl"
+                  rightSection={<IconArrowRight size={16} />}
+                  onClick={() => {
+                    setCreateErrorMessage(null);
+                    setIsCreateModalOpened(true);
+                  }}
                 >
-                  {createErrorMessage}
-                </Alert>
-              ) : null}
-
-              <form onSubmit={handleCreateOrganization}>
-                <Group align="flex-end">
-                  <TextInput
-                    label="Organization Name"
-                    placeholder="My Product Team"
-                    required
-                    radius="xl"
-                    size="md"
-                    style={{ flex: 1 }}
-                    value={newOrganizationName}
-                    onChange={(event) => setNewOrganizationName(event.currentTarget.value)}
-                  />
-                  <Button
-                    type="submit"
-                    radius="xl"
-                    size="md"
-                    loading={isCreating}
-                    rightSection={<IconArrowRight size={16} />}
-                  >
-                    생성하고 바로 보기
-                  </Button>
-                </Group>
-              </form>
+                  새 organization 만들기
+                </Button>
+              </Group>
             </Stack>
           </Paper>
 
