@@ -1,8 +1,8 @@
-# API 연동 (v1.1)
+# API 연동 (v1.2)
 
 ## 목표
 - 1차 프런트 콘솔에서 실제로 사용할 API 계약을 프런트 관점으로 정리한다.
-- 이번 문서는 `회원가입/로그인 -> organization 선택/생성 -> overview -> API key 관리` 흐름에 필요한 API만 다룬다.
+- 이번 문서는 `회원가입/로그인 -> organization 선택/생성 -> overview / routes / event types / trends -> API key 관리` 흐름에 필요한 API만 다룬다.
 - 백엔드 전체 API 문서를 다시 쓰기보다, 프런트에서 직접 사용할 요청/응답과 에러 처리 기준만 추린다.
 
 ---
@@ -15,13 +15,16 @@
 - `GET /api/v1/admin/me`
 - `POST /api/v1/admin/organizations`
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/overview`
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/routes`
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/event-types`
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/trends`
 - `GET /api/v1/admin/organizations/{organizationId}/api-key`
 - `POST /api/v1/admin/organizations/{organizationId}/api-key/rotate`
 
 이번 문서에서 제외하는 API:
 - refresh / logout
 - member 관리
-- routes / event-types / trends / users / activity / funnels / retention
+- users / activity / funnels / retention
 
 설명:
 - 1차 프런트는 관리자 콘솔의 핵심 데모 흐름을 닫는 것이 목적이다.
@@ -56,9 +59,13 @@
 
 ## 2.3 날짜 처리 공통 원칙
 - 프런트는 overview 조회 시 `from`, `to`를 날짜 문자열로 보낸다.
+- 프런트는 analytics 조회 시 `from`, `to`를 날짜 문자열로 보낸다.
 - timezone 파라미터는 보내지 않는다.
 - 날짜 해석은 백엔드 정책에 따라 `Asia/Seoul` 기준으로 처리된다.
 - 현재 `1일` preset은 "오늘" 구간이다.
+- analytics 조회 기간은 최대 90일이다.
+- trends의 `bucket`은 `DAY` 또는 `HOUR`다.
+- trends에서 `HOUR`는 하루 범위에서만 사용한다.
 
 ---
 
@@ -257,9 +264,112 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## 8. API key metadata 조회
+## 8. Routes 상세
 
 ## 8.1 요청
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/routes`
+
+쿼리 파라미터:
+- `from`
+- `to`
+- `top`
+
+예시:
+
+```text
+/api/v1/admin/organizations/20/analytics/routes?from=2026-03-20&to=2026-03-27&top=30
+```
+
+## 8.2 성공 응답
+
+프런트가 실제로 필요한 핵심:
+- `items[].routeKey`
+- `items[].count`
+
+## 8.3 프런트 사용 방식
+- overview의 `Top Routes`에서 `전체 보기`로 진입한다.
+- overview와 같은 기간 선택 UI를 재사용한다.
+- route별 이벤트 수를 표로 렌더링한다.
+
+---
+
+## 9. Event Types 상세
+
+## 9.1 요청
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/event-types`
+
+쿼리 파라미터:
+- `from`
+- `to`
+- `top`
+
+예시:
+
+```text
+/api/v1/admin/organizations/20/analytics/event-types?from=2026-03-20&to=2026-03-27&top=30
+```
+
+## 9.2 성공 응답
+
+프런트가 실제로 필요한 핵심:
+- `items[].canonicalEventType`
+- `items[].count`
+
+## 9.3 프런트 사용 방식
+- overview의 `Top Event Types`에서 `전체 보기`로 진입한다.
+- overview와 같은 기간 선택 UI를 재사용한다.
+- canonical event type별 이벤트 수를 표로 렌더링한다.
+
+---
+
+## 10. Trends 상세
+
+## 10.1 요청
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/trends`
+
+쿼리 파라미터:
+- `from`
+- `to`
+- `bucket`
+
+예시:
+
+```text
+/api/v1/admin/organizations/20/analytics/trends?from=2026-03-20&to=2026-03-27&bucket=DAY
+```
+
+## 10.2 성공 응답
+
+프런트가 실제로 필요한 핵심:
+- `bucket`
+- `eventCounts[].bucketStart`
+- `eventCounts[].count`
+- `uniqueUserCounts[].bucketStart`
+- `uniqueUserCounts[].count`
+
+## 10.3 프런트 사용 방식
+- overview의 `시계열 추이 보기`에서 진입한다.
+- `일 단위로 보기`
+  - 기간 전체의 일별 추이를 본다.
+- `시간 단위로 보기`
+  - 하루의 시간별 추이를 본다.
+- 두 선:
+  - 이벤트 수
+  - 고유 사용자 수
+를 같은 차트에 렌더링한다.
+
+## 10.4 trends 규칙
+- `DAY`
+  - 기간 전용
+- `HOUR`
+  - 하루 전용
+- 시간 단위로 전환하면 현재 종료일 기준 하루 범위로 자동 전환한다.
+
+---
+
+## 11. API key metadata 조회
+
+## 11.1 요청
 - `GET /api/v1/admin/organizations/{organizationId}/api-key`
 
 헤더:
@@ -268,7 +378,7 @@ Authorization: Bearer <accessToken>
 Authorization: Bearer <accessToken>
 ```
 
-## 8.2 성공 응답
+## 11.2 성공 응답
 
 프런트가 실제로 필요한 핵심:
 - `kid`
@@ -284,12 +394,12 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## 9. API key rotate
+## 12. API key rotate
 
-## 9.1 요청
+## 12.1 요청
 - `POST /api/v1/admin/organizations/{organizationId}/api-key/rotate`
 
-## 9.2 성공 응답
+## 12.2 성공 응답
 
 프런트가 실제로 필요한 핵심:
 - `apiKey`
@@ -302,7 +412,7 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## 10. 프런트 구현 메모
+## 13. 프런트 구현 메모
 
 ## 10.1 API helper 분리
 - `frontend/src/lib/api/auth.ts`
@@ -314,6 +424,9 @@ Authorization: Bearer <accessToken>
   - rotateOrganizationApiKey
 - `frontend/src/lib/api/analytics.ts`
   - overview
+  - routes
+  - event types
+  - trends
 
 원칙:
 - 페이지에서 `fetch` URL을 직접 쓰지 않는다.
