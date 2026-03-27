@@ -133,3 +133,33 @@ export type RetentionMatrixResponse = {
   days: number[];
   items: RetentionMatrixRow[];
 };
+
+export type FunnelStepDefinition = {
+  canonicalEventType: string;
+  routeKey: string | null;
+};
+
+export type FunnelStepResult = {
+  stepOrder: number;
+  step: FunnelStepDefinition;
+  users: number;
+  conversionRateFromFirstStep: number | null;
+  previousStepUsers: number | null;
+  conversionRateFromPreviousStep: number | null;
+  dropOffUsersFromPreviousStep: number | null;
+};
+
+export type FunnelReportResponse = {
+  organizationId: number;
+  externalUserId: string | null;
+  from: string;
+  to: string;
+  steps: FunnelStepDefinition[];
+  conversionWindow: string;
+  items: FunnelStepResult[];
+};
+
+export type FunnelOptionsResponse = {
+  canonicalEventTypes: string[];
+  routeKeys: string[];
+};

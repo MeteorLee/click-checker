@@ -5,6 +5,8 @@ import type {
   AdminTrendResponse,
   ActivityOverviewResponse,
   CanonicalEventTypeAggregateResponse,
+  FunnelReportResponse,
+  FunnelOptionsResponse,
   RetentionMatrixResponse,
   RouteAggregateResponse,
   UserAnalyticsOverviewResponse,
@@ -209,4 +211,53 @@ export async function fetchRetention(
   }
 
   return (await response.json()) as RetentionMatrixResponse;
+}
+
+export async function fetchFunnel(
+  accessToken: string,
+  organizationId: string,
+  payload: {
+    from: string;
+    to: string;
+    conversionWindowDays?: number;
+    steps: {
+      canonicalEventType: string;
+      routeKey?: string | null;
+    }[];
+  },
+) {
+  const response = await fetch(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/funnels/report`),
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as FunnelReportResponse;
+}
+
+export async function fetchFunnelOptions(accessToken: string, organizationId: string) {
+  const response = await fetch(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/funnels/options`),
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as FunnelOptionsResponse;
 }
