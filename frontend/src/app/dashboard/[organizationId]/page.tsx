@@ -58,6 +58,7 @@ import {
   IconKey,
   IconRefresh,
   IconRepeat,
+  IconSettings,
   IconUsers,
   IconArrowRight,
 } from "@tabler/icons-react";
@@ -145,6 +146,25 @@ export default function DashboardPage() {
       color: "lime",
       icon: IconFilter,
       href: `/dashboard/${params.organizationId}/funnels`,
+    },
+  ] as const;
+
+  const settingsLinks = [
+    {
+      title: "Route 규칙 관리",
+      description: "template, route key, priority, 활성 상태를 관리합니다.",
+      color: "blue",
+      icon: IconSettings,
+      href: `/dashboard/${params.organizationId}/route-templates`,
+      cta: "규칙 열기",
+    },
+    {
+      title: "Event Type 규칙 관리",
+      description: "raw event type와 canonical event type 매핑을 관리합니다.",
+      color: "teal",
+      icon: IconSettings,
+      href: `/dashboard/${params.organizationId}/event-type-mappings`,
+      cta: "규칙 열기",
     },
   ] as const;
 
@@ -622,6 +642,79 @@ export default function DashboardPage() {
                   );
                 })}
               </SimpleGrid>
+
+              <Paper radius="28px" p="lg" withBorder bg="gray.0">
+                <Stack gap="md">
+                  <div>
+                    <Text fw={700} size="lg">
+                      설정
+                    </Text>
+                    <Text c="dimmed" size="sm">
+                      정규화 규칙을 수정해야 분석 결과가 더 의미 있게 보입니다.
+                    </Text>
+                  </div>
+
+                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                    {settingsLinks.map((item) => {
+                      const Icon = item.icon;
+
+                      return (
+                        <Paper
+                          key={item.href}
+                          component="button"
+                          p="lg"
+                          radius="24px"
+                          shadow="xs"
+                          type="button"
+                          withBorder
+                          style={{
+                            cursor: "pointer",
+                            textAlign: "left",
+                            background:
+                              item.color === "teal"
+                                ? "linear-gradient(180deg, rgba(13, 148, 136, 0.07), rgba(255, 255, 255, 0.98))"
+                                : "linear-gradient(180deg, rgba(59, 130, 246, 0.07), rgba(255, 255, 255, 0.98))",
+                            transition:
+                              "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
+                          }}
+                          onMouseEnter={(event) => {
+                            event.currentTarget.style.transform = "translateY(-2px)";
+                            event.currentTarget.style.boxShadow =
+                              "0 14px 28px rgba(15, 23, 42, 0.08)";
+                            event.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.18)";
+                          }}
+                          onMouseLeave={(event) => {
+                            event.currentTarget.style.transform = "translateY(0)";
+                            event.currentTarget.style.boxShadow = "";
+                            event.currentTarget.style.borderColor = "";
+                          }}
+                          onClick={() => router.push(item.href)}
+                        >
+                          <Stack gap="md">
+                            <Group justify="space-between" align="flex-start" wrap="nowrap">
+                              <ThemeIcon color={item.color} radius="xl" size={40} variant="light">
+                                <Icon size={20} />
+                              </ThemeIcon>
+                              <ThemeIcon color={item.color} radius="xl" size={28} variant="subtle">
+                                <IconArrowRight size={16} />
+                              </ThemeIcon>
+                            </Group>
+                            <Stack gap={6}>
+                              <Text fw={700}>{item.title}</Text>
+                              <Text c="dimmed" size="sm">
+                                {item.description}
+                              </Text>
+                              <Text c={item.color} fw={700} size="sm">
+                                {item.cta}
+                              </Text>
+                            </Stack>
+                          </Stack>
+                        </Paper>
+                      );
+                    })}
+                  </SimpleGrid>
+                </Stack>
+              </Paper>
 
               <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
                 <Paper radius="24px" p="lg" bg="blue.0" className="console-soft-panel">

@@ -29,7 +29,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle } from "@tabler/icons-react";
+import { IconAlertCircle, IconSettings } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -213,6 +213,15 @@ export default function RoutesPage() {
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
+                  <Button
+                    leftSection={<IconSettings size={16} />}
+                    radius="xl"
+                    size="sm"
+                    variant="default"
+                    onClick={() => router.push(`/dashboard/${params.organizationId}/route-templates`)}
+                  >
+                    Route 규칙 관리
+                  </Button>
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
                   </Text>
