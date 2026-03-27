@@ -1,6 +1,7 @@
 package com.clickchecker.organizationmember.controller;
 
 import com.clickchecker.organizationmember.controller.request.AdminOrganizationMemberCreateRequest;
+import com.clickchecker.organizationmember.controller.request.AdminOrganizationMemberInviteRequest;
 import com.clickchecker.organizationmember.controller.request.AdminOrganizationLeaveRequest;
 import com.clickchecker.organizationmember.controller.request.AdminOrganizationMemberUpdateRoleRequest;
 import com.clickchecker.organizationmember.controller.response.AdminOrganizationMemberListResponse;
@@ -45,6 +46,25 @@ public class AdminOrganizationMemberController {
                                 accountId,
                                 organizationId,
                                 request.accountId(),
+                                request.role()
+                        )
+                )
+        );
+    }
+
+    @PostMapping("/by-login-id")
+    public ResponseEntity<AdminOrganizationMemberResponse> addMemberByLoginId(
+            @AuthenticationPrincipal AdminPrincipal principal,
+            @PathVariable Long organizationId,
+            @RequestBody @Valid AdminOrganizationMemberInviteRequest request
+    ) {
+        Long accountId = principal.accountId();
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                adminOrganizationMemberResponseMapper.toResponse(
+                        organizationMemberCommandService.addMemberByLoginId(
+                                accountId,
+                                organizationId,
+                                request.loginId(),
                                 request.role()
                         )
                 )

@@ -177,6 +177,67 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
+    void addMemberByLoginId_returnsCreated_whenRequesterIsOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members/by-login-id", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "member",
+                                          "role": "ADMIN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.accountId").value(member.getId()))
+                .andExpect(jsonPath("$.loginId").value("member"))
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+    }
+
+    @Test
+    void addMemberByLoginId_returnsNotFound_whenLoginIdDoesNotExist() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members/by-login-id", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "missing",
+                                          "role": "VIEWER"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Account not found."));
+    }
+
+    @Test
     void addMember_returnsConflict_whenMembershipAlreadyExists() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()

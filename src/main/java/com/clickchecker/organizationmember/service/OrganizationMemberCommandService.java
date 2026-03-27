@@ -72,6 +72,19 @@ public class OrganizationMemberCommandService {
     }
 
     @Transactional
+    public OrganizationMemberResult addMemberByLoginId(
+            Long requesterAccountId,
+            Long organizationId,
+            String targetLoginId,
+            OrganizationRole role
+    ) {
+        Account account = accountRepository.findByLoginId(targetLoginId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.ACCOUNT_NOT_FOUND));
+
+        return addMember(requesterAccountId, organizationId, account.getId(), role);
+    }
+
+    @Transactional
     public OrganizationMemberResult updateRole(
             Long requesterAccountId,
             Long organizationId,

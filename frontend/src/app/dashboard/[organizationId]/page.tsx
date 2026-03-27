@@ -166,6 +166,14 @@ export default function DashboardPage() {
       href: `/dashboard/${params.organizationId}/event-type-mappings`,
       cta: "규칙 열기",
     },
+    {
+      title: "멤버 관리",
+      description: "loginId 기준으로 멤버를 추가하고 역할과 접근 권한을 관리합니다.",
+      color: "indigo",
+      icon: IconUsers,
+      href: `/dashboard/${params.organizationId}/members`,
+      cta: "멤버 열기",
+    },
   ] as const;
 
   function getRangeLengthDays(range: AppliedRange) {
