@@ -1,4 +1,5 @@
 import { Button, Card, Group, List, Stack, Text } from "@mantine/core";
+import { IconArrowRight } from "@tabler/icons-react";
 import Link from "next/link";
 
 type SummaryItem = {
@@ -36,7 +37,14 @@ export function SummaryCard({
             </Text>
           </Stack>
           {actionHref && actionLabel ? (
-            <Button component={Link} href={actionHref} radius="xl" size="xs" variant="light">
+            <Button
+              component={Link}
+              href={actionHref}
+              radius="xl"
+              rightSection={<IconArrowRight size={14} />}
+              size="sm"
+              variant="default"
+            >
               {actionLabel}
             </Button>
           ) : null}

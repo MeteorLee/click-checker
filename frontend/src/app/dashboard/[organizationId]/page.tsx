@@ -44,7 +44,9 @@ import {
   Stack,
   Text,
   TextInput,
+  ThemeIcon,
   Title,
+  UnstyledButton,
 } from "@mantine/core";
 import {
   IconAlertCircle,
@@ -57,6 +59,7 @@ import {
   IconRefresh,
   IconRepeat,
   IconUsers,
+  IconArrowRight,
 } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -106,6 +109,44 @@ export default function DashboardPage() {
   const [isRotatingApiKey, setIsRotatingApiKey] = useState(false);
   const [apiKeyActionError, setApiKeyActionError] = useState<string | null>(null);
   const [rotatedApiKey, setRotatedApiKey] = useState<RotatedApiKeyState | null>(null);
+
+  const analyticsLinks = [
+    {
+      title: "시계열 추이",
+      description: "이벤트 수와 고유 사용자 수 변화를 시간축으로 봅니다.",
+      color: "grape",
+      icon: IconChartLine,
+      href: `/dashboard/${params.organizationId}/trends`,
+    },
+    {
+      title: "사용자 현황",
+      description: "신규/재방문 사용자와 평균 이벤트 수를 확인합니다.",
+      color: "cyan",
+      icon: IconUsers,
+      href: `/dashboard/${params.organizationId}/users`,
+    },
+    {
+      title: "활동량",
+      description: "일별 활동량과 시간대 분포를 비교합니다.",
+      color: "orange",
+      icon: IconBolt,
+      href: `/dashboard/${params.organizationId}/activity`,
+    },
+    {
+      title: "유지율",
+      description: "기준일 코호트별 재방문 비율을 확인합니다.",
+      color: "violet",
+      icon: IconRepeat,
+      href: `/dashboard/${params.organizationId}/retention`,
+    },
+    {
+      title: "Funnel",
+      description: "단계별 전환율과 이탈 구간을 분석합니다.",
+      color: "lime",
+      icon: IconFilter,
+      href: `/dashboard/${params.organizationId}/funnels`,
+    },
+  ] as const;
 
   function getRangeLengthDays(range: AppliedRange) {
     const start = new Date(`${range.displayFrom}T00:00:00`);
@@ -429,55 +470,6 @@ export default function DashboardPage() {
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
-                  <Button
-                    color="grape"
-                    leftSection={<IconChartLine size={18} />}
-                    radius="xl"
-                    size="md"
-                    onClick={() => router.push(`/dashboard/${params.organizationId}/trends`)}
-                  >
-                    시계열 추이 보기
-                  </Button>
-                  <Button
-                    color="cyan"
-                    leftSection={<IconUsers size={18} />}
-                    radius="xl"
-                    size="md"
-                    variant="light"
-                    onClick={() => router.push(`/dashboard/${params.organizationId}/users`)}
-                  >
-                    사용자 현황 보기
-                  </Button>
-                  <Button
-                    color="orange"
-                    leftSection={<IconBolt size={18} />}
-                    radius="xl"
-                    size="md"
-                    variant="light"
-                    onClick={() => router.push(`/dashboard/${params.organizationId}/activity`)}
-                  >
-                    활동량 보기
-                  </Button>
-                  <Button
-                    color="violet"
-                    leftSection={<IconRepeat size={18} />}
-                    radius="xl"
-                    size="md"
-                    variant="light"
-                    onClick={() => router.push(`/dashboard/${params.organizationId}/retention`)}
-                  >
-                    유지율 보기
-                  </Button>
-                  <Button
-                    color="lime"
-                    leftSection={<IconFilter size={18} />}
-                    radius="xl"
-                    size="md"
-                    variant="light"
-                    onClick={() => router.push(`/dashboard/${params.organizationId}/funnels`)}
-                  >
-                    funnel 보기
-                  </Button>
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
                   </Text>
@@ -565,6 +557,72 @@ export default function DashboardPage() {
                 </Stack>
               </Group>
 
+              <SimpleGrid cols={{ base: 1, sm: 2, xl: 5 }} spacing="md">
+                {analyticsLinks.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Paper
+                      key={item.href}
+                      component="button"
+                      p="lg"
+                      radius="24px"
+                      shadow="xs"
+                      type="button"
+                      withBorder
+                      style={{
+                        cursor: "pointer",
+                        textAlign: "left",
+                        background:
+                          item.color === "grape"
+                            ? "linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.98))"
+                            : item.color === "cyan"
+                              ? "linear-gradient(180deg, rgba(8, 145, 178, 0.08), rgba(255, 255, 255, 0.98))"
+                              : item.color === "orange"
+                                ? "linear-gradient(180deg, rgba(234, 88, 12, 0.08), rgba(255, 255, 255, 0.98))"
+                                : item.color === "violet"
+                                  ? "linear-gradient(180deg, rgba(139, 92, 246, 0.08), rgba(255, 255, 255, 0.98))"
+                                  : "linear-gradient(180deg, rgba(101, 163, 13, 0.08), rgba(255, 255, 255, 0.98))",
+                        transition:
+                          "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
+                      }}
+                      onMouseEnter={(event) => {
+                        event.currentTarget.style.transform = "translateY(-2px)";
+                        event.currentTarget.style.boxShadow =
+                          "0 18px 36px rgba(15, 23, 42, 0.08)";
+                        event.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.2)";
+                      }}
+                      onMouseLeave={(event) => {
+                        event.currentTarget.style.transform = "translateY(0)";
+                        event.currentTarget.style.boxShadow = "";
+                        event.currentTarget.style.borderColor = "";
+                      }}
+                      onClick={() => router.push(item.href)}
+                    >
+                      <Stack gap="md">
+                        <Group justify="space-between" align="flex-start" wrap="nowrap">
+                          <ThemeIcon color={item.color} radius="xl" size={42} variant="light">
+                            <Icon size={20} />
+                          </ThemeIcon>
+                          <ThemeIcon color={item.color} radius="xl" size={30} variant="subtle">
+                            <IconArrowRight size={16} />
+                          </ThemeIcon>
+                        </Group>
+                        <Stack gap={6}>
+                          <Text fw={700}>{item.title}</Text>
+                          <Text c="dimmed" size="sm">
+                            {item.description}
+                          </Text>
+                          <Text c={item.color} fw={700} size="sm">
+                            분석 열기
+                          </Text>
+                        </Stack>
+                      </Stack>
+                    </Paper>
+                  );
+                })}
+              </SimpleGrid>
+
               <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
                 <Paper radius="24px" p="lg" bg="blue.0" className="console-soft-panel">
                   <Stack gap={4}>
@@ -608,7 +666,7 @@ export default function DashboardPage() {
               title="Top Routes"
               description="정규화된 route 기준 상위 경로"
               actionHref={`/dashboard/${params.organizationId}/routes`}
-              actionLabel="전체 보기"
+              actionLabel="Route 상세"
               emptyMessage="표시할 route 데이터가 없습니다."
               items={data.overview.topRoutes.map((route) => ({
                 label: route.routeKey,
@@ -619,7 +677,7 @@ export default function DashboardPage() {
               title="Top Event Types"
               description="정규화된 event type 기준 상위 이벤트"
               actionHref={`/dashboard/${params.organizationId}/event-types`}
-              actionLabel="전체 보기"
+              actionLabel="Event Type 상세"
               emptyMessage="표시할 event type 데이터가 없습니다."
               items={data.overview.topEventTypes.map((eventType) => ({
                 label: eventType.eventType,
