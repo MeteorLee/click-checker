@@ -4,11 +4,7 @@ import { ConsoleFrame } from "@/components/common/console-frame";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { SummaryCard } from "@/components/dashboard/summary-card";
-import {
-  fetchMe,
-  fetchOrganizationApiKeyMetadata,
-  rotateOrganizationApiKey,
-} from "@/lib/api/auth";
+import { fetchMe } from "@/lib/api/auth";
 import { fetchOverview } from "@/lib/api/analytics";
 import { getAccessToken } from "@/lib/session/token-store";
 import {
@@ -17,26 +13,15 @@ import {
   getOverviewRange,
   MAX_ANALYTICS_RANGE_DAYS,
 } from "@/lib/utils/date";
-import {
-  formatDateTime,
-  formatNumber,
-  formatPercent,
-} from "@/lib/utils/format";
+import { formatNumber, formatPercent } from "@/lib/utils/format";
 import type { ActivityOverviewResponse } from "@/types/analytics";
-import type {
-  AdminOrganizationApiKeyMetadataResponse,
-  AdminOrganizationApiKeyRotateResponse,
-} from "@/types/auth";
 import {
   Alert,
   Badge,
   Button,
-  Code,
   Container,
-  CopyButton,
   Group,
   Loader,
-  Modal,
   Popover,
   Paper,
   SegmentedControl,
@@ -52,11 +37,7 @@ import {
   IconAlertCircle,
   IconBolt,
   IconChartLine,
-  IconCheck,
-  IconCopy,
   IconFilter,
-  IconKey,
-  IconRefresh,
   IconRepeat,
   IconSettings,
   IconUsers,
@@ -77,15 +58,6 @@ type DashboardState = {
     displayTo: string;
   };
   overview: ActivityOverviewResponse;
-  apiKeyMetadata: AdminOrganizationApiKeyMetadataResponse | null;
-};
-
-type RotatedApiKeyState = {
-  organizationId: string;
-  organizationName: string;
-  apiKey: string;
-  apiKeyPrefix: string;
-  rotatedAt: string | null;
 };
 
 type AppliedRange = {
@@ -107,9 +79,6 @@ export default function DashboardPage() {
   const [customTo, setCustomTo] = useState<string>(getOverviewRange(7).displayTo);
   const [rangeValidationMessage, setRangeValidationMessage] = useState<string | null>(null);
   const [isRangePopoverOpened, setIsRangePopoverOpened] = useState(false);
-  const [isRotatingApiKey, setIsRotatingApiKey] = useState(false);
-  const [apiKeyActionError, setApiKeyActionError] = useState<string | null>(null);
-  const [rotatedApiKey, setRotatedApiKey] = useState<RotatedApiKeyState | null>(null);
 
   const analyticsLinks = [
     {
@@ -165,6 +134,14 @@ export default function DashboardPage() {
       icon: IconSettings,
       href: `/dashboard/${params.organizationId}/event-type-mappings`,
       cta: "규칙 열기",
+    },
+    {
+      title: "API Key 관리",
+      description: "수집용 API key 상태를 확인하고 새 키로 재발급합니다.",
+      color: "dark",
+      icon: IconSettings,
+      href: `/dashboard/${params.organizationId}/api-key`,
+      cta: "API Key 열기",
     },
     {
       title: "멤버 관리",
@@ -233,30 +210,11 @@ export default function DashboardPage() {
           (membership) => String(membership.organizationId) === organizationId,
         );
 
-        let apiKeyMetadata: AdminOrganizationApiKeyMetadataResponse | null = null;
-
-        try {
-          apiKeyMetadata = await fetchOrganizationApiKeyMetadata(
-            accessToken,
-            organizationId,
-          );
-        } catch (error) {
-          const status =
-            "status" in (error as object)
-              ? (error as { status?: number }).status
-              : undefined;
-
-          if (status !== 403) {
-            throw error;
-          }
-        }
-
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${organizationId}`,
           currentRole: currentMembership?.role ?? null,
           range,
           overview,
-          apiKeyMetadata,
         });
       } catch (error) {
         const status = "status" in (error as object) ? (error as { status?: number }).status : undefined;
@@ -325,59 +283,6 @@ export default function DashboardPage() {
     return null;
   }
 
-  async function handleRotateApiKey() {
-    const accessToken = getAccessToken();
-    const currentData = data;
-
-    if (!accessToken) {
-      router.replace("/login");
-      return;
-    }
-
-    if (!currentData) {
-      return;
-    }
-
-    setApiKeyActionError(null);
-    setIsRotatingApiKey(true);
-
-    try {
-      const result: AdminOrganizationApiKeyRotateResponse =
-        await rotateOrganizationApiKey(accessToken, params.organizationId);
-
-      setData((previous) =>
-        previous
-          ? {
-              ...previous,
-              apiKeyMetadata: previous.apiKeyMetadata
-                ? {
-                    ...previous.apiKeyMetadata,
-                    apiKeyPrefix: result.apiKeyPrefix,
-                    rotatedAt: result.rotatedAt,
-                  }
-                : previous.apiKeyMetadata,
-            }
-          : previous,
-      );
-
-      setRotatedApiKey({
-        organizationId: params.organizationId,
-        organizationName: currentData.organizationName,
-        apiKey: result.apiKey,
-        apiKeyPrefix: result.apiKeyPrefix,
-        rotatedAt: result.rotatedAt,
-      });
-    } catch (error) {
-      setApiKeyActionError(
-        error instanceof Error
-          ? error.message
-          : "API key를 회전하지 못했습니다.",
-      );
-    } finally {
-      setIsRotatingApiKey(false);
-    }
-  }
-
   function handleApplyCustomRange() {
     if (!customFrom || !customTo) {
       setRangeValidationMessage("시작일과 종료일을 모두 선택하세요.");
@@ -404,79 +309,6 @@ export default function DashboardPage() {
 
   return (
     <ConsoleFrame>
-      <Modal
-        centered
-        closeOnClickOutside={false}
-        closeOnEscape={false}
-        opened={rotatedApiKey !== null}
-        radius="28px"
-        size="lg"
-        title="새 API Key가 발급되었습니다"
-        onClose={() => setRotatedApiKey(null)}
-      >
-        {rotatedApiKey ? (
-          <Stack gap="lg">
-            <Text c="dimmed" size="sm">
-              <Text component="span" fw={700} inherit>
-                {rotatedApiKey.organizationName}
-              </Text>
-              의 새 수집용 API key입니다. 전체 키는 지금 한 번만 확인할 수 있습니다.
-            </Text>
-
-            <Paper radius="24px" p="lg" withBorder bg="gray.0">
-              <Stack gap="xs">
-                <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                  New API Key
-                </Text>
-                <Code block>{rotatedApiKey.apiKey}</Code>
-              </Stack>
-            </Paper>
-
-            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-              <Paper radius="20px" p="md" withBorder>
-                <Stack gap={4}>
-                  <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                    Prefix
-                  </Text>
-                  <Text fw={700}>{rotatedApiKey.apiKeyPrefix}</Text>
-                </Stack>
-              </Paper>
-              <Paper radius="20px" p="md" withBorder>
-                <Stack gap={4}>
-                  <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                    Rotated At
-                  </Text>
-                  <Text fw={700}>{formatDateTime(rotatedApiKey.rotatedAt)}</Text>
-                </Stack>
-              </Paper>
-            </SimpleGrid>
-
-            <Alert color="yellow" radius="lg" variant="light">
-              기존 키는 더 이상 사용할 수 없습니다. 이벤트를 보내는 클라이언트 설정을 새 키로 바로 교체하세요.
-            </Alert>
-
-            <Group justify="space-between">
-              <CopyButton value={rotatedApiKey.apiKey}>
-                {({ copied, copy }) => (
-                  <Button
-                    color={copied ? "teal" : "dark"}
-                    leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                    radius="xl"
-                    variant={copied ? "filled" : "light"}
-                    onClick={copy}
-                  >
-                    {copied ? "복사됨" : "API Key 복사"}
-                  </Button>
-                )}
-              </CopyButton>
-              <Button radius="xl" onClick={() => setRotatedApiKey(null)}>
-                확인
-              </Button>
-            </Group>
-          </Stack>
-        ) : null}
-      </Modal>
-
       <ConsoleHeader
         title={data.organizationName}
         subtitle={`${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : selectedRange === "custom" ? "사용자 지정 기간" : "최근 7일"} 기준 overview입니다.`}
@@ -585,6 +417,80 @@ export default function DashboardPage() {
                 </Stack>
               </Group>
 
+              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+                <Paper radius="24px" p="lg" bg="blue.0" className="console-soft-panel">
+                  <Stack gap={4}>
+                    <Text fw={700} size="sm" c="blue.8">
+                      Route Match Coverage
+                    </Text>
+                    <Text fw={800} size="1.6rem">
+                      {formatPercent(data.overview.routeMatchCoverage)}
+                    </Text>
+                  </Stack>
+                </Paper>
+                <Paper radius="24px" p="lg" bg="teal.0" className="console-soft-panel">
+                  <Stack gap={4}>
+                    <Text fw={700} size="sm" c="teal.8">
+                      Event Type Mapping Coverage
+                    </Text>
+                    <Text fw={800} size="1.6rem">
+                      {formatPercent(data.overview.eventTypeMappingCoverage)}
+                    </Text>
+                  </Stack>
+                </Paper>
+                <Paper radius="24px" p="lg" bg="gray.0" className="console-soft-panel">
+                  <Stack gap={4}>
+                    <Text fw={700} size="sm" c="dark.6">
+                      Organization ID
+                    </Text>
+                    <Text fw={800} size="1.6rem">
+                      {formatNumber(data.overview.organizationId)}
+                    </Text>
+                  </Stack>
+                </Paper>
+              </SimpleGrid>
+
+            </Stack>
+          </Paper>
+
+          <OverviewCards overview={data.overview} />
+
+          <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="lg">
+            <SummaryCard
+              title="Top Routes"
+              description="정규화된 route 기준 상위 경로"
+              actionHref={`/dashboard/${params.organizationId}/routes`}
+              actionLabel="Route 상세"
+              emptyMessage="표시할 route 데이터가 없습니다."
+              items={data.overview.topRoutes.map((route) => ({
+                label: route.routeKey,
+                value: `${formatNumber(route.count)} events`,
+              }))}
+            />
+            <SummaryCard
+              title="Top Event Types"
+              description="정규화된 event type 기준 상위 이벤트"
+              actionHref={`/dashboard/${params.organizationId}/event-types`}
+              actionLabel="Event Type 상세"
+              emptyMessage="표시할 event type 데이터가 없습니다."
+              items={data.overview.topEventTypes.map((eventType) => ({
+                label: eventType.eventType,
+                value: `${formatNumber(eventType.count)} events`,
+              }))}
+            />
+          </SimpleGrid>
+
+          <Paper radius="28px" p="lg" withBorder bg="gray.0">
+            <Stack gap="md">
+              <div>
+                <Text fw={700} size="lg">
+                  추가 분석
+                </Text>
+                <Text c="dimmed" size="sm">
+                  overview에서 본 지표를 더 깊게 확인할 수 있는 상세 분석 화면입니다.
+                </Text>
+              </div>
+
               <SimpleGrid cols={{ base: 1, sm: 2, xl: 5 }} spacing="md">
                 {analyticsLinks.map((item) => {
                   const Icon = item.icon;
@@ -650,224 +556,82 @@ export default function DashboardPage() {
                   );
                 })}
               </SimpleGrid>
+            </Stack>
+          </Paper>
 
-              <Paper radius="28px" p="lg" withBorder bg="gray.0">
-                <Stack gap="md">
-                  <div>
-                    <Text fw={700} size="lg">
-                      설정
-                    </Text>
-                    <Text c="dimmed" size="sm">
-                      정규화 규칙을 수정해야 분석 결과가 더 의미 있게 보입니다.
-                    </Text>
-                  </div>
+          <Paper radius="28px" p="lg" withBorder bg="gray.0">
+            <Stack gap="md">
+              <div>
+                <Text fw={700} size="lg">
+                  설정
+                </Text>
+                <Text c="dimmed" size="sm">
+                  정규화 규칙과 운영 설정을 관리합니다.
+                </Text>
+              </div>
 
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                    {settingsLinks.map((item) => {
-                      const Icon = item.icon;
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                {settingsLinks.map((item) => {
+                  const Icon = item.icon;
 
-                      return (
-                        <Paper
-                          key={item.href}
-                          component="button"
-                          p="lg"
-                          radius="24px"
-                          shadow="xs"
-                          type="button"
-                          withBorder
-                          style={{
-                            cursor: "pointer",
-                            textAlign: "left",
-                            background:
-                              item.color === "teal"
-                                ? "linear-gradient(180deg, rgba(13, 148, 136, 0.07), rgba(255, 255, 255, 0.98))"
-                                : "linear-gradient(180deg, rgba(59, 130, 246, 0.07), rgba(255, 255, 255, 0.98))",
-                            transition:
-                              "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
-                          }}
-                          onMouseEnter={(event) => {
-                            event.currentTarget.style.transform = "translateY(-2px)";
-                            event.currentTarget.style.boxShadow =
-                              "0 14px 28px rgba(15, 23, 42, 0.08)";
-                            event.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.18)";
-                          }}
-                          onMouseLeave={(event) => {
-                            event.currentTarget.style.transform = "translateY(0)";
-                            event.currentTarget.style.boxShadow = "";
-                            event.currentTarget.style.borderColor = "";
-                          }}
-                          onClick={() => router.push(item.href)}
-                        >
-                          <Stack gap="md">
-                            <Group justify="space-between" align="flex-start" wrap="nowrap">
-                              <ThemeIcon color={item.color} radius="xl" size={40} variant="light">
-                                <Icon size={20} />
-                              </ThemeIcon>
-                              <ThemeIcon color={item.color} radius="xl" size={28} variant="subtle">
-                                <IconArrowRight size={16} />
-                              </ThemeIcon>
-                            </Group>
-                            <Stack gap={6}>
-                              <Text fw={700}>{item.title}</Text>
-                              <Text c="dimmed" size="sm">
-                                {item.description}
-                              </Text>
-                              <Text c={item.color} fw={700} size="sm">
-                                {item.cta}
-                              </Text>
-                            </Stack>
-                          </Stack>
-                        </Paper>
-                      );
-                    })}
-                  </SimpleGrid>
-                </Stack>
-              </Paper>
-
-              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
-                <Paper radius="24px" p="lg" bg="blue.0" className="console-soft-panel">
-                  <Stack gap={4}>
-                    <Text fw={700} size="sm" c="blue.8">
-                      Route Match Coverage
-                    </Text>
-                    <Text fw={800} size="1.6rem">
-                      {formatPercent(data.overview.routeMatchCoverage)}
-                    </Text>
-                  </Stack>
-                </Paper>
-                <Paper radius="24px" p="lg" bg="teal.0" className="console-soft-panel">
-                  <Stack gap={4}>
-                    <Text fw={700} size="sm" c="teal.8">
-                      Event Type Mapping Coverage
-                    </Text>
-                    <Text fw={800} size="1.6rem">
-                      {formatPercent(data.overview.eventTypeMappingCoverage)}
-                    </Text>
-                  </Stack>
-                </Paper>
-                <Paper radius="24px" p="lg" bg="gray.0" className="console-soft-panel">
-                  <Stack gap={4}>
-                    <Text fw={700} size="sm" c="dark.6">
-                      Organization ID
-                    </Text>
-                    <Text fw={800} size="1.6rem">
-                      {formatNumber(data.overview.organizationId)}
-                    </Text>
-                  </Stack>
-                </Paper>
+                  return (
+                    <Paper
+                      key={item.href}
+                      component="button"
+                      p="lg"
+                      radius="24px"
+                      shadow="xs"
+                      type="button"
+                      withBorder
+                      style={{
+                        cursor: "pointer",
+                        textAlign: "left",
+                        background:
+                          item.color === "teal"
+                            ? "linear-gradient(180deg, rgba(13, 148, 136, 0.07), rgba(255, 255, 255, 0.98))"
+                            : "linear-gradient(180deg, rgba(59, 130, 246, 0.07), rgba(255, 255, 255, 0.98))",
+                        transition:
+                          "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
+                      }}
+                      onMouseEnter={(event) => {
+                        event.currentTarget.style.transform = "translateY(-2px)";
+                        event.currentTarget.style.boxShadow =
+                          "0 14px 28px rgba(15, 23, 42, 0.08)";
+                        event.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.18)";
+                      }}
+                      onMouseLeave={(event) => {
+                        event.currentTarget.style.transform = "translateY(0)";
+                        event.currentTarget.style.boxShadow = "";
+                        event.currentTarget.style.borderColor = "";
+                      }}
+                      onClick={() => router.push(item.href)}
+                    >
+                      <Stack gap="md">
+                        <Group justify="space-between" align="flex-start" wrap="nowrap">
+                          <ThemeIcon color={item.color} radius="xl" size={40} variant="light">
+                            <Icon size={20} />
+                          </ThemeIcon>
+                          <ThemeIcon color={item.color} radius="xl" size={28} variant="subtle">
+                            <IconArrowRight size={16} />
+                          </ThemeIcon>
+                        </Group>
+                        <Stack gap={6}>
+                          <Text fw={700}>{item.title}</Text>
+                          <Text c="dimmed" size="sm">
+                            {item.description}
+                          </Text>
+                          <Text c={item.color} fw={700} size="sm">
+                            {item.cta}
+                          </Text>
+                        </Stack>
+                      </Stack>
+                    </Paper>
+                  );
+                })}
               </SimpleGrid>
-
             </Stack>
           </Paper>
 
-          <OverviewCards overview={data.overview} />
-
-          <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="lg">
-            <SummaryCard
-              title="Top Routes"
-              description="정규화된 route 기준 상위 경로"
-              actionHref={`/dashboard/${params.organizationId}/routes`}
-              actionLabel="Route 상세"
-              emptyMessage="표시할 route 데이터가 없습니다."
-              items={data.overview.topRoutes.map((route) => ({
-                label: route.routeKey,
-                value: `${formatNumber(route.count)} events`,
-              }))}
-            />
-            <SummaryCard
-              title="Top Event Types"
-              description="정규화된 event type 기준 상위 이벤트"
-              actionHref={`/dashboard/${params.organizationId}/event-types`}
-              actionLabel="Event Type 상세"
-              emptyMessage="표시할 event type 데이터가 없습니다."
-              items={data.overview.topEventTypes.map((eventType) => ({
-                label: eventType.eventType,
-                value: `${formatNumber(eventType.count)} events`,
-              }))}
-            />
-          </SimpleGrid>
-
-          <Paper radius="28px" p="xl" withBorder className="console-panel">
-            <Stack gap="lg">
-              <Group justify="space-between" align="flex-start">
-                <Group gap="sm" wrap="nowrap">
-                  <Badge color="dark" leftSection={<IconKey size={12} />} variant="light">
-                    API Key
-                  </Badge>
-                  <Stack gap={0}>
-                    <Text fw={700}>수집용 API key 관리</Text>
-                    <Text c="dimmed" size="sm">
-                      overview 아래에서 현재 key 상태를 확인하고, 필요한 경우 새 키로 재발급합니다.
-                    </Text>
-                  </Stack>
-                </Group>
-                <Button
-                  color="dark"
-                  leftSection={<IconRefresh size={16} />}
-                  disabled={!data.apiKeyMetadata || data.currentRole !== "OWNER"}
-                  loading={isRotatingApiKey}
-                  radius="xl"
-                  variant="light"
-                  onClick={handleRotateApiKey}
-                >
-                  API Key 재발급
-                </Button>
-              </Group>
-
-              {apiKeyActionError ? (
-                <Alert
-                  color="red"
-                  icon={<IconAlertCircle size={18} />}
-                  radius="lg"
-                  variant="light"
-                >
-                  {apiKeyActionError}
-                </Alert>
-              ) : null}
-
-              {data.apiKeyMetadata ? (
-                <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="md">
-                  <Paper radius="20px" p="md" withBorder bg="gray.0">
-                    <Stack gap={4}>
-                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                        Prefix
-                      </Text>
-                      <Text fw={700}>{data.apiKeyMetadata.apiKeyPrefix}</Text>
-                    </Stack>
-                  </Paper>
-                  <Paper radius="20px" p="md" withBorder bg="gray.0">
-                    <Stack gap={4}>
-                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                        Status
-                      </Text>
-                      <Text fw={700}>{data.apiKeyMetadata.status}</Text>
-                    </Stack>
-                  </Paper>
-                  <Paper radius="20px" p="md" withBorder bg="gray.0">
-                    <Stack gap={4}>
-                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                        Last Used
-                      </Text>
-                      <Text fw={700}>{formatDateTime(data.apiKeyMetadata.lastUsedAt)}</Text>
-                    </Stack>
-                  </Paper>
-                  <Paper radius="20px" p="md" withBorder bg="gray.0">
-                    <Stack gap={4}>
-                      <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                        Rotated At
-                      </Text>
-                      <Text fw={700}>{formatDateTime(data.apiKeyMetadata.rotatedAt)}</Text>
-                    </Stack>
-                  </Paper>
-                </SimpleGrid>
-              ) : (
-                <Alert color="gray" radius="lg" variant="light">
-                  현재 역할은 <strong>{data.currentRole ?? "UNKNOWN"}</strong> 입니다. API key 정보 조회는
-                  ADMIN 이상, 재발급은 OWNER만 가능합니다. overview 조회는 계속 사용할 수 있습니다.
-                </Alert>
-              )}
-            </Stack>
-          </Paper>
         </Stack>
       </Container>
     </ConsoleFrame>

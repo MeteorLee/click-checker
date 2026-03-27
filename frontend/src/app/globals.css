@@ -32,6 +32,43 @@ a {
     transparent;
 }
 
+.console-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  width: min(1400px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 20px 0 32px;
+}
+
+.console-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-sidebar {
+  width: 248px;
+  flex: 0 0 248px;
+  position: sticky;
+  top: 20px;
+}
+
+.dashboard-sidebar-panel {
+  overflow: hidden;
+}
+
+.dashboard-nav-item {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.dashboard-nav-item:hover {
+  transform: translateY(-1px);
+}
+
 .console-panel {
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.88);
@@ -50,4 +87,18 @@ a {
     radial-gradient(circle at bottom right, rgba(20, 184, 166, 0.18), transparent 32%),
     rgba(255, 255, 255, 0.86);
   border-color: rgba(148, 163, 184, 0.18);
+}
+
+@media (max-width: 1100px) {
+  .console-layout {
+    flex-direction: column;
+    width: min(1200px, calc(100% - 24px));
+    gap: 16px;
+    padding-top: 16px;
+  }
+
+  .dashboard-sidebar {
+    width: 100%;
+    position: static;
+  }
 }
