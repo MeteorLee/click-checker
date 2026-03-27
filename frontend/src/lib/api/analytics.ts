@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/api/auth";
 import { buildApiUrl } from "@/lib/api/config";
 import type {
+  AdminTrendResponse,
   ActivityOverviewResponse,
   CanonicalEventTypeAggregateResponse,
   RouteAggregateResponse,
@@ -99,4 +100,31 @@ export async function fetchEventTypes(
   }
 
   return (await response.json()) as CanonicalEventTypeAggregateResponse;
+}
+
+export async function fetchTrends(
+  accessToken: string,
+  organizationId: string,
+  from: string,
+  to: string,
+  bucket: "HOUR" | "DAY",
+) {
+  const url = new URL(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/trends`),
+  );
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+  url.searchParams.set("bucket", bucket);
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as AdminTrendResponse;
 }

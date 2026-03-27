@@ -52,28 +52,6 @@ public class TrendAnalyticsService {
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
 
-        if (canUseHourlyRollup(externalUserId, from, to, bucket, zoneId)) {
-            Optional<com.clickchecker.eventrollup.entity.EventRollupWatermark> watermark =
-                    eventRollupWatermarkRepository.findById(organizationId);
-            if (watermark.isPresent()) {
-                return fillMissingTimeBuckets(
-                        readTimeBucketsWithHourlyRollup(
-                                from,
-                                to,
-                                organizationId,
-                                eventType,
-                                bucket,
-                                zoneId,
-                                watermark.orElseThrow().getProcessedCreatedAt()
-                        ),
-                        from,
-                        to,
-                        bucket,
-                        zoneId
-                );
-            }
-        }
-
         return fillMissingTimeBuckets(
                 eventTrendNativeQueryRepository.countBucketedOccurredAtBetween(
                         from,
@@ -81,6 +59,33 @@ public class TrendAnalyticsService {
                         organizationId,
                         externalUserId,
                         eventType,
+                        bucket,
+                        timezone
+                ),
+                from,
+                to,
+                bucket,
+                zoneId
+        );
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public List<TimeBucketCountProjection> countUniqueUsersByTimeBucketBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            TimeBucket bucket,
+            String timezone
+    ) {
+        ZoneId zoneId = ZoneId.of(timezone);
+
+        return fillMissingTimeBuckets(
+                eventTrendNativeQueryRepository.countDistinctEventUsersBucketedOccurredAtBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
                         bucket,
                         timezone
                 ),

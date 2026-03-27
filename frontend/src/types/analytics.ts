@@ -60,3 +60,18 @@ export type CanonicalEventTypeAggregateResponse = {
   top: number;
   items: CanonicalEventTypeAggregateItem[];
 };
+
+export type AdminTrendPointResponse = {
+  bucketStart: string;
+  count: number;
+};
+
+export type AdminTrendResponse = {
+  organizationId: number;
+  from: string;
+  to: string;
+  timezone: string;
+  bucket: "HOUR" | "DAY";
+  eventCounts: AdminTrendPointResponse[];
+  uniqueUserCounts: AdminTrendPointResponse[];
+};

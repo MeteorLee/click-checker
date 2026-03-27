@@ -49,6 +49,7 @@ import {
 } from "@mantine/core";
 import {
   IconAlertCircle,
+  IconChartLine,
   IconCheck,
   IconCopy,
   IconKey,
@@ -435,6 +436,15 @@ export default function DashboardPage() {
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
+                  <Button
+                    color="grape"
+                    leftSection={<IconChartLine size={18} />}
+                    radius="xl"
+                    size="md"
+                    onClick={() => router.push(`/dashboard/${params.organizationId}/trends`)}
+                  >
+                    시계열 추이 보기
+                  </Button>
                   <Select
                     aria-label="organization 전환"
                     data={data.memberships.map((membership) => ({

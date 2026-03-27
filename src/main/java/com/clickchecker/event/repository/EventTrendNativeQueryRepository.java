@@ -288,6 +288,42 @@ public class EventTrendNativeQueryRepository {
                 .toList();
     }
 
+    public List<TimeBucketCountProjection> countDistinctEventUsersBucketedOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            TimeBucket bucket,
+            String timezone
+    ) {
+        String bucketExpression = bucketStartExpression(bucket, timezone);
+        StringBuilder sql = new StringBuilder("""
+                SELECT %s AS bucket_start, COUNT(DISTINCT e.event_user_id) AS user_count
+                FROM events e
+                LEFT JOIN users u ON u.id = e.event_user_id
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                  AND e.event_user_id IS NOT NULL
+                """.formatted(bucketExpression));
+
+        appendExternalUserFilter(sql, externalUserId);
+        sql.append("""
+                GROUP BY 1
+                ORDER BY 1
+                """);
+
+        Query query = createQuery(sql.toString(), from, to, organizationId, externalUserId, null, timezone);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new TimeBucketCountProjection(
+                        toEpochInstant(row[0]),
+                        toLong(row[1])
+                ))
+                .toList();
+    }
+
     public List<RawPathTimeBucketCountProjection> countBucketedPathOccurredAtBetween(
             Instant from,
             Instant to,
