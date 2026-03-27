@@ -1,4 +1,4 @@
-# API 연동 (v1.4)
+# API 연동 (v1.5)
 
 ## 목표
 - 프런트에서 실제로 사용하는 API 계약을 현재 구현 상태 기준으로 정리한다.
@@ -48,6 +48,7 @@
 ### 로컬 개발
 - frontend: `http://localhost:3001`
 - backend: `http://localhost:8080`
+- dashboard 하위 화면은 좌측 사이드바를 공통 탐색으로 사용한다.
 
 ### 날짜 처리
 - analytics 요청은 `from`, `to`를 날짜 문자열로 보낸다.
@@ -103,6 +104,9 @@
 - 파라미터:
   - `from`
   - `to`
+- 설명:
+  - overview는 핵심 데이터만 보여준다.
+  - API key 관리는 별도 settings page로 분리했다.
 
 ### routes
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/routes`
@@ -158,6 +162,8 @@
 ### API key
 - `GET /api/v1/admin/organizations/{organizationId}/api-key`
 - `POST /api/v1/admin/organizations/{organizationId}/api-key/rotate`
+- 프런트 경로:
+  - `/dashboard/[organizationId]/api-key`
 
 ### route templates
 - `GET/POST/PUT/DELETE /api/v1/admin/organizations/{organizationId}/route-templates`
