@@ -1,6 +1,9 @@
 import { ApiError } from "@/lib/api/auth";
 import { buildApiUrl } from "@/lib/api/config";
-import type { ActivityOverviewResponse } from "@/types/analytics";
+import type {
+  ActivityOverviewResponse,
+  RouteAggregateResponse,
+} from "@/types/analytics";
 
 function formatErrorMessage(status: number) {
   if (status === 403) {
@@ -43,3 +46,29 @@ export async function fetchOverview(
   return (await response.json()) as ActivityOverviewResponse;
 }
 
+export async function fetchRoutes(
+  accessToken: string,
+  organizationId: string,
+  from: string,
+  to: string,
+  top = 30,
+) {
+  const url = new URL(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/routes`),
+  );
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+  url.searchParams.set("top", String(top));
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as RouteAggregateResponse;
+}

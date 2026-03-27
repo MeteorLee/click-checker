@@ -32,3 +32,17 @@ export type ActivityOverviewResponse = {
   topEventTypes: ActivityOverviewEventTypeSummary[];
 };
 
+export type RouteAggregateItem = {
+  routeKey: string;
+  count: number;
+};
+
+export type RouteAggregateResponse = {
+  organizationId: number;
+  externalUserId: string | null;
+  from: string;
+  to: string;
+  eventType: string | null;
+  top: number;
+  items: RouteAggregateItem[];
+};

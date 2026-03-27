@@ -569,6 +569,8 @@ export default function DashboardPage() {
             <SummaryCard
               title="Top Routes"
               description="정규화된 route 기준 상위 경로"
+              actionHref={`/dashboard/${params.organizationId}/routes`}
+              actionLabel="전체 보기"
               emptyMessage="표시할 route 데이터가 없습니다."
               items={data.overview.topRoutes.map((route) => ({
                 label: route.routeKey,

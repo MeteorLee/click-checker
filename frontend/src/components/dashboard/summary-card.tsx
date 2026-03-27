@@ -1,4 +1,5 @@
-import { Card, List, Stack, Text } from "@mantine/core";
+import { Button, Card, Group, List, Stack, Text } from "@mantine/core";
+import Link from "next/link";
 
 type SummaryItem = {
   label: string;
@@ -10,6 +11,8 @@ type SummaryCardProps = {
   description: string;
   items: SummaryItem[];
   emptyMessage: string;
+  actionHref?: string;
+  actionLabel?: string;
 };
 
 export function SummaryCard({
@@ -17,18 +20,27 @@ export function SummaryCard({
   description,
   items,
   emptyMessage,
+  actionHref,
+  actionLabel,
 }: SummaryCardProps) {
   return (
     <Card radius="28px" p="xl" shadow="sm" withBorder className="console-panel">
       <Stack gap="lg">
-        <Stack gap={4}>
-          <Text fw={700} size="lg">
-            {title}
-          </Text>
-          <Text c="dimmed" size="sm">
-            {description}
-          </Text>
-        </Stack>
+        <Group justify="space-between" align="flex-start">
+          <Stack gap={4}>
+            <Text fw={700} size="lg">
+              {title}
+            </Text>
+            <Text c="dimmed" size="sm">
+              {description}
+            </Text>
+          </Stack>
+          {actionHref && actionLabel ? (
+            <Button component={Link} href={actionHref} radius="xl" size="xs" variant="light">
+              {actionLabel}
+            </Button>
+          ) : null}
+        </Group>
 
         {items.length === 0 ? (
           <Text c="dimmed" size="sm">
