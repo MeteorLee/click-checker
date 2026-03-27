@@ -22,7 +22,6 @@ import {
   Loader,
   Paper,
   Popover,
-  Select,
   SegmentedControl,
   Stack,
   Table,
@@ -56,11 +55,6 @@ type AppliedRange = {
 
 type TrendsPageState = {
   organizationName: string;
-  memberships: {
-    value: string;
-    label: string;
-    role: string;
-  }[];
   range: AppliedRange;
   trends: AdminTrendResponse;
 };
@@ -176,11 +170,6 @@ export default function TrendsPage() {
 
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${params.organizationId}`,
-          memberships: me.memberships.map((membership) => ({
-            value: String(membership.organizationId),
-            label: membership.organizationName,
-            role: membership.role,
-          })),
           range: appliedRange,
           trends,
         });
@@ -309,22 +298,6 @@ export default function TrendsPage() {
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
-                  <Select
-                    aria-label="organization 전환"
-                    data={data.memberships.map((membership) => ({
-                      value: membership.value,
-                      label: `${membership.label} · ${membership.role}`,
-                    }))}
-                    radius="xl"
-                    size="sm"
-                    value={params.organizationId}
-                    w={280}
-                    onChange={(value) => {
-                      if (value && value !== params.organizationId) {
-                        router.push(`/dashboard/${value}/trends`);
-                      }
-                    }}
-                  />
                   <Text c="dimmed" fw={600} size="sm">
                     조회 단위
                   </Text>

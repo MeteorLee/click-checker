@@ -39,7 +39,6 @@ import {
   Modal,
   Popover,
   Paper,
-  Select,
   SegmentedControl,
   SimpleGrid,
   Stack,
@@ -53,6 +52,7 @@ import {
   IconChartLine,
   IconCheck,
   IconCopy,
+  IconFilter,
   IconKey,
   IconRefresh,
   IconRepeat,
@@ -65,11 +65,6 @@ type OverviewRangePreset = "1d" | "7d" | "30d" | "custom";
 
 type DashboardState = {
   organizationName: string;
-  memberships: {
-    value: string;
-    label: string;
-    role: string;
-  }[];
   currentRole: string | null;
   range: {
     from: string;
@@ -189,11 +184,6 @@ export default function DashboardPage() {
 
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${organizationId}`,
-          memberships: me.memberships.map((membership) => ({
-            value: String(membership.organizationId),
-            label: membership.organizationName,
-            role: membership.role,
-          })),
           currentRole: currentMembership?.role ?? null,
           range,
           overview,
@@ -478,22 +468,16 @@ export default function DashboardPage() {
                   >
                     유지율 보기
                   </Button>
-                  <Select
-                    aria-label="organization 전환"
-                    data={data.memberships.map((membership) => ({
-                      value: membership.value,
-                      label: `${membership.label} · ${membership.role}`,
-                    }))}
+                  <Button
+                    color="lime"
+                    leftSection={<IconFilter size={18} />}
                     radius="xl"
-                    size="sm"
-                    value={params.organizationId}
-                    w={280}
-                    onChange={(value) => {
-                      if (value && value !== params.organizationId) {
-                        router.push(`/dashboard/${value}`);
-                      }
-                    }}
-                  />
+                    size="md"
+                    variant="light"
+                    onClick={() => router.push(`/dashboard/${params.organizationId}/funnels`)}
+                  >
+                    funnel 보기
+                  </Button>
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
                   </Text>

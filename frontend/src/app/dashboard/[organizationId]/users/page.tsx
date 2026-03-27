@@ -22,7 +22,6 @@ import {
   Loader,
   Paper,
   Popover,
-  Select,
   SegmentedControl,
   SimpleGrid,
   Stack,
@@ -45,11 +44,6 @@ type AppliedRange = {
 
 type UsersPageState = {
   organizationName: string;
-  memberships: {
-    value: string;
-    label: string;
-    role: string;
-  }[];
   range: AppliedRange;
   users: UserAnalyticsOverviewResponse;
 };
@@ -109,11 +103,6 @@ export default function UsersPage() {
 
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${params.organizationId}`,
-          memberships: me.memberships.map((membership) => ({
-            value: String(membership.organizationId),
-            label: membership.organizationName,
-            role: membership.role,
-          })),
           range: appliedRange,
           users,
         });
@@ -232,22 +221,6 @@ export default function UsersPage() {
                   >
                     유지율 보기
                   </Button>
-                  <Select
-                    aria-label="organization 전환"
-                    data={data.memberships.map((membership) => ({
-                      value: membership.value,
-                      label: `${membership.label} · ${membership.role}`,
-                    }))}
-                    radius="xl"
-                    size="sm"
-                    value={params.organizationId}
-                    w={280}
-                    onChange={(value) => {
-                      if (value && value !== params.organizationId) {
-                        router.push(`/dashboard/${value}/users`);
-                      }
-                    }}
-                  />
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
                   </Text>

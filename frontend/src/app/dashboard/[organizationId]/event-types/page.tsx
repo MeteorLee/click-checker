@@ -22,7 +22,6 @@ import {
   Loader,
   Paper,
   Popover,
-  Select,
   SegmentedControl,
   Stack,
   Table,
@@ -45,11 +44,6 @@ type AppliedRange = {
 
 type EventTypesPageState = {
   organizationName: string;
-  memberships: {
-    value: string;
-    label: string;
-    role: string;
-  }[];
   range: AppliedRange;
   eventTypes: CanonicalEventTypeAggregateResponse;
 };
@@ -111,11 +105,6 @@ export default function EventTypesPage() {
 
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${params.organizationId}`,
-          memberships: me.memberships.map((membership) => ({
-            value: String(membership.organizationId),
-            label: membership.organizationName,
-            role: membership.role,
-          })),
           range: appliedRange,
           eventTypes,
         });
@@ -224,22 +213,6 @@ export default function EventTypesPage() {
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
-                  <Select
-                    aria-label="organization 전환"
-                    data={data.memberships.map((membership) => ({
-                      value: membership.value,
-                      label: `${membership.label} · ${membership.role}`,
-                    }))}
-                    radius="xl"
-                    size="sm"
-                    value={params.organizationId}
-                    w={280}
-                    onChange={(value) => {
-                      if (value && value !== params.organizationId) {
-                        router.push(`/dashboard/${value}/event-types`);
-                      }
-                    }}
-                  />
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
                   </Text>
