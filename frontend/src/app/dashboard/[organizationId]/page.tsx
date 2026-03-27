@@ -54,6 +54,7 @@ import {
   IconCopy,
   IconKey,
   IconRefresh,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -444,6 +445,16 @@ export default function DashboardPage() {
                     onClick={() => router.push(`/dashboard/${params.organizationId}/trends`)}
                   >
                     시계열 추이 보기
+                  </Button>
+                  <Button
+                    color="cyan"
+                    leftSection={<IconUsers size={18} />}
+                    radius="xl"
+                    size="md"
+                    variant="light"
+                    onClick={() => router.push(`/dashboard/${params.organizationId}/users`)}
+                  >
+                    사용자 현황 보기
                   </Button>
                   <Select
                     aria-label="organization 전환"

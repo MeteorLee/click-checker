@@ -75,3 +75,14 @@ export type AdminTrendResponse = {
   eventCounts: AdminTrendPointResponse[];
   uniqueUserCounts: AdminTrendPointResponse[];
 };
+
+export type UserAnalyticsOverviewResponse = {
+  organizationId: number;
+  externalUserId: string | null;
+  from: string;
+  to: string;
+  identifiedUsers: number;
+  newUsers: number;
+  returningUsers: number;
+  avgEventsPerIdentifiedUser: number | null;
+};

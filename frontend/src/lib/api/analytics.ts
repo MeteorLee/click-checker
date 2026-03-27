@@ -5,6 +5,7 @@ import type {
   ActivityOverviewResponse,
   CanonicalEventTypeAggregateResponse,
   RouteAggregateResponse,
+  UserAnalyticsOverviewResponse,
 } from "@/types/analytics";
 
 function formatErrorMessage(status: number) {
@@ -127,4 +128,29 @@ export async function fetchTrends(
   }
 
   return (await response.json()) as AdminTrendResponse;
+}
+
+export async function fetchUsers(
+  accessToken: string,
+  organizationId: string,
+  from: string,
+  to: string,
+) {
+  const url = new URL(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/users`),
+  );
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as UserAnalyticsOverviewResponse;
 }
