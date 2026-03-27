@@ -111,3 +111,25 @@ export type AdminActivityAnalyticsResponse = {
   dailyActivity: AdminActivityDailyItemResponse[];
   hourlyDistribution: AdminActivityHourlyItemResponse[];
 };
+
+export type RetentionMatrixValue = {
+  day: number;
+  users: number;
+  retentionRate: number | null;
+};
+
+export type RetentionMatrixRow = {
+  cohortDate: string;
+  cohortUsers: number;
+  values: RetentionMatrixValue[];
+};
+
+export type RetentionMatrixResponse = {
+  organizationId: number;
+  externalUserId: string | null;
+  from: string;
+  to: string;
+  timezone: string;
+  days: number[];
+  items: RetentionMatrixRow[];
+};

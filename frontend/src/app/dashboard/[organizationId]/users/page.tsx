@@ -30,7 +30,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle, IconUsers } from "@tabler/icons-react";
+import { IconAlertCircle, IconRepeat, IconUsers } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -222,6 +222,16 @@ export default function UsersPage() {
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
+                  <Button
+                    color="violet"
+                    leftSection={<IconRepeat size={18} />}
+                    radius="xl"
+                    size="md"
+                    variant="light"
+                    onClick={() => router.push(`/dashboard/${params.organizationId}/retention`)}
+                  >
+                    유지율 보기
+                  </Button>
                   <Select
                     aria-label="organization 전환"
                     data={data.memberships.map((membership) => ({

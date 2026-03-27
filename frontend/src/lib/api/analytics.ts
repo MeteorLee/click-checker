@@ -5,6 +5,7 @@ import type {
   AdminTrendResponse,
   ActivityOverviewResponse,
   CanonicalEventTypeAggregateResponse,
+  RetentionMatrixResponse,
   RouteAggregateResponse,
   UserAnalyticsOverviewResponse,
 } from "@/types/analytics";
@@ -179,4 +180,33 @@ export async function fetchActivity(
   }
 
   return (await response.json()) as AdminActivityAnalyticsResponse;
+}
+
+export async function fetchRetention(
+  accessToken: string,
+  organizationId: string,
+  from: string,
+  to: string,
+  days: number[],
+  minCohortUsers = 1,
+) {
+  const url = new URL(
+    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/retention`),
+  );
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+  days.forEach((day) => url.searchParams.append("days", String(day)));
+  url.searchParams.set("minCohortUsers", String(minCohortUsers));
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(response.status), response.status);
+  }
+
+  return (await response.json()) as RetentionMatrixResponse;
 }

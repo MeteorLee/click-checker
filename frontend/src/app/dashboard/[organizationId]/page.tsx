@@ -55,6 +55,7 @@ import {
   IconCopy,
   IconKey,
   IconRefresh,
+  IconRepeat,
   IconUsers,
 } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
@@ -466,6 +467,16 @@ export default function DashboardPage() {
                     onClick={() => router.push(`/dashboard/${params.organizationId}/activity`)}
                   >
                     활동량 보기
+                  </Button>
+                  <Button
+                    color="violet"
+                    leftSection={<IconRepeat size={18} />}
+                    radius="xl"
+                    size="md"
+                    variant="light"
+                    onClick={() => router.push(`/dashboard/${params.organizationId}/retention`)}
+                  >
+                    유지율 보기
                   </Button>
                   <Select
                     aria-label="organization 전환"
