@@ -52,14 +52,61 @@ type RetentionPageState = {
 
 const DAY_OPTIONS = [1, 7, 14, 30] as const;
 
-function retentionCellStyle(value: number | null) {
-  const alpha = value == null ? 0 : Math.max(0.08, Math.min(value, 1)) * 0.9;
+function getRetentionTone(value: number | null) {
+  if (value == null) {
+    return {
+      background: "var(--mantine-color-gray-0)",
+      border: "1px dashed var(--mantine-color-gray-3)",
+      text: "var(--mantine-color-gray-7)",
+      subtext: "var(--mantine-color-gray-6)",
+    };
+  }
+
+  if (value >= 0.7) {
+    return {
+      background: "linear-gradient(135deg, rgba(91, 33, 182, 0.96), rgba(124, 58, 237, 0.9))",
+      border: "1px solid rgba(91, 33, 182, 0.7)",
+      text: "white",
+      subtext: "rgba(255, 255, 255, 0.82)",
+    };
+  }
+
+  if (value >= 0.5) {
+    return {
+      background: "linear-gradient(135deg, rgba(124, 58, 237, 0.8), rgba(167, 139, 250, 0.78))",
+      border: "1px solid rgba(109, 40, 217, 0.38)",
+      text: "white",
+      subtext: "rgba(255, 255, 255, 0.82)",
+    };
+  }
+
+  if (value >= 0.3) {
+    return {
+      background: "linear-gradient(135deg, rgba(221, 214, 254, 0.95), rgba(237, 233, 254, 0.98))",
+      border: "1px solid rgba(167, 139, 250, 0.5)",
+      text: "var(--mantine-color-violet-9)",
+      subtext: "var(--mantine-color-violet-7)",
+    };
+  }
+
   return {
-    backgroundColor: `rgba(124, 58, 237, ${alpha})`,
-    color: alpha > 0.45 ? "white" : "var(--mantine-color-dark-7)",
-    borderRadius: "16px",
-    padding: "10px 12px",
-    minWidth: "128px",
+    background: "linear-gradient(135deg, rgba(245, 243, 255, 0.96), rgba(250, 245, 255, 0.98))",
+    border: "1px solid rgba(221, 214, 254, 1)",
+    text: "var(--mantine-color-violet-9)",
+    subtext: "var(--mantine-color-violet-7)",
+  };
+}
+
+function retentionCellStyle(value: number | null) {
+  const tone = getRetentionTone(value);
+  return {
+    background: tone.background,
+    border: tone.border,
+    color: tone.text,
+    borderRadius: "18px",
+    padding: "12px 14px",
+    minWidth: "132px",
+    boxShadow: value == null ? "none" : "0 8px 20px rgba(124, 58, 237, 0.08)",
   };
 }
 
@@ -431,13 +478,27 @@ export default function RetentionPage() {
                 </Text>
               </div>
 
+              <Group gap="sm">
+                <Badge color="gray" radius="xl" size="lg" variant="light">
+                  낮음
+                </Badge>
+                <Badge color="violet" radius="xl" size="lg" variant="light">
+                  중간
+                </Badge>
+                <Badge color="grape" radius="xl" size="lg" variant="filled">
+                  높음
+                </Badge>
+              </Group>
+
               <Table highlightOnHover withColumnBorders>
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>기준일</Table.Th>
-                    <Table.Th>신규 사용자 수</Table.Th>
+                    <Table.Th style={{ backgroundColor: "var(--mantine-color-gray-0)" }}>기준일</Table.Th>
+                    <Table.Th style={{ backgroundColor: "var(--mantine-color-gray-0)" }}>신규 사용자 수</Table.Th>
                     {data.retention.days.map((day) => (
-                      <Table.Th key={day}>{day}일 내 재방문</Table.Th>
+                      <Table.Th key={day} style={{ backgroundColor: "rgba(237, 233, 254, 0.75)" }}>
+                        {day}일 내 재방문
+                      </Table.Th>
                     ))}
                   </Table.Tr>
                 </Table.Thead>
@@ -453,7 +514,7 @@ export default function RetentionPage() {
                   ) : (
                     data.retention.items.map((item) => (
                       <Table.Tr key={item.cohortDate}>
-                        <Table.Td>
+                        <Table.Td style={{ backgroundColor: "rgba(249, 250, 251, 0.92)" }}>
                           <Stack gap={0}>
                             <Text fw={700}>{item.cohortDate}</Text>
                             <Text c="dimmed" size="xs">
@@ -461,10 +522,13 @@ export default function RetentionPage() {
                             </Text>
                           </Stack>
                         </Table.Td>
-                        <Table.Td>{formatNumber(item.cohortUsers)}</Table.Td>
+                        <Table.Td style={{ backgroundColor: "rgba(249, 250, 251, 0.92)" }}>
+                          <Text fw={700}>{formatNumber(item.cohortUsers)}</Text>
+                        </Table.Td>
                         {data.retention.days.map((day) => {
                           const value = item.values.find((entry) => entry.day === day) as RetentionMatrixValue | undefined;
                           const observable = isObservable(item.cohortDate, day);
+                          const tone = getRetentionTone(value?.retentionRate ?? null);
 
                           return (
                             <Table.Td key={`${item.cohortDate}-${day}`}>
@@ -477,7 +541,7 @@ export default function RetentionPage() {
                                   <Text fw={800} size="sm">
                                     {formatPercent(value?.retentionRate ?? null)}
                                   </Text>
-                                  <Text size="xs">
+                                  <Text size="xs" c={tone.subtext}>
                                     {formatNumber(value?.users ?? 0)}명 유지
                                   </Text>
                                 </Stack>
