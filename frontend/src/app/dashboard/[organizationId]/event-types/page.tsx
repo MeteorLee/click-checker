@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { fetchMe } from "@/lib/api/auth";
 import { fetchEventTypes } from "@/lib/api/analytics";
@@ -53,6 +54,7 @@ export default function EventTypesPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<EventTypesPageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<RangePreset>("7d");
   const [appliedRange, setAppliedRange] = useState<AppliedRange>(getOverviewRange(7));
@@ -92,6 +94,7 @@ export default function EventTypesPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const [me, eventTypes] = await Promise.all([
@@ -117,6 +120,7 @@ export default function EventTypesPage() {
           return;
         }
 
+        setErrorStatus(status ?? null);
         setErrorMessage(
           error instanceof Error ? error.message : "event type 데이터를 불러오지 못했습니다.",
         );
@@ -167,6 +171,19 @@ export default function EventTypesPage() {
           </Stack>
         </Container>
       </ConsoleFrame>
+    );
+  }
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="Event Types"
+        subtitle="선택된 organization의 canonical event type 집계를 확인합니다."
+        backHref={`/dashboard/${params.organizationId}`}
+        badge="Analytics"
+        status={errorStatus}
+        message={errorMessage}
+      />
     );
   }
 

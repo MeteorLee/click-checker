@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { fetchMe } from "@/lib/api/auth";
 import {
@@ -57,6 +58,7 @@ export default function EventTypeMappingsPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<EventTypeMappingPageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,6 +77,7 @@ export default function EventTypeMappingsPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const [me, response] = await Promise.all([
@@ -97,6 +100,7 @@ export default function EventTypeMappingsPage() {
           router.replace("/login");
           return;
         }
+        setErrorStatus(status ?? null);
         setErrorMessage(error instanceof Error ? error.message : "event type mapping 목록을 불러오지 못했습니다.");
       } finally {
         setIsLoading(false);
@@ -107,6 +111,19 @@ export default function EventTypeMappingsPage() {
   }, [params.organizationId, router]);
 
   const canManage = data?.role === "ADMIN" || data?.role === "OWNER";
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="Event Type Rules"
+        subtitle="raw event type와 canonical event type 매핑을 관리합니다."
+        backHref={`/dashboard/${params.organizationId}`}
+        badge="Settings"
+        status={errorStatus}
+        message={errorMessage}
+      />
+    );
+  }
 
   function parseForm(form: EventTypeMappingFormState): EventTypeMappingCreateRequest | EventTypeMappingUpdateRequest {
     return {

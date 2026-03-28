@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { SummaryCard } from "@/components/dashboard/summary-card";
@@ -72,6 +73,7 @@ export default function DashboardPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<DashboardState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<OverviewRangePreset>("7d");
   const [appliedRange, setAppliedRange] = useState<AppliedRange>(getOverviewRange(7));
@@ -138,7 +140,7 @@ export default function DashboardPage() {
     {
       title: "API Key 관리",
       description: "수집용 API key 상태를 확인하고 새 키로 재발급합니다.",
-      color: "dark",
+      color: "grape",
       icon: IconSettings,
       href: `/dashboard/${params.organizationId}/api-key`,
       cta: "API Key 열기",
@@ -146,7 +148,7 @@ export default function DashboardPage() {
     {
       title: "멤버 관리",
       description: "loginId 기준으로 멤버를 추가하고 역할과 접근 권한을 관리합니다.",
-      color: "indigo",
+      color: "orange",
       icon: IconUsers,
       href: `/dashboard/${params.organizationId}/members`,
       cta: "멤버 열기",
@@ -199,6 +201,7 @@ export default function DashboardPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const [me, overview] = await Promise.all([
@@ -224,6 +227,7 @@ export default function DashboardPage() {
           return;
         }
 
+        setErrorStatus(status ?? null);
         const message =
           error instanceof Error
             ? error.message
@@ -253,6 +257,19 @@ export default function DashboardPage() {
           </Stack>
         </Container>
       </ConsoleFrame>
+    );
+  }
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="Overview 대시보드"
+        subtitle="선택된 organization의 overview 데이터를 확인합니다."
+        backHref="/organizations"
+        badge="Analytics"
+        status={errorStatus}
+        message={errorMessage}
+      />
     );
   }
 
@@ -461,6 +478,7 @@ export default function DashboardPage() {
               description="정규화된 route 기준 상위 경로"
               actionHref={`/dashboard/${params.organizationId}/routes`}
               actionLabel="Route 상세"
+              actionColor="blue"
               emptyMessage="표시할 route 데이터가 없습니다."
               items={data.overview.topRoutes.map((route) => ({
                 label: route.routeKey,
@@ -472,6 +490,7 @@ export default function DashboardPage() {
               description="정규화된 event type 기준 상위 이벤트"
               actionHref={`/dashboard/${params.organizationId}/event-types`}
               actionLabel="Event Type 상세"
+              actionColor="teal"
               emptyMessage="표시할 event type 데이터가 없습니다."
               items={data.overview.topEventTypes.map((eventType) => ({
                 label: eventType.eventType,
@@ -589,6 +608,10 @@ export default function DashboardPage() {
                         background:
                           item.color === "teal"
                             ? "linear-gradient(180deg, rgba(13, 148, 136, 0.07), rgba(255, 255, 255, 0.98))"
+                            : item.color === "grape"
+                              ? "linear-gradient(180deg, rgba(124, 58, 237, 0.07), rgba(255, 255, 255, 0.98))"
+                              : item.color === "orange"
+                                ? "linear-gradient(180deg, rgba(234, 88, 12, 0.07), rgba(255, 255, 255, 0.98))"
                             : "linear-gradient(180deg, rgba(59, 130, 246, 0.07), rgba(255, 255, 255, 0.98))",
                         transition:
                           "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",

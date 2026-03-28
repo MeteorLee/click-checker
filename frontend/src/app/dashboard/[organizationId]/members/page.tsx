@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { fetchMe } from "@/lib/api/auth";
 import {
@@ -56,6 +57,7 @@ export default function MembersPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<PageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [inviteLoginId, setInviteLoginId] = useState("");
   const [inviteRole, setInviteRole] = useState<string>("VIEWER");
@@ -76,6 +78,7 @@ export default function MembersPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const [me, membersResponse] = await Promise.all([
@@ -107,6 +110,7 @@ export default function MembersPage() {
           return;
         }
 
+        setErrorStatus(status ?? null);
         const message =
           error instanceof Error
             ? error.message
@@ -261,6 +265,19 @@ export default function MembersPage() {
           </Stack>
         </Container>
       </ConsoleFrame>
+    );
+  }
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="멤버 관리"
+        subtitle="organization 멤버와 역할을 확인합니다."
+        backHref={`/dashboard/${params.organizationId}`}
+        badge="Settings"
+        status={errorStatus}
+        message={errorMessage}
+      />
     );
   }
 

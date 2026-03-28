@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { fetchMe } from "@/lib/api/auth";
 import { fetchRetention } from "@/lib/api/analytics";
@@ -67,6 +68,7 @@ export default function RetentionPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<RetentionPageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<RangePreset>("30d");
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 7, 14]);
@@ -121,6 +123,7 @@ export default function RetentionPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const [me, retention] = await Promise.all([
@@ -146,6 +149,7 @@ export default function RetentionPage() {
           return;
         }
 
+        setErrorStatus(status ?? null);
         setErrorMessage(
           error instanceof Error ? error.message : "retention 데이터를 불러오지 못했습니다.",
         );
@@ -222,6 +226,19 @@ export default function RetentionPage() {
           </Stack>
         </Container>
       </ConsoleFrame>
+    );
+  }
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="Retention"
+        subtitle="선택된 organization의 코호트 유지율을 확인합니다."
+        backHref={`/dashboard/${params.organizationId}`}
+        badge="Analytics"
+        status={errorStatus}
+        message={errorMessage}
+      />
     );
   }
 

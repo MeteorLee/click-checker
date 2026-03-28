@@ -14,6 +14,7 @@ type SummaryCardProps = {
   emptyMessage: string;
   actionHref?: string;
   actionLabel?: string;
+  actionColor?: "blue" | "teal";
 };
 
 export function SummaryCard({
@@ -23,6 +24,7 @@ export function SummaryCard({
   emptyMessage,
   actionHref,
   actionLabel,
+  actionColor = "blue",
 }: SummaryCardProps) {
   return (
     <Card radius="28px" p="xl" shadow="sm" withBorder className="console-panel">
@@ -40,10 +42,11 @@ export function SummaryCard({
             <Button
               component={Link}
               href={actionHref}
+              color={actionColor}
               radius="xl"
               rightSection={<IconArrowRight size={14} />}
               size="sm"
-              variant="default"
+              variant="light"
             >
               {actionLabel}
             </Button>

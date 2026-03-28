@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { fetchMe } from "@/lib/api/auth";
 import {
@@ -86,6 +87,7 @@ export default function RouteTemplatesPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<RouteTemplatePageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,6 +106,7 @@ export default function RouteTemplatesPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const [me, response] = await Promise.all([
@@ -126,6 +129,7 @@ export default function RouteTemplatesPage() {
           router.replace("/login");
           return;
         }
+        setErrorStatus(status ?? null);
         setErrorMessage(error instanceof Error ? error.message : "route template 목록을 불러오지 못했습니다.");
       } finally {
         setIsLoading(false);
@@ -136,6 +140,19 @@ export default function RouteTemplatesPage() {
   }, [params.organizationId, router]);
 
   const canManage = data?.role === "ADMIN" || data?.role === "OWNER";
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="Route Rules"
+        subtitle="route template 규칙과 우선순위를 관리합니다."
+        backHref={`/dashboard/${params.organizationId}`}
+        badge="Settings"
+        status={errorStatus}
+        message={errorMessage}
+      />
+    );
+  }
 
   function parseForm(form: RouteTemplateFormState): RouteTemplateCreateRequest | RouteTemplateUpdateRequest {
     return {

@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import { fetchMe } from "@/lib/api/auth";
 import { fetchTrends } from "@/lib/api/analytics";
@@ -81,6 +82,7 @@ export default function TrendsPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<TrendsPageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<RangePreset>("7d");
   const [selectedBucket, setSelectedBucket] = useState<TrendBucket>("DAY");
@@ -157,6 +159,7 @@ export default function TrendsPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const [me, trends] = await Promise.all([
@@ -182,6 +185,7 @@ export default function TrendsPage() {
           return;
         }
 
+        setErrorStatus(status ?? null);
         setErrorMessage(
           error instanceof Error ? error.message : "trend 데이터를 불러오지 못했습니다.",
         );
@@ -252,6 +256,19 @@ export default function TrendsPage() {
           </Stack>
         </Container>
       </ConsoleFrame>
+    );
+  }
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="Trends"
+        subtitle="선택된 organization의 시계열 추이를 확인합니다."
+        backHref={`/dashboard/${params.organizationId}`}
+        badge="Analytics"
+        status={errorStatus}
+        message={errorMessage}
+      />
     );
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleFrame } from "@/components/common/console-frame";
+import { DashboardAccessState } from "@/components/common/dashboard-access-state";
 import { ConsoleHeader } from "@/components/common/console-header";
 import {
   fetchMe,
@@ -57,6 +58,7 @@ export default function ApiKeyPage() {
   const params = useParams<{ organizationId: string }>();
   const [data, setData] = useState<ApiKeyPageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRotating, setIsRotating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export default function ApiKeyPage() {
 
       setIsLoading(true);
       setErrorMessage(null);
+      setErrorStatus(null);
 
       try {
         const me = await fetchMe(accessToken);
@@ -109,6 +112,7 @@ export default function ApiKeyPage() {
           return;
         }
 
+        setErrorStatus(status ?? null);
         setErrorMessage(
           error instanceof Error ? error.message : "API key 정보를 불러오지 못했습니다.",
         );
@@ -183,6 +187,19 @@ export default function ApiKeyPage() {
           </Stack>
         </Container>
       </ConsoleFrame>
+    );
+  }
+
+  if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
+    return (
+      <DashboardAccessState
+        title="API Key 관리"
+        subtitle="수집용 API key 상태를 확인하고 재발급합니다."
+        backHref={`/dashboard/${params.organizationId}`}
+        badge="Settings"
+        status={errorStatus}
+        message={errorMessage}
+      />
     );
   }
 
