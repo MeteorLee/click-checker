@@ -551,22 +551,22 @@ export default function OrganizationsPage() {
       </Modal>
 
       <ConsoleHeader
-        title="Organization 선택"
-        subtitle={`${data.loginId} 계정으로 접근 가능한 organization을 선택하거나 새 organization을 만들어 overview 대시보드로 이동합니다.`}
+        title="조직 선택"
+        subtitle={`${data.loginId} 계정이 접근할 수 있는 조직을 선택하거나 새 조직을 만들어 개요 화면으로 이동합니다.`}
       />
       <Container size="lg" pb={72}>
         <Stack gap="xl">
           <Group justify="space-between" align="center">
             <Stack gap={4}>
               <Text fw={700} size="xl">
-                작업할 organization 선택
+                작업할 조직 선택
               </Text>
               <Text c="dimmed" size="sm">
-                현재 계정의 membership 기준으로 접근 가능한 organization만 표시합니다.
+                현재 계정의 멤버십 기준으로 접근 가능한 조직만 표시합니다.
               </Text>
             </Stack>
             <Badge color="dark" radius="xl" size="lg" variant="light">
-              {data.memberships.length} organizations
+              {data.memberships.length}개 조직
             </Badge>
           </Group>
 

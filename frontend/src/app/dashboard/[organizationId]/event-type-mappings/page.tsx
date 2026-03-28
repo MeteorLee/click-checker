@@ -261,7 +261,7 @@ export default function EventTypeMappingsPage() {
     <ConsoleFrame>
       <ConsoleHeader
         title={`${data.organizationName} 이벤트 규칙 관리`}
-        subtitle="raw event type를 canonical event type으로 정규화하는 규칙을 조회하고 수정합니다."
+        subtitle="원본 이벤트 이름을 대표 이벤트로 정리하는 규칙을 조회하고 수정합니다."
         backHref={`/dashboard/${params.organizationId}/event-types`}
         badge="Settings"
       />
@@ -269,7 +269,7 @@ export default function EventTypeMappingsPage() {
         centered
         opened={isEditOpened}
         radius="28px"
-        title="Event Type Mapping 수정"
+        title="이벤트 규칙 수정"
         onClose={() => setIsEditOpened(false)}
       >
         <Stack gap="md">
@@ -304,16 +304,16 @@ export default function EventTypeMappingsPage() {
               <Group justify="space-between" align="flex-start">
                 <div>
                   <Badge color="teal" mb="md" variant="light">
-                    Event Type Rules
+                    Rules
                   </Badge>
-                  <Title order={1}>Canonical Event Type 테이블</Title>
+                  <Title order={1}>이벤트 규칙 테이블</Title>
                   <Text c="dimmed" mt="sm">
-                    raw event type를 어떤 canonical event type으로 묶을지 관리합니다.
+                    어떤 원본 이벤트 이름을 같은 대표 이벤트로 묶을지 관리합니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
                   <Badge color="dark" radius="xl" variant="light">
-                    {data.items.length} mappings
+                    {data.items.length}개 규칙
                   </Badge>
                   <Badge color={canManage ? "teal" : "gray"} radius="xl" variant="light">
                     {canManage ? "ADMIN 이상 수정 가능" : "VIEWER는 조회만 가능"}
@@ -329,7 +329,7 @@ export default function EventTypeMappingsPage() {
 
               <Paper p="lg" radius="24px" withBorder>
                 <Stack gap="md">
-                  <Text fw={700}>새 canonical event type 규칙 추가</Text>
+                  <Text fw={700}>새 이벤트 규칙 추가</Text>
                   <Group align="flex-end" grow>
                     <TextInput
                       disabled={!canManage}

@@ -356,11 +356,11 @@ export default function FunnelPage() {
               <Group justify="space-between" align="flex-start">
                 <div>
                   <Badge color="lime" variant="light" mb="md">
-                    Conversion Funnel
+                    Funnel
                   </Badge>
                   <Title order={1}>전환 퍼널</Title>
                   <Text c="dimmed" mt="sm">
-                    단계별 canonical event type을 기준으로 전환율과 이탈 구간을 계산합니다. routeKey를 함께 고르면 특정 경로 기준 퍼널도 확인할 수 있습니다.
+                    단계별 대표 이벤트를 기준으로 전환율과 이탈 구간을 계산합니다. 경로 조건을 함께 고르면 특정 흐름만 따로 볼 수 있습니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
@@ -434,7 +434,7 @@ export default function FunnelPage() {
                     <div>
                       <Text fw={700}>퍼널 단계 설정</Text>
                       <Text c="dimmed" size="sm">
-                        canonical event type 2~4개를 순서대로 고르고, 단계 사이를 몇 일까지 인정할지 전환 허용 기간을 정합니다.
+                        대표 이벤트 2~4개를 순서대로 고르고, 단계 사이를 몇 일까지 같은 전환으로 볼지 정합니다.
                       </Text>
                     </div>
                     <Select
@@ -454,8 +454,8 @@ export default function FunnelPage() {
                       <Stack gap="sm">
                         <Group justify="space-between" align="flex-start">
                           <Select
-                            label={`단계 ${index + 1} event type`}
-                            placeholder="event type 선택"
+                            label={`단계 ${index + 1} 이벤트`}
+                            placeholder="이벤트 선택"
                             radius="xl"
                             value={step.canonicalEventType}
                             w={320}

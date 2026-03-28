@@ -229,7 +229,7 @@ export default function RoutesPage() {
     <ConsoleFrame>
       <ConsoleHeader
         title={`${data.organizationName} 경로 상세`}
-        subtitle="정규화된 route key 기준으로 상위 경로 집계를 확인합니다."
+        subtitle="정규화된 경로 키 기준으로 상위 경로 집계를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Routes"
       />
@@ -240,11 +240,11 @@ export default function RoutesPage() {
               <Group justify="space-between" align="flex-start">
                 <div>
                   <Badge color="blue" variant="light" mb="md">
-                    Route Aggregate
+                    Routes
                   </Badge>
-                  <Title order={1}>상위 route 상세</Title>
+                  <Title order={1}>상위 경로 상세</Title>
                   <Text c="dimmed" mt="sm">
-                    현재 organization에서 많이 조회된 route를 정규화된 route key 기준으로 보여줍니다.
+                    현재 조직에서 많이 조회된 경로를 정규화된 경로 키 기준으로 보여줍니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
@@ -255,7 +255,7 @@ export default function RoutesPage() {
                     variant="default"
                     onClick={() => router.push(`/dashboard/${params.organizationId}/route-templates`)}
                   >
-                    Route 규칙 관리
+                    경로 규칙 관리
                   </Button>
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
@@ -347,20 +347,20 @@ export default function RoutesPage() {
               <Group justify="space-between" align="center">
                 <div>
                   <Text fw={700} size="lg">
-                    Top Routes
+                    상위 경로
                   </Text>
                   <Text c="dimmed" size="sm">
-                    현재 기간에 수집된 이벤트 수 기준 상위 route입니다.
+                    현재 기간에 수집된 이벤트 수 기준으로 상위 경로를 보여줍니다.
                   </Text>
                 </div>
                 <Badge color="dark" radius="xl" variant="light">
-                  {data.routes.items.length} routes
+                  {data.routes.items.length}개 경로
                 </Badge>
               </Group>
 
               {data.routes.items.length === 0 ? (
                 <Alert color="gray" radius="lg" variant="light">
-                  표시할 route 데이터가 없습니다.
+                  표시할 경로 데이터가 없습니다.
                 </Alert>
               ) : (
                 <Stack gap="lg">

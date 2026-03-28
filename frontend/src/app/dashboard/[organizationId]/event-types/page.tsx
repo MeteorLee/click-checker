@@ -229,7 +229,7 @@ export default function EventTypesPage() {
     <ConsoleFrame>
       <ConsoleHeader
         title={`${data.organizationName} 이벤트 상세`}
-        subtitle="정규화된 canonical event type 기준으로 상위 이벤트 집계를 확인합니다."
+        subtitle="정규화된 대표 이벤트 기준으로 상위 이벤트 집계를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Event Types"
       />
@@ -240,11 +240,11 @@ export default function EventTypesPage() {
               <Group justify="space-between" align="flex-start">
                 <div>
                   <Badge color="teal" variant="light" mb="md">
-                    Event Type Aggregate
+                    Event Types
                   </Badge>
-                  <Title order={1}>상위 event type 상세</Title>
+                  <Title order={1}>상위 이벤트 상세</Title>
                   <Text c="dimmed" mt="sm">
-                    현재 organization에서 많이 발생한 이벤트를 정규화된 event type 기준으로 보여줍니다.
+                    현재 조직에서 많이 발생한 이벤트를 정규화된 대표 이벤트 기준으로 보여줍니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
@@ -255,7 +255,7 @@ export default function EventTypesPage() {
                     variant="default"
                     onClick={() => router.push(`/dashboard/${params.organizationId}/event-type-mappings`)}
                   >
-                    Event Type 규칙 관리
+                    이벤트 규칙 관리
                   </Button>
                   <Text c="dimmed" fw={600} size="sm">
                     조회 기간
@@ -347,20 +347,20 @@ export default function EventTypesPage() {
               <Group justify="space-between" align="center">
                 <div>
                   <Text fw={700} size="lg">
-                    Top Event Types
+                    상위 이벤트
                   </Text>
                   <Text c="dimmed" size="sm">
-                    현재 기간에 수집된 이벤트 수 기준 상위 event type입니다.
+                    현재 기간에 수집된 이벤트 수 기준으로 상위 이벤트를 보여줍니다.
                   </Text>
                 </div>
                 <Badge color="dark" radius="xl" variant="light">
-                  {data.eventTypes.items.length} event types
+                  {data.eventTypes.items.length}개 이벤트
                 </Badge>
               </Group>
 
               {data.eventTypes.items.length === 0 ? (
                 <Alert color="gray" radius="lg" variant="light">
-                  표시할 event type 데이터가 없습니다.
+                  표시할 이벤트 데이터가 없습니다.
                 </Alert>
               ) : (
                 <Stack gap="lg">

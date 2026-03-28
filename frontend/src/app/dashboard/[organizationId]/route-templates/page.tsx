@@ -290,7 +290,7 @@ export default function RouteTemplatesPage() {
     <ConsoleFrame>
       <ConsoleHeader
         title={`${data.organizationName} 경로 규칙 관리`}
-        subtitle="raw path를 route key로 정규화하는 규칙을 조회하고 수정합니다."
+        subtitle="원본 경로를 경로 키로 정리하는 규칙을 조회하고 수정합니다."
         backHref={`/dashboard/${params.organizationId}/routes`}
         badge="Settings"
       />
@@ -298,7 +298,7 @@ export default function RouteTemplatesPage() {
         centered
         opened={isEditOpened}
         radius="28px"
-        title="Route Template 수정"
+        title="경로 규칙 수정"
         onClose={() => setIsEditOpened(false)}
       >
         <Stack gap="md">
@@ -341,16 +341,16 @@ export default function RouteTemplatesPage() {
               <Group justify="space-between" align="flex-start">
                 <div>
                   <Badge color="blue" mb="md" variant="light">
-                    Route Rules
+                    Rules
                   </Badge>
-                  <Title order={1}>Route Template 테이블</Title>
+                  <Title order={1}>경로 규칙 테이블</Title>
                   <Text c="dimmed" mt="sm">
-                    path를 어떤 route key로 묶을지와 우선순위를 관리합니다.
+                    어떤 원본 경로를 같은 경로 키로 묶을지와 우선순위를 관리합니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
                   <Badge color="dark" radius="xl" variant="light">
-                    {data.items.length} rules
+                    {data.items.length}개 규칙
                   </Badge>
                   <Badge color={canManage ? "blue" : "gray"} radius="xl" variant="light">
                     {canManage ? "ADMIN 이상 수정 가능" : "VIEWER는 조회만 가능"}
@@ -366,7 +366,7 @@ export default function RouteTemplatesPage() {
 
               <Paper p="lg" radius="24px" withBorder>
                 <Stack gap="md">
-                  <Text fw={700}>새 route template 추가</Text>
+                  <Text fw={700}>새 경로 규칙 추가</Text>
                   <Group align="flex-end" grow>
                     <TextInput
                       disabled={!canManage}

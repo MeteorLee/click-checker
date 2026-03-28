@@ -541,14 +541,14 @@ export default function UsersPage() {
               description="식별된 사용자 안에서 신규 사용자와 기존 사용자 비율입니다."
               items={[
                 {
-                  label: "신규 사용자",
-                  value: data.users.newUsers,
-                  color: "var(--mantine-color-orange-5)",
-                },
-                {
                   label: "기존 사용자",
                   value: data.users.returningUsers,
                   color: "var(--mantine-color-grape-5)",
+                },
+                {
+                  label: "신규 사용자",
+                  value: data.users.newUsers,
+                  color: "var(--mantine-color-orange-5)",
                 },
               ]}
             />
