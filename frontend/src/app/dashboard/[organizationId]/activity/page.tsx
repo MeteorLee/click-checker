@@ -17,7 +17,6 @@ import type { AdminActivityAnalyticsResponse } from "@/types/analytics";
 import {
   Alert,
   Badge,
-  Box,
   Button,
   Container,
   Group,
@@ -35,6 +34,18 @@ import {
 import { IconAlertCircle, IconBolt } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 type RangePreset = "1d" | "7d" | "30d" | "custom";
 
@@ -175,10 +186,24 @@ export default function ActivityPage() {
     setIsRangePopoverOpened(false);
   }
 
-  const maxHourlyEventCount = useMemo(() => {
-    if (!data) return 0;
-    return Math.max(...data.activity.hourlyDistribution.map((item) => item.eventCount), 0);
-  }, [data]);
+  const dailyChartData = useMemo(
+    () =>
+      data?.activity.dailyActivity.map((item) => ({
+        label: formatDayLabel(item.bucketStart).slice(0, -1),
+        eventCount: item.eventCount,
+        uniqueUserCount: item.uniqueUserCount,
+      })) ?? [],
+    [data],
+  );
+
+  const hourlyChartData = useMemo(
+    () =>
+      data?.activity.hourlyDistribution.map((item) => ({
+        label: formatHourLabel(item.hourOfDay),
+        eventCount: item.eventCount,
+      })) ?? [],
+    [data],
+  );
 
   if (isLoading) {
     return (
@@ -385,6 +410,35 @@ export default function ActivityPage() {
                     선택한 기간 안에서 날짜별 이벤트 수와 고유 사용자 수를 비교합니다.
                   </Text>
                 </div>
+
+                <div style={{ width: "100%", height: 280 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={dailyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.22)" />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="eventCount"
+                        name="이벤트"
+                        stroke="var(--mantine-color-orange-6)"
+                        strokeWidth={3}
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="uniqueUserCount"
+                        name="고유 사용자"
+                        stroke="var(--mantine-color-teal-6)"
+                        strokeWidth={3}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
                 <Table highlightOnHover withColumnBorders>
                   <Table.Thead>
                     <Table.Tr>
@@ -415,39 +469,22 @@ export default function ActivityPage() {
                   </Text>
                 </div>
 
-                <Stack gap="sm">
-                  {data.activity.hourlyDistribution.map((item) => (
-                    <Group key={item.hourOfDay} align="center" wrap="nowrap">
-                      <Text fw={700} size="sm" w={52}>
-                        {formatHourLabel(item.hourOfDay)}
-                      </Text>
-                      <Box
-                        style={{
-                          flex: 1,
-                          background: "var(--mantine-color-gray-1)",
-                          borderRadius: "999px",
-                          overflow: "hidden",
-                          height: "14px",
-                        }}
-                      >
-                        <Box
-                          style={{
-                            width:
-                              maxHourlyEventCount === 0
-                                ? "0%"
-                                : `${(item.eventCount / maxHourlyEventCount) * 100}%`,
-                            background: "linear-gradient(90deg, var(--mantine-color-orange-5), var(--mantine-color-grape-5))",
-                            height: "100%",
-                            borderRadius: "999px",
-                          }}
-                        />
-                      </Box>
-                      <Text c="dimmed" fw={600} size="sm" ta="right" w={88}>
-                        {formatNumber(item.eventCount)}
-                      </Text>
-                    </Group>
-                  ))}
-                </Stack>
+                <div style={{ width: "100%", height: 320 }}>
+                  <ResponsiveContainer>
+                    <BarChart data={hourlyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.22)" />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar
+                        dataKey="eventCount"
+                        name="이벤트"
+                        fill="var(--mantine-color-orange-5)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </Stack>
             </Paper>
           </SimpleGrid>

@@ -32,7 +32,16 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle, IconSettings } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 type RangePreset = "1d" | "7d" | "30d" | "custom";
 
@@ -131,6 +140,15 @@ export default function EventTypesPage() {
 
     void load();
   }, [appliedRange, params.organizationId, router]);
+
+  const chartData = useMemo(
+    () =>
+      data?.eventTypes.items.slice(0, 10).map((item) => ({
+        canonicalEventType: item.canonicalEventType,
+        count: item.count,
+      })) ?? [],
+    [data?.eventTypes.items],
+  );
 
   function handleApplyCustomRange() {
     if (!customFrom || !customTo) {
@@ -345,26 +363,56 @@ export default function EventTypesPage() {
                   표시할 event type 데이터가 없습니다.
                 </Alert>
               ) : (
-                <Table highlightOnHover>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>순위</Table.Th>
-                      <Table.Th>Event Type</Table.Th>
-                      <Table.Th style={{ textAlign: "right" }}>Events</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {data.eventTypes.items.map((item, index) => (
-                      <Table.Tr key={`${item.canonicalEventType}-${index}`}>
-                        <Table.Td>{index + 1}</Table.Td>
-                        <Table.Td>{item.canonicalEventType}</Table.Td>
-                        <Table.Td style={{ textAlign: "right" }}>
-                          {formatNumber(item.count)}
-                        </Table.Td>
+                <Stack gap="lg">
+                  <div style={{ width: "100%", height: 360 }}>
+                    <ResponsiveContainer>
+                      <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        barCategoryGap="22%"
+                        barSize={24}
+                        margin={{ left: 16, right: 16, top: 6, bottom: 6 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.22)" />
+                        <XAxis type="number" tick={{ fontSize: 12 }} />
+                        <YAxis
+                          dataKey="canonicalEventType"
+                          type="category"
+                          width={172}
+                          tick={{ fontSize: 12, fill: "var(--mantine-color-gray-8)" }}
+                        />
+                        <Tooltip />
+                        <Bar
+                          dataKey="count"
+                          name="이벤트"
+                          fill="var(--mantine-color-teal-5)"
+                          radius={[0, 8, 8, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <Table highlightOnHover>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>순위</Table.Th>
+                        <Table.Th>Event Type</Table.Th>
+                        <Table.Th style={{ textAlign: "right" }}>Events</Table.Th>
                       </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {data.eventTypes.items.map((item, index) => (
+                        <Table.Tr key={`${item.canonicalEventType}-${index}`}>
+                          <Table.Td>{index + 1}</Table.Td>
+                          <Table.Td>{item.canonicalEventType}</Table.Td>
+                          <Table.Td style={{ textAlign: "right" }}>
+                            {formatNumber(item.count)}
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Stack>
               )}
             </Stack>
           </Paper>
