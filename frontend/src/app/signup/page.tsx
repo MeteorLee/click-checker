@@ -1,9 +1,14 @@
+"use client";
+
 import { ConsoleFrame } from "@/components/common/console-frame";
 import { SignupForm } from "@/components/auth/signup-form";
+import { getAccessToken } from "@/lib/session/token-store";
 import {
+  Button,
   Badge,
   Container,
   Group,
+  Loader,
   Paper,
   SimpleGrid,
   Stack,
@@ -12,12 +17,42 @@ import {
   Title,
 } from "@mantine/core";
 import {
+  IconArrowLeft,
   IconBuildingSkyscraper,
   IconKey,
   IconUserPlus,
 } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function SignupPage() {
+  const router = useRouter();
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  useEffect(() => {
+    const accessToken = getAccessToken();
+
+    if (accessToken) {
+      router.replace("/organizations");
+      return;
+    }
+
+    setIsCheckingSession(false);
+  }, [router]);
+
+  if (isCheckingSession) {
+    return (
+      <ConsoleFrame>
+        <Container size="sm" py={120}>
+          <Stack align="center" gap="md">
+            <Loader color="blue" />
+            <Text c="dimmed">로그인 상태를 확인하는 중입니다.</Text>
+          </Stack>
+        </Container>
+      </ConsoleFrame>
+    );
+  }
+
   return (
     <ConsoleFrame>
       <Container size="xl" py={72}>
@@ -26,17 +61,26 @@ export default function SignupPage() {
             <Paper radius="32px" p={40} shadow="sm" withBorder className="console-hero">
               <Stack gap="xl">
                 <Stack gap="md">
-                  <Badge color="blue" radius="xl" size="lg" variant="light">
+                  <Badge color="blue" radius="xl" size="lg" variant="light" w="fit-content">
                     Click Checker
                   </Badge>
                   <Title order={1} fz={{ base: 36, md: 48 }} maw={520}>
-                    새 관리자 계정을 만들고 바로 organization 작업을 시작합니다.
+                    새 관리자 계정을 만들고 바로 조직 작업을 시작합니다.
                   </Title>
                   <Text c="dimmed" maw={520} size="lg">
-                    계정 생성이 완료되면 바로 로그인된 상태가 되고, organization을 만들거나
-                    기존 조직을 선택해 overview 대시보드로 들어갈 수 있습니다.
+                    계정 생성이 완료되면 바로 로그인된 상태가 되고, 조직을 만들거나
+                    기존 조직을 선택해 개요 화면으로 바로 들어갈 수 있습니다.
                   </Text>
                 </Stack>
+
+                <Group gap="sm">
+                  <Badge color="gray" radius="xl" size="lg" variant="dot">
+                    계정 생성 후 바로 진입
+                  </Badge>
+                  <Badge color="gray" radius="xl" size="lg" variant="dot">
+                    조직별 분석 시작
+                  </Badge>
+                </Group>
 
                 <Stack gap="md">
                   <Group align="flex-start" wrap="nowrap">
@@ -57,9 +101,9 @@ export default function SignupPage() {
                       <IconBuildingSkyscraper size={20} />
                     </ThemeIcon>
                     <div>
-                      <Text fw={700}>Organization 단위 운영 흐름</Text>
+                      <Text fw={700}>조직 단위 운영 흐름</Text>
                       <Text c="dimmed" size="sm">
-                        계정 생성 뒤에는 organization을 만들거나 선택하고, 각 조직의 overview와
+                        계정 생성 뒤에는 조직을 만들거나 선택하고, 각 조직의 개요와
                         API key 상태를 확인합니다.
                       </Text>
                     </div>
@@ -84,7 +128,21 @@ export default function SignupPage() {
 
           <div>
             <Container size="xs" px={0}>
-              <SignupForm />
+              <Stack gap="md">
+                <Group justify="flex-start">
+                  <Button
+                    component="a"
+                    href="/"
+                    leftSection={<IconArrowLeft size={14} />}
+                    radius="xl"
+                    size="compact-sm"
+                    variant="subtle"
+                  >
+                    홈으로
+                  </Button>
+                </Group>
+                <SignupForm />
+              </Stack>
             </Container>
           </div>
         </SimpleGrid>
