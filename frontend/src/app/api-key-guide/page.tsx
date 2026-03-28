@@ -40,6 +40,21 @@ const keyRules = [
   "조직을 바꾸면 API key도 함께 바꿔야 합니다.",
 ] as const;
 
+const keyQuestions = [
+  {
+    title: "어디에 넣나",
+    description: "이벤트 전송과 집계 API 조회 모두 `X-API-Key` 헤더를 사용합니다.",
+  },
+  {
+    title: "JWT와 뭐가 다른가",
+    description: "JWT는 관리자 콘솔용이고, API key는 조직 단위 제품 API용입니다.",
+  },
+  {
+    title: "언제 다시 봐야 하나",
+    description: "조직을 바꾸거나 키를 재발급했을 때 다시 확인해야 합니다.",
+  },
+] as const;
+
 export default function ApiKeyGuidePage() {
   return (
     <GuideFrame>
@@ -70,6 +85,21 @@ export default function ApiKeyGuidePage() {
             </Stack>
           </Paper>
 
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+            {keyQuestions.map((item) => (
+              <Paper key={item.title} radius="24px" p="lg" withBorder bg="gray.0">
+                <Stack gap={6}>
+                  <Text fw={700} size="sm">
+                    {item.title}
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {item.description}
+                  </Text>
+                </Stack>
+              </Paper>
+            ))}
+          </SimpleGrid>
+
           <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
             <Paper radius="28px" p={{ base: "xl", md: 28 }} withBorder>
               <Stack gap="lg">
@@ -91,12 +121,12 @@ export default function ApiKeyGuidePage() {
                 <Badge color="gray" radius="xl" variant="light" w="fit-content">
                   사용 헤더
                 </Badge>
-              <Code block>{`X-API-Key: ck_live_xxx`}</Code>
-              <Text c="dimmed" size="sm">
-                `Authorization: Bearer ...` 대신 위 헤더를 사용합니다. 이벤트 적재와 집계 조회 모두 같은 방식입니다.
-              </Text>
-            </Stack>
-          </Paper>
+                <Code block>{`X-API-Key: ck_live_xxx`}</Code>
+                <Text c="dimmed" size="sm">
+                  `Authorization: Bearer ...` 대신 위 헤더를 사용합니다. 이벤트 적재와 집계 조회 모두 같은 방식입니다.
+                </Text>
+              </Stack>
+            </Paper>
           </SimpleGrid>
 
           <Paper radius="32px" p={{ base: "xl", md: 32 }} withBorder>

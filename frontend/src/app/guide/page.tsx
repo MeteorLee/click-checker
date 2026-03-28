@@ -88,6 +88,21 @@ const useCases = [
   },
 ] as const;
 
+const guideSequence = [
+  {
+    title: "빠른 시작",
+    description: "첫 이벤트를 보내고 개요 값이 반영되는지 바로 확인합니다.",
+  },
+  {
+    title: "API Key",
+    description: "제품 API에서 쓰는 인증 방식과 재발급 흐름을 확인합니다.",
+  },
+  {
+    title: "이벤트 전송 / 집계 API",
+    description: "실제 요청 형식과 응답 필드를 자세히 봅니다.",
+  },
+] as const;
+
 export default function GuideOverviewPage() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [hasAccessToken, setHasAccessToken] = useState(false);
@@ -220,6 +235,35 @@ export default function GuideOverviewPage() {
               </Stack>
             </Paper>
           </SimpleGrid>
+
+          <Paper radius="32px" p={{ base: "xl", md: 32 }} withBorder>
+            <Stack gap="lg">
+              <Stack gap={4}>
+                <Badge color="blue" radius="xl" variant="light" w="fit-content">
+                  시작 순서
+                </Badge>
+                <Title order={2}>이 순서대로 보면 됩니다</Title>
+                <Text c="dimmed" size="sm">
+                  소개에서 흐름을 이해한 뒤, 빠른 시작으로 첫 성공을 만들고 상세 가이드에서 요청과 응답 형식을 확인합니다.
+                </Text>
+              </Stack>
+              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+                {guideSequence.map((item, index) => (
+                  <Paper key={item.title} radius="24px" p="lg" withBorder bg="gray.0">
+                    <Stack gap={6}>
+                      <Badge color="gray" radius="xl" variant="light" w="fit-content">
+                        {index + 1}
+                      </Badge>
+                      <Text fw={700}>{item.title}</Text>
+                      <Text c="dimmed" size="sm">
+                        {item.description}
+                      </Text>
+                    </Stack>
+                  </Paper>
+                ))}
+              </SimpleGrid>
+            </Stack>
+          </Paper>
 
           <Paper radius="32px" p={{ base: "xl", md: 32 }} withBorder>
             <Stack gap="xl">

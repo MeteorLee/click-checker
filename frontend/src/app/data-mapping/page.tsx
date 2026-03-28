@@ -87,6 +87,21 @@ const mappingApis = [
   },
 ] as const;
 
+const mappingHints = [
+  {
+    title: "경로는 route key로 보입니다",
+    description: "개요, 경로 상세, 퍼널 조건에서 route key 기준으로 읽게 됩니다.",
+  },
+  {
+    title: "이벤트는 공통 키로 보입니다",
+    description: "개요, 이벤트 상세, 퍼널 단계에서 공통 이벤트 기준으로 읽게 됩니다.",
+  },
+  {
+    title: "정리되지 않으면 별도 값으로 남습니다",
+    description: "`UNMATCHED_ROUTE`, `UNMAPPED_EVENT_TYPE`는 아직 규칙에 묶이지 않은 값입니다.",
+  },
+] as const;
+
 const codeFontFamily =
   "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace";
 
@@ -162,6 +177,21 @@ export default function DataMappingPage() {
               </Text>
             </Stack>
           </Paper>
+
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+            {mappingHints.map((item) => (
+              <Paper key={item.title} radius="24px" p="lg" withBorder bg="gray.0">
+                <Stack gap={6}>
+                  <Text fw={700} size="sm">
+                    {item.title}
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {item.description}
+                  </Text>
+                </Stack>
+              </Paper>
+            ))}
+          </SimpleGrid>
 
           <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
             <Paper radius="28px" p={{ base: "xl", md: 28 }} withBorder>

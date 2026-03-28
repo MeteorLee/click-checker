@@ -18,6 +18,7 @@ import {
 
 type ApiGuide = {
   name: string;
+  summary: string;
   method: "GET" | "POST";
   path: string;
   description: string;
@@ -40,7 +41,8 @@ type ApiGuide = {
 
 const apiGuides: ApiGuide[] = [
   {
-    name: "Overview",
+    name: "개요",
+    summary: "전체 규모와 대표 경로/이벤트를 가장 먼저 확인합니다.",
     method: "GET",
     path: "/api/v1/events/analytics/aggregates/overview",
     description: "총 이벤트, 고유 사용자, 상위 경로와 이벤트를 한 번에 확인합니다.",
@@ -71,7 +73,8 @@ const apiGuides: ApiGuide[] = [
 }`,
   },
   {
-    name: "Activity",
+    name: "활동량",
+    summary: "평일/주말, 요일별, 시간대 분포를 비교합니다.",
     method: "GET",
     path: "/api/v1/events/analytics/activity",
     description: "평일/주말 요약, 요일별 분포, 시간대 분포를 확인합니다.",
@@ -101,7 +104,8 @@ const apiGuides: ApiGuide[] = [
 }`,
   },
   {
-    name: "Users Overview",
+    name: "사용자 현황",
+    summary: "익명/식별, 신규/기존 사용자 구성을 확인합니다.",
     method: "GET",
     path: "/api/v1/events/analytics/users/overview",
     description: "익명/식별 이벤트, 신규/기존 사용자 구성을 확인합니다.",
@@ -132,7 +136,8 @@ const apiGuides: ApiGuide[] = [
 }`,
   },
   {
-    name: "Retention Matrix",
+    name: "유지율 매트릭스",
+    summary: "코호트별 N일 내 재방문 비율을 표 형태로 봅니다.",
     method: "GET",
     path: "/api/v1/events/analytics/retention/matrix",
     description: "코호트별 N일 내 재방문 비율을 표 형태로 조회합니다.",
@@ -168,7 +173,8 @@ const apiGuides: ApiGuide[] = [
 }`,
   },
   {
-    name: "Retention Daily",
+    name: "일별 유지율",
+    summary: "일별 유지율 흐름을 단순하게 확인합니다.",
     method: "GET",
     path: "/api/v1/events/analytics/retention/daily",
     description: "일별 유지율을 한 줄 흐름으로 볼 때 사용합니다.",
@@ -197,7 +203,8 @@ const apiGuides: ApiGuide[] = [
 }`,
   },
   {
-    name: "Funnels Report",
+    name: "퍼널 리포트",
+    summary: "단계별 전환율과 이탈 구간을 계산합니다.",
     method: "POST",
     path: "/api/v1/events/analytics/funnels/report",
     description: "단계별 전환율과 이탈을 계산합니다.",
@@ -257,6 +264,21 @@ const trendApis = [
   ["GET /api/v1/events/analytics/aggregates/route-event-type-time-buckets", "route key + event type 조합 시간 버킷 집계"],
 ] as const;
 
+const recommendedApis = [
+  {
+    title: "먼저 보기",
+    description: "개요 API로 전체 이벤트 수와 상위 경로/이벤트를 먼저 확인합니다.",
+  },
+  {
+    title: "패턴 보기",
+    description: "활동량 API로 평일/주말과 시간대 차이를 확인합니다.",
+  },
+  {
+    title: "전환 보기",
+    description: "유지율과 퍼널 API로 복귀와 단계별 전환을 확인합니다.",
+  },
+] as const;
+
 const commonQueryParams = [
   { name: "from", required: "필수", description: "조회 시작 시각(UTC ISO-8601)" },
   { name: "to", required: "필수", description: "조회 종료 시각(UTC ISO-8601)" },
@@ -301,7 +323,18 @@ function ApiSection({ api }: { api: ApiGuide }) {
           <Paper bg="gray.0" p="md" radius="20px" withBorder>
             <Stack gap={6}>
               <Text fw={700} size="sm">
-                Headers
+                한 줄 요약
+              </Text>
+              <Text c="dimmed" size="sm">
+                {api.summary}
+              </Text>
+            </Stack>
+          </Paper>
+
+          <Paper bg="gray.0" p="md" radius="20px" withBorder>
+            <Stack gap={6}>
+              <Text fw={700} size="sm">
+                헤더
               </Text>
               <Code block>{api.headers.join("\n")}</Code>
             </Stack>
@@ -375,7 +408,7 @@ function ApiSection({ api }: { api: ApiGuide }) {
             <Paper bg="gray.0" p="md" radius="20px" withBorder>
               <Stack gap={6}>
                 <Text fw={700} size="sm">
-                  Example Request
+                  예시 요청
                 </Text>
                 <Code block>{api.requestExample}</Code>
               </Stack>
@@ -383,7 +416,7 @@ function ApiSection({ api }: { api: ApiGuide }) {
             <Paper bg="gray.0" p="md" radius="20px" withBorder>
               <Stack gap={6}>
                 <Text fw={700} size="sm">
-                  Example Response
+                  예시 응답
                 </Text>
                 <Code block>{api.responseExample}</Code>
               </Stack>
@@ -424,6 +457,21 @@ export default function AnalyticsApiPage() {
               </Text>
             </Stack>
           </Paper>
+
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+            {recommendedApis.map((item) => (
+              <Paper key={item.title} radius="24px" p="lg" withBorder bg="gray.0">
+                <Stack gap={6}>
+                  <Text fw={700} size="sm">
+                    {item.title}
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {item.description}
+                  </Text>
+                </Stack>
+              </Paper>
+            ))}
+          </SimpleGrid>
 
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
             <Paper radius="24px" p="lg" withBorder bg="gray.0">

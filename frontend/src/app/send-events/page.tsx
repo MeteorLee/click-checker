@@ -87,6 +87,21 @@ const cautions = [
   },
 ] as const;
 
+const sendEventChecklist = [
+  {
+    title: "필수는 2개",
+    description: "`eventType`, `path`만 있어도 기본 적재는 시작할 수 있습니다.",
+  },
+  {
+    title: "식별은 externalUserId",
+    description: "사용자 현황과 유지율까지 보려면 externalUserId를 함께 보내는 편이 좋습니다.",
+  },
+  {
+    title: "성공 확인은 id",
+    description: "응답에 id가 오면 저장은 끝났고, 그 다음은 개요 값이나 집계 API로 확인합니다.",
+  },
+] as const;
+
 export default function SendEventsPage() {
   return (
     <GuideFrame>
@@ -116,6 +131,21 @@ export default function SendEventsPage() {
               </Text>
             </Stack>
           </Paper>
+
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+            {sendEventChecklist.map((item) => (
+              <Paper key={item.title} radius="24px" p="lg" withBorder bg="gray.0">
+                <Stack gap={6}>
+                  <Text fw={700} size="sm">
+                    {item.title}
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {item.description}
+                  </Text>
+                </Stack>
+              </Paper>
+            ))}
+          </SimpleGrid>
 
           <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
             <Paper radius="28px" p={{ base: "xl", md: 28 }} withBorder>
@@ -210,7 +240,7 @@ export default function SendEventsPage() {
                 </Badge>
                 <Title order={2}>이 요청이 잘 들어갔는지 어떻게 확인하나</Title>
                 <Text c="dimmed" size="sm">
-                  응답의 `id`로 저장 성공을 먼저 확인하고, 그 다음에는 `Overview` 또는 `Quick Start`에서 total events가 늘었는지 보면 됩니다.
+                  응답의 `id`로 저장 성공을 먼저 확인하고, 그 다음에는 개요 값이나 집계 API에서 total events가 늘었는지 보면 됩니다.
                 </Text>
               </Stack>
             </Stack>

@@ -113,6 +113,31 @@ function buildOverviewRange() {
   };
 }
 
+function summarizeCurrentAction(params: {
+  isLoggedIn: boolean;
+  hasOrganization: boolean;
+  hasSentEvent: boolean;
+  hasCheckedOverview: boolean;
+}) {
+  if (!params.isLoggedIn) {
+    return "로그인 후 시작할 수 있습니다.";
+  }
+
+  if (!params.hasOrganization) {
+    return "빠른 시작용 조직을 먼저 만듭니다.";
+  }
+
+  if (!params.hasSentEvent) {
+    return "API key를 입력하고 샘플 이벤트를 보냅니다.";
+  }
+
+  if (!params.hasCheckedOverview) {
+    return "개요 확인 버튼으로 반영 여부를 확인합니다.";
+  }
+
+  return "빠른 시작이 끝났습니다. 필요하면 대시보드로 이동합니다.";
+}
+
 export default function QuickStartPage() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -277,6 +302,12 @@ export default function QuickStartPage() {
   const hasSentEvent = sentEventId !== null;
   const hasCheckedOverview = overview !== null;
   const isOverviewConfirmed = (overview?.totalEvents ?? 0) >= 1;
+  const currentActionSummary = summarizeCurrentAction({
+    isLoggedIn,
+    hasOrganization,
+    hasSentEvent,
+    hasCheckedOverview,
+  });
 
   const eventExample = useMemo(() => {
     const apiKey = quickStartOrganization?.apiKey ?? "<API_KEY>";
@@ -337,6 +368,16 @@ export default function QuickStartPage() {
                   </Badge>
                 ))}
               </Group>
+              <Paper bg="gray.0" p="md" radius="20px" withBorder>
+                <Stack gap={4}>
+                  <Text fw={700} size="sm">
+                    현재 할 일
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {currentActionSummary}
+                  </Text>
+                </Stack>
+              </Paper>
               <Group>
                 <Button component={Link} href="/guide" radius="xl" variant="light">
                   소개 보기
@@ -529,7 +570,7 @@ export default function QuickStartPage() {
                   <MissionStatus
                     description={
                       hasApiKey
-                        ? `${quickStartOrganization?.apiKeyPrefix} 키를 사용할 수 있습니다.`
+                        ? `${quickStartOrganization?.apiKeyPrefix} 키를 확인할 수 있습니다.`
                         : "조직을 만들면 API key를 확인할 수 있습니다."
                     }
                     done={hasApiKey}
@@ -634,7 +675,7 @@ export default function QuickStartPage() {
                       Quick Start 완료 기준
                     </Text>
                     <Text c="dimmed" size="sm">
-                      샘플 이벤트를 보낸 뒤 개요 값에서 총 이벤트가 1건 이상 보이면 충분합니다.
+                      샘플 이벤트를 보낸 뒤 개요 값에서 총 이벤트가 1건 이상 보이면 이 페이지 목적은 끝납니다.
                     </Text>
                   </Stack>
                 </Paper>
