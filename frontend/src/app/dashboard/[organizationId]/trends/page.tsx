@@ -78,6 +78,18 @@ function formatBucketLabel(value: string, bucket: TrendBucket) {
       }).format(date);
 }
 
+function formatSummaryBucketLabel(value: string, bucket: TrendBucket) {
+  const date = new Date(value);
+  return bucket === "HOUR"
+    ? formatDateTime(value)
+    : new Intl.DateTimeFormat("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "Asia/Seoul",
+      }).format(date);
+}
+
 export default function TrendsPage() {
   const router = useRouter();
   const params = useParams<{ organizationId: string }>();
@@ -88,6 +100,8 @@ export default function TrendsPage() {
   const [selectedRange, setSelectedRange] = useState<RangePreset>("7d");
   const [selectedBucket, setSelectedBucket] = useState<TrendBucket>("DAY");
   const [appliedRange, setAppliedRange] = useState<AppliedRange>(getOverviewRange(7));
+  const [lastDayRange, setLastDayRange] = useState<AppliedRange>(getOverviewRange(7));
+  const [lastDayRangePreset, setLastDayRangePreset] = useState<RangePreset>("7d");
   const [customFrom, setCustomFrom] = useState<string>(getOverviewRange(7).displayFrom);
   const [customTo, setCustomTo] = useState<string>(getOverviewRange(7).displayTo);
   const [rangeValidationMessage, setRangeValidationMessage] = useState<string | null>(null);
@@ -123,7 +137,19 @@ export default function TrendsPage() {
   }, [appliedRange, selectedBucket]);
 
   function switchBucket(nextBucket: TrendBucket) {
+    if (nextBucket === "DAY" && selectedBucket === "HOUR") {
+      setSelectedBucket("DAY");
+      setSelectedRange(lastDayRangePreset);
+      setAppliedRange(lastDayRange);
+      setCustomFrom(lastDayRange.displayFrom);
+      setCustomTo(lastDayRange.displayTo);
+      setRangeValidationMessage(null);
+      return;
+    }
+
     if (nextBucket === "HOUR" && !isHourlyAvailable(appliedRange)) {
+      setLastDayRange(appliedRange);
+      setLastDayRangePreset(selectedRange);
       const targetDate = appliedRange.displayTo;
       const singleDayRange = getCustomOverviewRange(targetDate, targetDate);
       setSelectedRange("custom");
@@ -511,7 +537,7 @@ export default function TrendsPage() {
                         피크 버킷
                       </Text>
                       <Text fw={800} size="1rem">
-                        {formatDateTime(trendSummary.peakBucket.bucketStart)}
+                        {formatSummaryBucketLabel(trendSummary.peakBucket.bucketStart, selectedBucket)}
                       </Text>
                       <Text c="dimmed" size="sm">
                         {formatNumber(trendSummary.peakBucket.events)} events
@@ -524,7 +550,7 @@ export default function TrendsPage() {
                         가장 조용한 버킷
                       </Text>
                       <Text fw={800} size="1rem">
-                        {formatDateTime(trendSummary.quietBucket.bucketStart)}
+                        {formatSummaryBucketLabel(trendSummary.quietBucket.bucketStart, selectedBucket)}
                       </Text>
                       <Text c="dimmed" size="sm">
                         {formatNumber(trendSummary.quietBucket.events)} events
