@@ -1,5 +1,6 @@
+import { authorizedFetch } from "@/lib/api/authorized";
 import { buildApiUrl } from "@/lib/api/config";
-import { ApiError } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/errors";
 import type {
   AdminOrganizationMemberInviteRequest,
   AdminOrganizationMemberListResponse,
@@ -20,13 +21,10 @@ export async function fetchOrganizationMembers(
   accessToken: string,
   organizationId: string,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/members`),
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+    {},
   );
 
   if (!response.ok) {
@@ -41,12 +39,12 @@ export async function inviteOrganizationMemberByLoginId(
   organizationId: string,
   request: AdminOrganizationMemberInviteRequest,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/members/by-login-id`),
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
@@ -66,12 +64,12 @@ export async function updateOrganizationMemberRole(
   memberId: number,
   request: AdminOrganizationMemberRoleUpdateRequest,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/members/${memberId}/role`),
     {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
@@ -90,13 +88,11 @@ export async function removeOrganizationMember(
   organizationId: string,
   memberId: number,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/members/${memberId}`),
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
     },
   );
 

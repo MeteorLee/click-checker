@@ -1,5 +1,6 @@
-import { ApiError } from "@/lib/api/auth";
+import { authorizedFetch } from "@/lib/api/authorized";
 import { buildApiUrl } from "@/lib/api/config";
+import { ApiError } from "@/lib/api/errors";
 import type {
   AdminActivityAnalyticsResponse,
   AdminTrendResponse,
@@ -40,11 +41,7 @@ export async function fetchOverview(
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await authorizedFetch(accessToken, url.toString());
 
   if (!response.ok) {
     throw new ApiError(formatErrorMessage(response.status), response.status);
@@ -67,11 +64,7 @@ export async function fetchRoutes(
   url.searchParams.set("to", to);
   url.searchParams.set("top", String(top));
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await authorizedFetch(accessToken, url.toString());
 
   if (!response.ok) {
     throw new ApiError(formatErrorMessage(response.status), response.status);
@@ -94,11 +87,7 @@ export async function fetchEventTypes(
   url.searchParams.set("to", to);
   url.searchParams.set("top", String(top));
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await authorizedFetch(accessToken, url.toString());
 
   if (!response.ok) {
     throw new ApiError(formatErrorMessage(response.status), response.status);
@@ -121,11 +110,7 @@ export async function fetchTrends(
   url.searchParams.set("to", to);
   url.searchParams.set("bucket", bucket);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await authorizedFetch(accessToken, url.toString());
 
   if (!response.ok) {
     throw new ApiError(formatErrorMessage(response.status), response.status);
@@ -146,11 +131,7 @@ export async function fetchUsers(
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await authorizedFetch(accessToken, url.toString());
 
   if (!response.ok) {
     throw new ApiError(formatErrorMessage(response.status), response.status);
@@ -171,11 +152,7 @@ export async function fetchActivity(
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await authorizedFetch(accessToken, url.toString());
 
   if (!response.ok) {
     throw new ApiError(formatErrorMessage(response.status), response.status);
@@ -200,11 +177,7 @@ export async function fetchRetention(
   days.forEach((day) => url.searchParams.append("days", String(day)));
   url.searchParams.set("minCohortUsers", String(minCohortUsers));
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await authorizedFetch(accessToken, url.toString());
 
   if (!response.ok) {
     throw new ApiError(formatErrorMessage(response.status), response.status);
@@ -226,12 +199,12 @@ export async function fetchFunnel(
     }[];
   },
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/funnels/report`),
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
@@ -246,13 +219,10 @@ export async function fetchFunnel(
 }
 
 export async function fetchFunnelOptions(accessToken: string, organizationId: string) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/funnels/options`),
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+    {},
   );
 
   if (!response.ok) {

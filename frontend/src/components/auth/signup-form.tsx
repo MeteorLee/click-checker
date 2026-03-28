@@ -1,7 +1,7 @@
 "use client";
 
 import { signup } from "@/lib/api/auth";
-import { setAccessToken } from "@/lib/session/token-store";
+import { setSessionTokens } from "@/lib/session/token-store";
 import {
   Alert,
   Button,
@@ -33,7 +33,7 @@ export function SignupForm() {
 
     try {
       const result = await signup({ loginId, password });
-      setAccessToken(result.accessToken);
+      setSessionTokens(result.accessToken, result.refreshToken);
       router.push("/organizations");
     } catch (error) {
       const message =

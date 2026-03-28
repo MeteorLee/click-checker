@@ -24,6 +24,14 @@ export type AdminSignupResponse = {
   refreshTokenExpiresIn: number;
 };
 
+export type AdminRefreshResponse = {
+  accountId: number;
+  accessToken: string;
+  accessTokenExpiresIn: number;
+  refreshToken: string;
+  refreshTokenExpiresIn: number;
+};
+
 export type AdminMeMembership = {
   membershipId: number;
   organizationId: number;

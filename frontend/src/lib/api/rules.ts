@@ -1,5 +1,6 @@
-import { ApiError } from "@/lib/api/auth";
+import { authorizedFetch } from "@/lib/api/authorized";
 import { buildApiUrl } from "@/lib/api/config";
+import { ApiError } from "@/lib/api/errors";
 import type {
   EventTypeMappingCreateRequest,
   EventTypeMappingItem,
@@ -29,18 +30,11 @@ async function parseOrThrow<T>(response: Response, fallbackMessage: string) {
   return (await response.json()) as T;
 }
 
-function authHeaders(accessToken: string) {
-  return {
-    Authorization: `Bearer ${accessToken}`,
-  };
-}
-
 export async function fetchRouteTemplates(accessToken: string, organizationId: string) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/route-templates`),
-    {
-      headers: authHeaders(accessToken),
-    },
+    {},
   );
 
   return parseOrThrow<RouteTemplateListResponse>(response, "route template 목록을 불러오지 못했습니다.");
@@ -51,12 +45,12 @@ export async function createRouteTemplate(
   organizationId: string,
   request: RouteTemplateCreateRequest,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/route-templates`),
     {
       method: "POST",
       headers: {
-        ...authHeaders(accessToken),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
@@ -72,12 +66,12 @@ export async function updateRouteTemplate(
   routeTemplateId: number,
   request: RouteTemplateUpdateRequest,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/route-templates/${routeTemplateId}`),
     {
       method: "PUT",
       headers: {
-        ...authHeaders(accessToken),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
@@ -93,12 +87,12 @@ export async function updateRouteTemplateActive(
   routeTemplateId: number,
   active: boolean,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/route-templates/${routeTemplateId}/active`),
     {
       method: "PUT",
       headers: {
-        ...authHeaders(accessToken),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ active }),
@@ -113,11 +107,11 @@ export async function deleteRouteTemplate(
   organizationId: string,
   routeTemplateId: number,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/route-templates/${routeTemplateId}`),
     {
       method: "DELETE",
-      headers: authHeaders(accessToken),
     },
   );
 
@@ -127,11 +121,10 @@ export async function deleteRouteTemplate(
 }
 
 export async function fetchEventTypeMappings(accessToken: string, organizationId: string) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/event-type-mappings`),
-    {
-      headers: authHeaders(accessToken),
-    },
+    {},
   );
 
   return parseOrThrow<EventTypeMappingListResponse>(
@@ -145,12 +138,12 @@ export async function createEventTypeMapping(
   organizationId: string,
   request: EventTypeMappingCreateRequest,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/event-type-mappings`),
     {
       method: "POST",
       headers: {
-        ...authHeaders(accessToken),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
@@ -166,12 +159,12 @@ export async function updateEventTypeMapping(
   eventTypeMappingId: number,
   request: EventTypeMappingUpdateRequest,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/event-type-mappings/${eventTypeMappingId}`),
     {
       method: "PUT",
       headers: {
-        ...authHeaders(accessToken),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
@@ -187,12 +180,12 @@ export async function updateEventTypeMappingActive(
   eventTypeMappingId: number,
   active: boolean,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/event-type-mappings/${eventTypeMappingId}/active`),
     {
       method: "PUT",
       headers: {
-        ...authHeaders(accessToken),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ active }),
@@ -210,11 +203,11 @@ export async function deleteEventTypeMapping(
   organizationId: string,
   eventTypeMappingId: number,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/event-type-mappings/${eventTypeMappingId}`),
     {
       method: "DELETE",
-      headers: authHeaders(accessToken),
     },
   );
 

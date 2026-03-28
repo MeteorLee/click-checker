@@ -1,8 +1,11 @@
+import { authorizedFetch } from "@/lib/api/authorized";
 import { buildApiUrl } from "@/lib/api/config";
+import { ApiError } from "@/lib/api/errors";
 import type {
   AdminOrganizationApiKeyMetadataResponse,
   AdminOrganizationApiKeyRotateResponse,
   AdminLoginRequest,
+  AdminRefreshResponse,
   AdminLoginResponse,
   AdminMeResponse,
   AdminOrganizationCreateRequest,
@@ -10,15 +13,6 @@ import type {
   AdminSignupRequest,
   AdminSignupResponse,
 } from "@/types/auth";
-
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-  }
-}
 
 async function parseErrorMessage(response: Response) {
   try {
@@ -69,12 +63,24 @@ export async function signup(request: AdminSignupRequest) {
   return (await response.json()) as AdminSignupResponse;
 }
 
-export async function fetchMe(accessToken: string) {
-  const response = await fetch(buildApiUrl("/api/v1/admin/me"), {
+export async function refresh(refreshToken: string) {
+  const response = await fetch(buildApiUrl("/api/v1/admin/auth/refresh"), {
+    method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ refreshToken }),
   });
+
+  if (!response.ok) {
+    throw new ApiError(await parseErrorMessage(response), response.status);
+  }
+
+  return (await response.json()) as AdminRefreshResponse;
+}
+
+export async function fetchMe(accessToken: string) {
+  const response = await authorizedFetch(accessToken, buildApiUrl("/api/v1/admin/me"));
 
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
@@ -87,10 +93,9 @@ export async function createOrganization(
   accessToken: string,
   request: AdminOrganizationCreateRequest,
 ) {
-  const response = await fetch(buildApiUrl("/api/v1/admin/organizations"), {
+  const response = await authorizedFetch(accessToken, buildApiUrl("/api/v1/admin/organizations"), {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(request),
@@ -108,12 +113,13 @@ export async function createOrganization(
 }
 
 export async function joinDemoOrganization(accessToken: string) {
-  const response = await fetch(buildApiUrl("/api/v1/admin/organizations/demo/join"), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
+  const response = await authorizedFetch(
+    accessToken,
+    buildApiUrl("/api/v1/admin/organizations/demo/join"),
+    {
+      method: "POST",
     },
-  });
+  );
 
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
@@ -125,12 +131,12 @@ export async function leaveOrganization(
   organizationId: number,
   confirmationText?: string,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/members/membership`),
     {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -148,13 +154,10 @@ export async function fetchOrganizationApiKeyMetadata(
   accessToken: string,
   organizationId: string,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/api-key`),
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+    {},
   );
 
   if (!response.ok) {
@@ -168,13 +171,11 @@ export async function rotateOrganizationApiKey(
   accessToken: string,
   organizationId: string,
 ) {
-  const response = await fetch(
+  const response = await authorizedFetch(
+    accessToken,
     buildApiUrl(`/api/v1/admin/organizations/${organizationId}/api-key/rotate`),
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
     },
   );
 
