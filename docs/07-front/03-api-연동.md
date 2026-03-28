@@ -1,8 +1,8 @@
-# API 연동 (v1.5)
+# API 연동 (v1.6)
 
 ## 목표
 - 프런트에서 실제로 사용하는 API 계약을 현재 구현 상태 기준으로 정리한다.
-- 문서는 `회원가입/로그인 -> organization 선택/생성 -> analytics 상세 -> 설정/운영 화면` 흐름에 필요한 API만 다룬다.
+- 문서는 `회원가입/로그인 -> organization 선택/생성 -> analytics 상세 -> 설정/운영 화면`과 제품 API 가이드 화면에서 직접 다루는 API를 함께 정리한다.
 
 ---
 
@@ -61,6 +61,7 @@
 - frontend: `http://localhost:3001`
 - backend: `http://localhost:8080`
 - dashboard 하위 화면은 좌측 사이드바를 공통 탐색으로 사용한다.
+- 제품 API 가이드 하위 화면도 별도 좌측 사이드바를 사용한다.
 
 ### 날짜 처리
 - analytics 요청은 `from`, `to`를 날짜 문자열로 보낸다.
@@ -105,6 +106,9 @@
   - `ownerMembershipId`
   - `apiKey`
   - `apiKeyPrefix`
+- 프런트 활용:
+  - organization 생성 직후 API key 1회 표시
+  - Quick Start에서는 테스트용 organization 생성에 사용
 
 ### demo organization 추가
 - `POST /api/v1/admin/organizations/demo/join`
@@ -131,6 +135,7 @@
 - 설명:
   - overview는 핵심 데이터만 보여준다.
   - API key 관리는 별도 settings page로 분리했다.
+  - Quick Start는 admin overview가 아니라 공개 제품 API `GET /api/v1/events/analytics/aggregates/overview`를 직접 사용한다.
 
 ### routes
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/routes`
@@ -224,3 +229,41 @@
 - 멤버 초대는 이메일/토큰 수락이 아니라, 기존 계정을 `loginId` 기준으로 바로 membership에 추가하는 방식이다.
 - 멤버 목록 조회는 `VIEWER`도 가능하다.
 - 역할 변경과 멤버 제거는 `OWNER`만 가능하다.
+
+---
+
+## 6. 제품 API 가이드 화면과 연결되는 공개 API
+
+### Quick Start
+- `POST /api/events`
+- `GET /api/v1/events/analytics/aggregates/overview`
+- 규칙:
+  - API key를 사용자가 직접 입력한다.
+  - 이벤트 전송 뒤 overview는 버튼을 눌렀을 때만 조회한다.
+  - overview 조회 범위는 대시보드 overview와 같은 7일 기준을 사용한다.
+
+### 이벤트 전송 가이드
+- `POST /api/events`
+- 필수 필드:
+  - `eventType`
+  - `path`
+- 선택 필드:
+  - `occurredAt`
+  - `externalUserId`
+  - `payload`
+
+### 집계 API 가이드
+- `GET /api/v1/events/analytics/aggregates/overview`
+- `GET /api/v1/events/analytics/activity`
+- `GET /api/v1/events/analytics/users/overview`
+- `GET /api/v1/events/analytics/retention/daily`
+- `GET /api/v1/events/analytics/retention/matrix`
+- `POST /api/v1/events/analytics/funnels/report`
+
+### 데이터 정규화 가이드
+- 공개 API 경로 자체를 추가로 호출하지는 않는다.
+- 대신 아래 개념을 설명한다.
+  - raw path -> route key
+  - raw event type -> 이벤트 공통 키
+  - `UNMATCHED_ROUTE`
+  - `UNMAPPED_EVENT_TYPE`
