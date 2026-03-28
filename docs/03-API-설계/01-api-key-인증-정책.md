@@ -5,11 +5,12 @@
 - 요청 payload/query의 `organizationId`를 신뢰하지 않는다.
 
 ## 적용 범위 (현재)
-- 보호 대상: `/api/events/**`
+- 보호 대상: `/api/events/**`, `/api/v1/events/**`
 - 비보호 대상(현재): `/api/organizations/**`
 - 참고:
   - `POST /api/organizations`는 기존 공개 organization 생성 경로다.
   - 현재 포트폴리오 기준 주 경로는 `POST /api/v1/admin/organizations`이며, 공개 경로는 레거시로 취급한다.
+  - 관리자 콘솔 경로(`/api/v1/admin/**`)는 API Key가 아니라 JWT 전용 SecurityFilterChain에서 처리한다.
 
 ## 인증 방식
 - 헤더: `X-API-Key`

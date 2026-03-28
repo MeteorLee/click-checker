@@ -11,8 +11,10 @@
 ### 포함
 - `POST /api/v1/admin/auth/signup`
 - `POST /api/v1/admin/auth/login`
+- `POST /api/v1/admin/auth/refresh`
 - `GET /api/v1/admin/me`
 - `POST /api/v1/admin/organizations`
+- `POST /api/v1/admin/organizations/demo/join`
 - `DELETE /api/v1/admin/organizations/{organizationId}/members/membership`
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/overview`
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/routes`
@@ -32,7 +34,7 @@
 - `DELETE /api/v1/admin/organizations/{organizationId}/members/{memberId}`
 
 ### 제외
-- refresh / logout
+- logout
 - 이메일/토큰 기반 초대 수락
 - organization 상태 모델
 
@@ -44,6 +46,7 @@
 - 브라우저는 admin JWT만 사용한다.
 - `Authorization: Bearer <accessToken>` 헤더를 사용한다.
 - API key는 브라우저 인증에 사용하지 않는다.
+- access token 만료 시 프런트는 `POST /api/v1/admin/auth/refresh`로 자동 재발급을 시도한다.
 
 ### 로컬 개발
 - frontend: `http://localhost:3001`
@@ -79,6 +82,12 @@
   - `organizationName`
   - `role`
 
+### access token 재발급
+- `POST /api/v1/admin/auth/refresh`
+- 설명:
+  - 프런트는 `401`을 받으면 refresh token으로 access token 재발급을 시도한다.
+  - refresh도 실패하면 `/login`으로 보낸다.
+
 ### organization 생성
 - `POST /api/v1/admin/organizations`
 - 응답 핵심:
@@ -87,6 +96,12 @@
   - `ownerMembershipId`
   - `apiKey`
   - `apiKeyPrefix`
+
+### demo organization 추가
+- `POST /api/v1/admin/organizations/demo/join`
+- 설명:
+  - seed로 준비된 `demo_web_shop`을 현재 계정 목록에 추가한다.
+  - 이미 추가된 경우 중복 없이 그대로 성공 처리한다.
 
 ### organization 삭제(내 목록에서 제거)
 - `DELETE /api/v1/admin/organizations/{organizationId}/members/membership`
@@ -134,9 +149,25 @@
 
 ### users
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/users`
+- 응답 핵심:
+  - `totalEvents`
+  - `identifiedEvents`
+  - `anonymousEvents`
+  - `identifiedUsers`
+  - `newUsers`
+  - `returningUsers`
+  - `newUserEvents`
+  - `returningUserEvents`
+  - `avgEventsPerIdentifiedUser`
 
 ### activity
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/activity`
+- 응답 핵심:
+  - `weekdaySummary`
+  - `weekendSummary`
+  - `dayOfWeekDistribution`
+  - `weekdayHourlyDistribution`
+  - `weekendHourlyDistribution`
 
 ### retention
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/retention`
@@ -179,3 +210,5 @@
 
 설명:
 - 멤버 초대는 이메일/토큰 수락이 아니라, 기존 계정을 `loginId` 기준으로 바로 membership에 추가하는 방식이다.
+- 멤버 목록 조회는 `VIEWER`도 가능하다.
+- 역할 변경과 멤버 제거는 `OWNER`만 가능하다.

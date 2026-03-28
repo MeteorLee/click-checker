@@ -156,7 +156,15 @@
 {
   "accountId": 1,
   "loginId": "alice",
-  "status": "ACTIVE"
+  "status": "ACTIVE",
+  "memberships": [
+    {
+      "membershipId": 10,
+      "organizationId": 3,
+      "organizationName": "demo_web_shop",
+      "role": "VIEWER"
+    }
+  ]
 }
 ```
 
@@ -168,7 +176,7 @@
 ### 동작 요약
 - JWT에서 `accountId`를 꺼낸다.
 - DB에서 계정을 다시 조회한다.
-- 현재 로그인 상태 확인용 최소 API로 사용한다.
+- 현재 로그인 상태 확인과 조직 목록/권한 확인용 API로 사용한다.
 
 ## 에러 정책
 - `400`
@@ -181,9 +189,9 @@
   - access token은 유효하지만 계정이 `DISABLED`
 
 ## 현재 제한
-- 계정과 조직의 관계(`OrganizationMember`)는 아직 없다.
-- OWNER / ADMIN / VIEWER 같은 RBAC은 아직 없다.
-- 회원가입 / 이메일 인증 / 비밀번호 찾기는 지원하지 않는다.
+- 계정과 조직의 관계는 `OrganizationMember`로 관리한다.
+- RBAC은 현재 `OWNER / ADMIN / VIEWER`까지만 지원한다.
+- 이메일 인증 / 비밀번호 찾기는 아직 없다.
 - refresh token은 현재 HttpOnly cookie가 아니라 request body로 받는다.
 - logout은 현재 refresh token 단위 폐기만 지원한다.
 - JWT 필터 단계의 `401/403` 응답 바디 표준화는 후속 과제다.

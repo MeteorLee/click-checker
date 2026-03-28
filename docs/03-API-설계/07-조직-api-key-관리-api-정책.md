@@ -6,8 +6,10 @@
 
 ## 현재 엔드포인트
 - `POST /api/v1/admin/organizations`
+- `POST /api/v1/admin/organizations/demo/join`
 - `GET /api/v1/admin/organizations/{organizationId}/api-key`
 - `POST /api/v1/admin/organizations/{organizationId}/api-key/rotate`
+- `DELETE /api/v1/admin/organizations/{organizationId}/members/membership`
 
 ## 공통 경계
 - organization API key는 여전히 machine credential이다.
@@ -58,6 +60,30 @@
 - 요청 account를 첫 `OWNER` membership으로 연결한다.
 - 초기 plain API key를 1회 발급한다.
 - 즉 `signup -> organization create -> apiKey 수령`이 바로 이어진다.
+
+## demo organization 참가
+
+### 엔드포인트
+- `POST /api/v1/admin/organizations/demo/join`
+
+### 권한
+- 로그인된 account
+
+### 동작 요약
+- seed로 준비된 demo organization에 현재 account를 `VIEWER`로 연결한다.
+- 이미 membership이 있으면 중복 생성하지 않고 그대로 성공 처리한다.
+- 브라우저에서는 `/organizations`의 `데모 조직 추가` 버튼과 연결한다.
+
+## organization 삭제(내 목록에서 제거)
+
+### 엔드포인트
+- `DELETE /api/v1/admin/organizations/{organizationId}/members/membership`
+
+### 정책
+- UI는 `삭제`라고 보이지만, 실제 동작은 현재 account의 membership 연결 해제다.
+- organization row와 이벤트 데이터는 남고, 현재 account의 목록에서만 사라진다.
+- 마지막 OWNER인데 다른 멤버가 남아 있으면 삭제할 수 없다.
+- 혼자 남은 OWNER이자 유일한 멤버인 경우에만 확인 문구 입력 후 삭제할 수 있다.
 
 ## 현재 key 메타데이터 조회
 
