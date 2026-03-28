@@ -29,7 +29,13 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle, IconRepeat, IconUsers } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconRepeat,
+  IconSparkles,
+  IconUserQuestion,
+  IconUsers,
+} from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -47,6 +53,115 @@ type UsersPageState = {
   range: AppliedRange;
   users: UserAnalyticsOverviewResponse;
 };
+
+type DonutChartCardProps = {
+  title: string;
+  description: string;
+  items: {
+    label: string;
+    value: number;
+    color: string;
+  }[];
+};
+
+function DonutChartCard({ title, description, items }: DonutChartCardProps) {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  let progress = 0;
+  const gradientStops = items
+    .map((item) => {
+      const portion = total === 0 ? 0 : (item.value / total) * 100;
+      const start = progress;
+      const end = progress + portion;
+      progress = end;
+      return `${item.color} ${start}% ${end}%`;
+    })
+    .join(", ");
+
+  return (
+    <Paper radius="24px" p="lg" className="console-soft-panel" withBorder>
+      <Stack gap="lg">
+        <div>
+          <Text fw={700} size="md">
+            {title}
+          </Text>
+          <Text c="dimmed" size="sm">
+            {description}
+          </Text>
+        </div>
+
+        <Group align="center" justify="space-between" wrap="nowrap">
+          <div
+            style={{
+              width: 148,
+              height: 148,
+              minWidth: 148,
+              borderRadius: "999px",
+              background:
+                total === 0
+                  ? "var(--mantine-color-gray-2)"
+                  : `conic-gradient(${gradientStops})`,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 92,
+                height: 92,
+                borderRadius: "999px",
+                background: "white",
+                display: "grid",
+                placeItems: "center",
+                textAlign: "center",
+              }}
+            >
+              <div>
+                <Text fw={800} size="xl">
+                  {formatNumber(total)}
+                </Text>
+                <Text c="dimmed" size="xs">
+                  total
+                </Text>
+              </div>
+            </div>
+          </div>
+
+          <Stack gap="sm" style={{ flex: 1 }}>
+            {items.map((item) => {
+              const rate = total === 0 ? 0 : item.value / total;
+
+              return (
+                <Group key={item.label} justify="space-between" wrap="nowrap">
+                  <Group gap="sm" wrap="nowrap">
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "999px",
+                        background: item.color,
+                      }}
+                    />
+                    <Text fw={600} size="sm">
+                      {item.label}
+                    </Text>
+                  </Group>
+                  <Stack align="flex-end" gap={0}>
+                    <Text fw={700} size="sm">
+                      {formatNumber(item.value)}
+                    </Text>
+                    <Text c="dimmed" size="xs">
+                      {Math.round(rate * 1000) / 10}%
+                    </Text>
+                  </Stack>
+                </Group>
+              );
+            })}
+          </Stack>
+        </Group>
+      </Stack>
+    </Paper>
+  );
+}
 
 export default function UsersPage() {
   const router = useRouter();
@@ -187,6 +302,11 @@ export default function UsersPage() {
   }
 
   if (!data) return null;
+
+  const identifiedEventRate =
+    data.users.totalEvents === 0 ? null : data.users.identifiedEvents / data.users.totalEvents;
+  const newUserRate =
+    data.users.identifiedUsers === 0 ? null : data.users.newUsers / data.users.identifiedUsers;
 
   return (
     <ConsoleFrame>
@@ -349,6 +469,112 @@ export default function UsersPage() {
                   {data.users.avgEventsPerIdentifiedUser == null
                     ? "-"
                     : data.users.avgEventsPerIdentifiedUser.toFixed(2)}
+                </Text>
+              </Stack>
+            </Paper>
+            <Paper radius="24px" p="lg" className="console-soft-panel" bg="teal.0">
+              <Stack gap={4}>
+                <Text fw={700} size="sm" c="teal.8">
+                  식별 이벤트 비율
+                </Text>
+                <Group gap="xs" align="center">
+                  <IconSparkles size={18} />
+                  <Text fw={800} size="1.6rem">
+                    {identifiedEventRate == null
+                      ? "-"
+                      : `${Math.round(identifiedEventRate * 1000) / 10}%`}
+                  </Text>
+                </Group>
+              </Stack>
+            </Paper>
+            <Paper radius="24px" p="lg" className="console-soft-panel" bg="orange.0">
+              <Stack gap={4}>
+                <Text fw={700} size="sm" c="orange.8">
+                  신규 사용자 비율
+                </Text>
+                <Group gap="xs" align="center">
+                  <IconUserQuestion size={18} />
+                  <Text fw={800} size="1.6rem">
+                    {newUserRate == null ? "-" : `${Math.round(newUserRate * 1000) / 10}%`}
+                  </Text>
+                </Group>
+              </Stack>
+            </Paper>
+          </SimpleGrid>
+
+          <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="lg">
+            <DonutChartCard
+              title="이벤트 식별 구성"
+              description="전체 이벤트 중 익명 이벤트와 식별 이벤트 비율입니다."
+              items={[
+                {
+                  label: "식별 이벤트",
+                  value: data.users.identifiedEvents,
+                  color: "var(--mantine-color-blue-5)",
+                },
+                {
+                  label: "익명 이벤트",
+                  value: data.users.anonymousEvents,
+                  color: "var(--mantine-color-gray-4)",
+                },
+              ]}
+            />
+            <DonutChartCard
+              title="식별 사용자 구성"
+              description="식별된 사용자 안에서 신규 사용자와 기존 사용자 비율입니다."
+              items={[
+                {
+                  label: "신규 사용자",
+                  value: data.users.newUsers,
+                  color: "var(--mantine-color-orange-5)",
+                },
+                {
+                  label: "기존 사용자",
+                  value: data.users.returningUsers,
+                  color: "var(--mantine-color-grape-5)",
+                },
+              ]}
+            />
+          </SimpleGrid>
+
+          <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="lg">
+            <Paper radius="24px" p="lg" withBorder>
+              <Stack gap={4}>
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                  Total Events
+                </Text>
+                <Text fw={800} size="1.4rem">
+                  {formatNumber(data.users.totalEvents)}
+                </Text>
+              </Stack>
+            </Paper>
+            <Paper radius="24px" p="lg" withBorder>
+              <Stack gap={4}>
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                  Anonymous Events
+                </Text>
+                <Text fw={800} size="1.4rem">
+                  {formatNumber(data.users.anonymousEvents)}
+                </Text>
+              </Stack>
+            </Paper>
+            <Paper radius="24px" p="lg" withBorder>
+              <Stack gap={4}>
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                  New User Events
+                </Text>
+                <Text fw={800} size="1.4rem">
+                  {formatNumber(data.users.newUserEvents)}
+                </Text>
+              </Stack>
+            </Paper>
+            <Paper radius="24px" p="lg" withBorder>
+              <Stack gap={4}>
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+                  Returning User Events
+                </Text>
+                <Text fw={800} size="1.4rem">
+                  {formatNumber(data.users.returningUserEvents)}
                 </Text>
               </Stack>
             </Paper>

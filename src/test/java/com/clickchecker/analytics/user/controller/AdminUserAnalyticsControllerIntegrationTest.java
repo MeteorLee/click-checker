@@ -56,9 +56,14 @@ class AdminUserAnalyticsControllerIntegrationTest extends AnalyticsControllerInt
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
+                .andExpect(jsonPath("$.totalEvents").value(3))
+                .andExpect(jsonPath("$.identifiedEvents").value(3))
+                .andExpect(jsonPath("$.anonymousEvents").value(0))
                 .andExpect(jsonPath("$.identifiedUsers").value(2))
                 .andExpect(jsonPath("$.newUsers").value(1))
                 .andExpect(jsonPath("$.returningUsers").value(1))
+                .andExpect(jsonPath("$.newUserEvents").value(2))
+                .andExpect(jsonPath("$.returningUserEvents").value(1))
                 .andExpect(jsonPath("$.avgEventsPerIdentifiedUser").value(1.5));
     }
 

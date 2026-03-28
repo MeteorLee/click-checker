@@ -81,9 +81,14 @@ export type UserAnalyticsOverviewResponse = {
   externalUserId: string | null;
   from: string;
   to: string;
+  totalEvents: number;
+  identifiedEvents: number;
+  anonymousEvents: number;
   identifiedUsers: number;
   newUsers: number;
   returningUsers: number;
+  newUserEvents: number;
+  returningUserEvents: number;
   avgEventsPerIdentifiedUser: number | null;
 };
 

@@ -7,9 +7,14 @@ public record UserAnalyticsOverviewResponse(
         String externalUserId,
         Instant from,
         Instant to,
+        Long totalEvents,
+        Long identifiedEvents,
+        Long anonymousEvents,
         Long identifiedUsers,
         Long newUsers,
         Long returningUsers,
+        Long newUserEvents,
+        Long returningUserEvents,
         Double avgEventsPerIdentifiedUser
 ) {
 }
