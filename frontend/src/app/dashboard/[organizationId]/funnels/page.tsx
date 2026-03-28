@@ -355,7 +355,7 @@ export default function FunnelPage() {
             <Stack gap="lg">
               <Group justify="space-between" align="flex-start">
                 <div>
-                  <Badge color="lime" variant="light" mb="md">
+                  <Badge color="blue" variant="light" mb="md">
                     Funnel
                   </Badge>
                   <Title order={1}>전환 퍼널</Title>
@@ -536,33 +536,33 @@ export default function FunnelPage() {
               </Paper>
 
               <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }} spacing="lg">
-                <Paper radius="24px" p="lg" bg="lime.0" className="console-soft-panel">
+                <Paper radius="24px" p="lg" bg="blue.0" className="console-soft-panel">
                   <Stack gap={4}>
-                    <Text fw={700} size="sm" c="lime.8">
+                    <Text fw={700} size="sm" c="blue.8">
                       시작 단계 사용자
                     </Text>
                     <Text fw={800} size="1.6rem">{formatNumber(summary.firstStepUsers)}</Text>
                   </Stack>
                 </Paper>
-                <Paper radius="24px" p="lg" bg="blue.0" className="console-soft-panel">
+                <Paper radius="24px" p="lg" bg="teal.0" className="console-soft-panel">
                   <Stack gap={4}>
-                    <Text fw={700} size="sm" c="blue.8">
+                    <Text fw={700} size="sm" c="teal.8">
                       최종 단계 사용자
                     </Text>
                     <Text fw={800} size="1.6rem">{formatNumber(summary.lastStepUsers)}</Text>
                   </Stack>
                 </Paper>
-                <Paper radius="24px" p="lg" bg="violet.0" className="console-soft-panel">
+                <Paper radius="24px" p="lg" bg="orange.0" className="console-soft-panel">
                   <Stack gap={4}>
-                    <Text fw={700} size="sm" c="violet.8">
+                    <Text fw={700} size="sm" c="orange.8">
                       최종 전환율
                     </Text>
                     <Text fw={800} size="1.6rem">{formatPercent(summary.finalConversionRate)}</Text>
                   </Stack>
                 </Paper>
-                <Paper radius="24px" p="lg" bg="orange.0" className="console-soft-panel">
+                <Paper radius="24px" p="lg" bg="gray.0" className="console-soft-panel">
                   <Stack gap={4}>
-                    <Text fw={700} size="sm" c="orange.8">
+                    <Text fw={700} size="sm" c="gray.8">
                       가장 큰 이탈 구간
                     </Text>
                     <Text fw={800} size="1.1rem">
@@ -599,7 +599,7 @@ export default function FunnelPage() {
                             {item.step.routeKey ? `routeKey ${item.step.routeKey}` : "routeKey 제한 없음"}
                           </Text>
                         </div>
-                        <Badge color="lime" variant="light">
+                        <Badge color="blue" variant="light">
                           {formatNumber(item.users)} users
                         </Badge>
                       </Group>
@@ -614,7 +614,7 @@ export default function FunnelPage() {
                             <Text fw={600} size="sm">
                               첫 단계 대비 {formatPercent(item.conversionRateFromFirstStep)}
                             </Text>
-                            <Progress color="lime" radius="xl" size="lg" value={(item.conversionRateFromFirstStep ?? 0) * 100} />
+                            <Progress color="blue" radius="xl" size="lg" value={(item.conversionRateFromFirstStep ?? 0) * 100} />
                           </>
                         )}
                       </Stack>
@@ -624,7 +624,7 @@ export default function FunnelPage() {
                           <Text fw={600} size="sm">
                             직전 단계 대비 {formatPercent(item.conversionRateFromPreviousStep)} · 이탈 {formatNumber(item.dropOffUsersFromPreviousStep ?? 0)}명
                           </Text>
-                          <Progress color="blue" radius="xl" size="sm" value={(item.conversionRateFromPreviousStep ?? 0) * 100} />
+                          <Progress color="teal" radius="xl" size="sm" value={(item.conversionRateFromPreviousStep ?? 0) * 100} />
                         </Stack>
                       ) : null}
                     </Stack>

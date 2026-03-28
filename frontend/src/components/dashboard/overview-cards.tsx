@@ -38,14 +38,14 @@ export function OverviewCards({ overview }: OverviewCardsProps) {
       value: formatNumber(overview.uniqueUsers),
       hint: "기간 내 unique external user 기준",
       icon: <IconUsers size={18} />,
-      color: "cyan",
+      color: "teal",
     },
     {
       title: "식별 이벤트 비율",
       value: formatPercent(overview.identifiedEventRate),
       hint: "external user가 식별된 이벤트 비중",
       icon: <IconActivityHeartbeat size={18} />,
-      color: "teal",
+      color: "orange",
     },
     {
       title: "이전 기간 대비 변화율",
@@ -56,7 +56,7 @@ export function OverviewCards({ overview }: OverviewCardsProps) {
         ? `현재 ${formatNumber(overview.comparison.current)} / 이전 ${formatNumber(overview.comparison.previous)}`
         : "비교 가능한 이전 기간 데이터 없음",
       icon: <IconChartArcs size={18} />,
-      color: "orange",
+      color: "gray",
     },
   ];
 

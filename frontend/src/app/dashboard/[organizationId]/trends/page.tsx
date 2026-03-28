@@ -355,7 +355,7 @@ export default function TrendsPage() {
             <Stack gap="lg">
               <Group justify="space-between" align="flex-start">
                 <div>
-                  <Badge color="grape" variant="light" mb="md">
+                  <Badge color="blue" variant="light" mb="md">
                     Time Series
                   </Badge>
                   <Title order={1}>시간축 추이</Title>
@@ -511,9 +511,9 @@ export default function TrendsPage() {
                       <Text fw={800} size="1.4rem">{formatNumber(trendSummary.totalEvents)}</Text>
                     </Stack>
                   </Paper>
-                  <Paper radius="22px" p="lg" bg="grape.0" className="console-soft-panel">
+                  <Paper radius="22px" p="lg" bg="teal.0" className="console-soft-panel">
                     <Stack gap={4}>
-                      <Text fw={700} size="sm" c="grape.8">
+                      <Text fw={700} size="sm" c="teal.8">
                         버킷당 평균 이벤트
                       </Text>
                       <Text fw={800} size="1.4rem">
@@ -521,9 +521,9 @@ export default function TrendsPage() {
                       </Text>
                     </Stack>
                   </Paper>
-                  <Paper radius="22px" p="lg" bg="cyan.0" className="console-soft-panel">
+                  <Paper radius="22px" p="lg" bg="orange.0" className="console-soft-panel">
                     <Stack gap={4}>
-                      <Text fw={700} size="sm" c="cyan.8">
+                      <Text fw={700} size="sm" c="orange.8">
                         버킷당 평균 고유 사용자
                       </Text>
                       <Text fw={800} size="1.4rem">
@@ -531,9 +531,9 @@ export default function TrendsPage() {
                       </Text>
                     </Stack>
                   </Paper>
-                  <Paper radius="22px" p="lg" bg="teal.0" className="console-soft-panel">
+                  <Paper radius="22px" p="lg" bg="blue.0" className="console-soft-panel">
                     <Stack gap={4}>
-                      <Text fw={700} size="sm" c="teal.8">
+                      <Text fw={700} size="sm" c="blue.8">
                         피크 버킷
                       </Text>
                       <Text fw={800} size="1rem">

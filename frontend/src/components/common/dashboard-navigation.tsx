@@ -142,7 +142,7 @@ export function DashboardNavigation() {
                   {section.title}
                 </Text>
                 {section.title === "설정" ? (
-                  <Badge color="dark" radius="xl" size="sm" variant="light">
+                  <Badge color="gray" radius="xl" size="sm" variant="light">
                     조직 {organizationId}
                   </Badge>
                 ) : null}

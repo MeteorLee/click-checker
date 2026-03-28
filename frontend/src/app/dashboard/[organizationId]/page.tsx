@@ -86,14 +86,14 @@ export default function DashboardPage() {
     {
       title: "시계열 추이",
       description: "이벤트 수와 고유 사용자 수 변화를 시간축으로 봅니다.",
-      color: "grape",
+      color: "blue",
       icon: IconChartLine,
       href: `/dashboard/${params.organizationId}/trends`,
     },
     {
       title: "사용자 현황",
       description: "신규/재방문 사용자와 평균 이벤트 수를 확인합니다.",
-      color: "cyan",
+      color: "teal",
       icon: IconUsers,
       href: `/dashboard/${params.organizationId}/users`,
     },
@@ -114,7 +114,7 @@ export default function DashboardPage() {
     {
       title: "Funnel",
       description: "단계별 전환율과 이탈 구간을 분석합니다.",
-      color: "lime",
+      color: "blue",
       icon: IconFilter,
       href: `/dashboard/${params.organizationId}/funnels`,
     },
@@ -140,7 +140,7 @@ export default function DashboardPage() {
     {
       title: "API Key 관리",
       description: "수집용 API key 상태를 확인하고 새 키로 재발급합니다.",
-      color: "grape",
+      color: "gray",
       icon: IconSettings,
       href: `/dashboard/${params.organizationId}/api-key`,
       cta: "API Key 열기",
@@ -527,15 +527,13 @@ export default function DashboardPage() {
                         cursor: "pointer",
                         textAlign: "left",
                         background:
-                          item.color === "grape"
-                            ? "linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.98))"
-                            : item.color === "cyan"
-                              ? "linear-gradient(180deg, rgba(8, 145, 178, 0.08), rgba(255, 255, 255, 0.98))"
-                              : item.color === "orange"
+                          item.color === "teal"
+                            ? "linear-gradient(180deg, rgba(13, 148, 136, 0.08), rgba(255, 255, 255, 0.98))"
+                            : item.color === "orange"
                                 ? "linear-gradient(180deg, rgba(234, 88, 12, 0.08), rgba(255, 255, 255, 0.98))"
                                 : item.color === "violet"
-                                  ? "linear-gradient(180deg, rgba(139, 92, 246, 0.08), rgba(255, 255, 255, 0.98))"
-                                  : "linear-gradient(180deg, rgba(101, 163, 13, 0.08), rgba(255, 255, 255, 0.98))",
+                                  ? "linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.98))"
+                                  : "linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.98))",
                         transition:
                           "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
                       }}
@@ -608,11 +606,11 @@ export default function DashboardPage() {
                         background:
                           item.color === "teal"
                             ? "linear-gradient(180deg, rgba(13, 148, 136, 0.07), rgba(255, 255, 255, 0.98))"
-                            : item.color === "grape"
-                              ? "linear-gradient(180deg, rgba(124, 58, 237, 0.07), rgba(255, 255, 255, 0.98))"
+                            : item.color === "gray"
+                              ? "linear-gradient(180deg, rgba(100, 116, 139, 0.07), rgba(255, 255, 255, 0.98))"
                               : item.color === "orange"
                                 ? "linear-gradient(180deg, rgba(234, 88, 12, 0.07), rgba(255, 255, 255, 0.98))"
-                            : "linear-gradient(180deg, rgba(59, 130, 246, 0.07), rgba(255, 255, 255, 0.98))",
+                              : "linear-gradient(180deg, rgba(59, 130, 246, 0.07), rgba(255, 255, 255, 0.98))",
                         transition:
                           "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
                       }}
