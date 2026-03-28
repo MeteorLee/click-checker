@@ -238,6 +238,26 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
+    void joinDemoOrganization_returnsNoContent_whenRequesterIsNotYetMember() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("demo_web_shop")
+                .build());
+        Account requester = saveAccount("requester", AccountStatus.ACTIVE);
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/demo/join")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(requester.getId()))
+                )
+                .andExpect(status().isNoContent());
+
+        OrganizationMember membership = organizationMemberRepository
+                .findByAccountIdAndOrganizationId(requester.getId(), organization.getId())
+                .orElseThrow();
+        assert membership.getRole() == OrganizationRole.VIEWER;
+    }
+
+    @Test
     void addMember_returnsConflict_whenMembershipAlreadyExists() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()

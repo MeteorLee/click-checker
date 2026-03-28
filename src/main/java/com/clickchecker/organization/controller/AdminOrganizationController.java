@@ -44,6 +44,14 @@ public class AdminOrganizationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(adminOrganizationResponseMapper.toCreateResponse(result));
     }
 
+    @PostMapping("/demo/join")
+    public ResponseEntity<Void> joinDemoOrganization(
+            @AuthenticationPrincipal AdminPrincipal principal
+    ) {
+        adminOrganizationService.joinDemoOrganization(principal.accountId());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{organizationId}/api-key")
     public ResponseEntity<AdminOrganizationApiKeyMetadataResponse> getApiKeyMetadata(
             @AuthenticationPrincipal AdminPrincipal principal,

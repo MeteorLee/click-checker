@@ -2,7 +2,12 @@
 
 import { ConsoleFrame } from "@/components/common/console-frame";
 import { ConsoleHeader } from "@/components/common/console-header";
-import { createOrganization, fetchMe, leaveOrganization } from "@/lib/api/auth";
+import {
+  createOrganization,
+  fetchMe,
+  joinDemoOrganization,
+  leaveOrganization,
+} from "@/lib/api/auth";
 import { clearAccessToken, getAccessToken } from "@/lib/session/token-store";
 import type {
   AdminMeMembership,
@@ -65,6 +70,8 @@ export default function OrganizationsPage() {
   const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateModalOpened, setIsCreateModalOpened] = useState(false);
+  const [demoErrorMessage, setDemoErrorMessage] = useState<string | null>(null);
+  const [isAddingDemo, setIsAddingDemo] = useState(false);
   const [createdOrganization, setCreatedOrganization] =
     useState<CreatedOrganizationState | null>(null);
   const [pendingDeleteMembership, setPendingDeleteMembership] =
@@ -214,6 +221,30 @@ export default function OrganizationsPage() {
       }
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function handleJoinDemoOrganization() {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      router.replace("/login");
+      return;
+    }
+
+    setDemoErrorMessage(null);
+    setIsAddingDemo(true);
+
+    try {
+      await joinDemoOrganization(accessToken);
+      await loadOrganizations();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "demo organization을 추가하지 못했습니다.";
+      setDemoErrorMessage(message);
+    } finally {
+      setIsAddingDemo(false);
     }
   }
 
@@ -559,6 +590,7 @@ export default function OrganizationsPage() {
                   radius="xl"
                   rightSection={<IconArrowRight size={16} />}
                   onClick={() => {
+                    setDemoErrorMessage(null);
                     setCreateErrorMessage(null);
                     setIsCreateModalOpened(true);
                   }}
@@ -566,6 +598,33 @@ export default function OrganizationsPage() {
                   새 organization 만들기
                 </Button>
               </Group>
+
+              {demoErrorMessage ? (
+                <Alert color="red" icon={<IconAlertCircle size={18} />} radius="lg" variant="light">
+                  {demoErrorMessage}
+                </Alert>
+              ) : null}
+
+              <Paper radius="24px" p="lg" withBorder bg="gray.0">
+                <Group justify="space-between" align="center" gap="md">
+                  <Stack gap={4}>
+                    <Text fw={700}>Demo organization 추가</Text>
+                    <Text c="dimmed" size="sm">
+                      실데이터가 없어도 바로 분석 화면을 볼 수 있게 demo_web_shop을 내 목록에 추가합니다.
+                    </Text>
+                  </Stack>
+                  <Button
+                    color="blue"
+                    leftSection={<IconBuildingSkyscraper size={16} />}
+                    loading={isAddingDemo}
+                    radius="xl"
+                    variant="light"
+                    onClick={() => void handleJoinDemoOrganization()}
+                  >
+                    Demo organization 추가
+                  </Button>
+                </Group>
+              </Paper>
             </Stack>
           </Paper>
 

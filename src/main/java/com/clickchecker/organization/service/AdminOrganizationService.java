@@ -1,10 +1,12 @@
 package com.clickchecker.organization.service;
 
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.organization.entity.Organization;
+import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.result.AdminOrganizationCreateResult;
 import com.clickchecker.organizationmember.entity.OrganizationMember;
 import com.clickchecker.organizationmember.entity.OrganizationRole;
@@ -21,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class AdminOrganizationService {
 
     private final AccountRepository accountRepository;
+    private final OrganizationRepository organizationRepository;
     private final OrganizationService organizationService;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final ApiKeyIssuer apiKeyIssuer;
@@ -53,6 +56,27 @@ public class AdminOrganizationService {
                 ownerMembership.getId(),
                 issuedApiKey.plainKey(),
                 issuedApiKey.prefix()
+        );
+    }
+
+    @Transactional
+    public void joinDemoOrganization(Long accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, ApiErrorMessages.UNAUTHORIZED));
+
+        Organization organization = organizationRepository.findByName("demo_web_shop")
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.DEMO_ORGANIZATION_NOT_FOUND));
+
+        if (organizationMemberRepository.existsByAccountIdAndOrganizationId(accountId, organization.getId())) {
+            return;
+        }
+
+        organizationMemberRepository.save(
+                OrganizationMember.builder()
+                        .account(account)
+                        .organization(organization)
+                        .role(OrganizationRole.VIEWER)
+                        .build()
         );
     }
 }

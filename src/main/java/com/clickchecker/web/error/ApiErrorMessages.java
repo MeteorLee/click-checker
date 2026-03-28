@@ -12,6 +12,7 @@ public final class ApiErrorMessages {
     public static final String LAST_OWNER_CANNOT_BE_DEMOTED = "Last owner cannot be demoted.";
     public static final String LAST_OWNER_CANNOT_BE_REMOVED = "Last owner cannot be removed.";
     public static final String SOLE_OWNER_CONFIRMATION_REQUIRED = "Sole owner confirmation is required.";
+    public static final String DEMO_ORGANIZATION_NOT_FOUND = "Demo organization not found.";
     public static final String ROUTE_TEMPLATE_NOT_FOUND = "Route template not found.";
     public static final String EVENT_TYPE_MAPPING_NOT_FOUND = "Event type mapping not found.";
 

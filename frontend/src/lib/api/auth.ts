@@ -107,6 +107,19 @@ export async function createOrganization(
   return (await response.json()) as AdminOrganizationCreateResponse;
 }
 
+export async function joinDemoOrganization(accessToken: string) {
+  const response = await fetch(buildApiUrl("/api/v1/admin/organizations/demo/join"), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(await parseErrorMessage(response), response.status);
+  }
+}
+
 export async function leaveOrganization(
   accessToken: string,
   organizationId: number,
