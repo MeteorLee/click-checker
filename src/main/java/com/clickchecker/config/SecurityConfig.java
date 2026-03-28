@@ -155,7 +155,11 @@ public class SecurityConfig {
                 "http://127.0.0.1:3001"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-API-Key"
+        ));
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
 
