@@ -38,6 +38,15 @@
 - 이메일/토큰 기반 초대 수락
 - organization 상태 모델
 
+### 참고: 제품 API
+- 브라우저는 admin JWT API를 사용하지만, 제품/API key 기준 공개 분석 API도 별도로 존재한다.
+- 현재 공개 분석 API에서 프런트 작업과 직접 맞닿은 경로:
+  - `GET /api/v1/events/analytics/aggregates/overview`
+  - `GET /api/v1/events/analytics/activity`
+  - `GET /api/v1/events/analytics/users/overview`
+  - `GET /api/v1/events/analytics/retention/*`
+  - `POST /api/v1/events/analytics/funnels/report`
+
 ---
 
 ## 2. 공통 원칙
@@ -168,6 +177,9 @@
   - `dayOfWeekDistribution`
   - `weekdayHourlyDistribution`
   - `weekendHourlyDistribution`
+- 같은 형태의 공개 API:
+  - `GET /api/v1/events/analytics/activity`
+  - `timezone` 파라미터를 받아 API key 기준 조직의 activity 분포를 조회할 수 있다.
 
 ### retention
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/retention`

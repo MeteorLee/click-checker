@@ -7,6 +7,8 @@
 
 ## 현재 엔드포인트
 ### 공개 API 경로
+- `GET /api/v1/events/analytics/aggregates/overview`
+- `GET /api/v1/events/analytics/activity`
 - `GET /api/v1/events/analytics/users/overview`
 - `POST /api/v1/events/analytics/funnels/report`
 - `GET /api/v1/events/analytics/retention/daily`
@@ -188,12 +190,16 @@
 ### 목적
 - 기간 안에서 “언제 늘고 줄었는가”보다 “어느 요일/시간대에 몰리는가”를 보여주는 분포 중심 집계다.
 
+### 공개 API 엔드포인트
+- `GET /api/v1/events/analytics/activity`
+
 ### admin console 엔드포인트
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/activity`
 
 ### 쿼리 파라미터
 - `from`
 - `to`
+- `timezone` (공개 API에서 선택, 기본값 `UTC`)
 
 ### 응답 항목
 - `totalEvents`
@@ -221,7 +227,9 @@
 - `weekendHourlyDistribution[]`
 
 ### 계산 규칙
+- 공개 API는 `X-API-Key -> authOrgId` 기준으로 조직을 확정한다.
 - 날짜와 시간대 해석은 admin console 기본 timezone인 `Asia/Seoul` 기준으로 본다.
+- 공개 API는 요청 `timezone` 기준으로 해석하고, admin console은 `Asia/Seoul` 기준으로 고정한다.
 - `weekdaySummary`는 월~금, `weekendSummary`는 토~일 기준으로 계산한다.
 - `dayOfWeekDistribution`은 `0=일요일 ... 6=토요일` 기준 숫자를 반환한다.
 
