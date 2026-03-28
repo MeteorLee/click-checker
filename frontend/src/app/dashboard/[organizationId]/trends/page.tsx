@@ -24,6 +24,7 @@ import {
   Paper,
   Popover,
   SegmentedControl,
+  SimpleGrid,
   Stack,
   Table,
   Text,
@@ -240,6 +241,28 @@ export default function TrendsPage() {
     }));
   }, [data, selectedBucket]);
 
+  const trendSummary = useMemo(() => {
+    if (chartData.length === 0) {
+      return null;
+    }
+
+    const totalEvents = chartData.reduce((sum, item) => sum + item.events, 0);
+    const totalUniqueUsers = chartData.reduce((sum, item) => sum + item.uniqueUsers, 0);
+    const averageEventsPerBucket = totalEvents / chartData.length;
+    const averageUniqueUsersPerBucket = totalUniqueUsers / chartData.length;
+    const peakBucket = chartData.reduce((max, item) => (item.events > max.events ? item : max));
+    const quietBucket = chartData.reduce((min, item) => (item.events < min.events ? item : min));
+
+    return {
+      bucketCount: chartData.length,
+      totalEvents,
+      averageEventsPerBucket,
+      averageUniqueUsersPerBucket,
+      peakBucket,
+      quietBucket,
+    };
+  }, [chartData]);
+
   if (isLoading) {
     return (
       <ConsoleFrame>
@@ -451,6 +474,65 @@ export default function TrendsPage() {
                   {chartData.length} buckets
                 </Badge>
               </Group>
+
+              {trendSummary ? (
+                <SimpleGrid cols={{ base: 1, md: 2, xl: 5 }} spacing="md">
+                  <Paper radius="22px" p="lg" bg="blue.0" className="console-soft-panel">
+                    <Stack gap={4}>
+                      <Text fw={700} size="sm" c="blue.8">
+                        총 이벤트
+                      </Text>
+                      <Text fw={800} size="1.4rem">{formatNumber(trendSummary.totalEvents)}</Text>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="22px" p="lg" bg="grape.0" className="console-soft-panel">
+                    <Stack gap={4}>
+                      <Text fw={700} size="sm" c="grape.8">
+                        버킷당 평균 이벤트
+                      </Text>
+                      <Text fw={800} size="1.4rem">
+                        {formatNumber(Math.round(trendSummary.averageEventsPerBucket))}
+                      </Text>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="22px" p="lg" bg="cyan.0" className="console-soft-panel">
+                    <Stack gap={4}>
+                      <Text fw={700} size="sm" c="cyan.8">
+                        버킷당 평균 고유 사용자
+                      </Text>
+                      <Text fw={800} size="1.4rem">
+                        {formatNumber(Math.round(trendSummary.averageUniqueUsersPerBucket))}
+                      </Text>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="22px" p="lg" bg="teal.0" className="console-soft-panel">
+                    <Stack gap={4}>
+                      <Text fw={700} size="sm" c="teal.8">
+                        피크 버킷
+                      </Text>
+                      <Text fw={800} size="1rem">
+                        {formatDateTime(trendSummary.peakBucket.bucketStart)}
+                      </Text>
+                      <Text c="dimmed" size="sm">
+                        {formatNumber(trendSummary.peakBucket.events)} events
+                      </Text>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="22px" p="lg" bg="gray.0" className="console-soft-panel">
+                    <Stack gap={4}>
+                      <Text fw={700} size="sm" c="gray.8">
+                        가장 조용한 버킷
+                      </Text>
+                      <Text fw={800} size="1rem">
+                        {formatDateTime(trendSummary.quietBucket.bucketStart)}
+                      </Text>
+                      <Text c="dimmed" size="sm">
+                        {formatNumber(trendSummary.quietBucket.events)} events
+                      </Text>
+                    </Stack>
+                  </Paper>
+                </SimpleGrid>
+              ) : null}
 
               <div style={{ width: "100%", height: 360 }}>
                 <ResponsiveContainer>

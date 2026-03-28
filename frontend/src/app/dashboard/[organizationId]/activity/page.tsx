@@ -31,7 +31,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle, IconBolt } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -48,6 +48,7 @@ import {
 } from "recharts";
 
 type RangePreset = "1d" | "7d" | "30d" | "custom";
+type DayTypeMetric = "total" | "average";
 
 type AppliedRange = {
   from: string;
@@ -82,6 +83,19 @@ function formatDayLabel(value: string) {
   }).format(new Date(value));
 }
 
+function formatDayOfWeekLabel(dayOfWeek: number) {
+  const labels: Record<number, string> = {
+    0: "일",
+    1: "월",
+    2: "화",
+    3: "수",
+    4: "목",
+    5: "금",
+    6: "토",
+  };
+  return labels[dayOfWeek] ?? String(dayOfWeek);
+}
+
 export default function ActivityPage() {
   const router = useRouter();
   const params = useParams<{ organizationId: string }>();
@@ -95,6 +109,7 @@ export default function ActivityPage() {
   const [customTo, setCustomTo] = useState<string>(getOverviewRange(7).displayTo);
   const [rangeValidationMessage, setRangeValidationMessage] = useState<string | null>(null);
   const [isRangePopoverOpened, setIsRangePopoverOpened] = useState(false);
+  const [dayTypeMetric, setDayTypeMetric] = useState<DayTypeMetric>("total");
 
   function getRangeLengthDays(range: AppliedRange) {
     return getInclusiveDateRangeLengthDays(range.displayFrom, range.displayTo);
@@ -186,21 +201,45 @@ export default function ActivityPage() {
     setIsRangePopoverOpened(false);
   }
 
-  const dailyChartData = useMemo(
+  const hourlyChartData = useMemo(
     () =>
-      data?.activity.dailyActivity.map((item) => ({
-        label: formatDayLabel(item.bucketStart).slice(0, -1),
-        eventCount: item.eventCount,
-        uniqueUserCount: item.uniqueUserCount,
+      data?.activity.weekdayHourlyDistribution.map((item, index) => ({
+        label: formatHourLabel(item.hourOfDay),
+        weekdayEvents: item.eventCount,
+        weekendEvents: data.activity.weekendHourlyDistribution[index]?.eventCount ?? 0,
       })) ?? [],
     [data],
   );
 
-  const hourlyChartData = useMemo(
+  const dayTypeComparisonData = useMemo(
     () =>
-      data?.activity.hourlyDistribution.map((item) => ({
-        label: formatHourLabel(item.hourOfDay),
+      data
+        ? [
+            {
+              label: "평일",
+              eventCount: data.activity.weekdaySummary.eventCount,
+              uniqueUserCount: data.activity.weekdaySummary.uniqueUserCount,
+              averageEventsPerDay: data.activity.weekdaySummary.averageEventsPerDay,
+              averageUniqueUsersPerDay: data.activity.weekdaySummary.averageUniqueUsersPerDay,
+            },
+            {
+              label: "주말",
+              eventCount: data.activity.weekendSummary.eventCount,
+              uniqueUserCount: data.activity.weekendSummary.uniqueUserCount,
+              averageEventsPerDay: data.activity.weekendSummary.averageEventsPerDay,
+              averageUniqueUsersPerDay: data.activity.weekendSummary.averageUniqueUsersPerDay,
+            },
+          ]
+        : [],
+    [data],
+  );
+
+  const dayOfWeekChartData = useMemo(
+    () =>
+      data?.activity.dayOfWeekDistribution.map((item) => ({
+        label: formatDayOfWeekLabel(item.dayOfWeek),
         eventCount: item.eventCount,
+        uniqueUserCount: item.uniqueUserCount,
       })) ?? [],
     [data],
   );
@@ -272,11 +311,11 @@ export default function ActivityPage() {
               <Group justify="space-between" align="flex-start">
                 <div>
                   <Badge color="orange" variant="light" mb="md">
-                    Activity Summary
+                    Activity Distribution
                   </Badge>
-                  <Title order={1}>활동량과 분포</Title>
+                  <Title order={1}>활동 패턴과 분포</Title>
                   <Text c="dimmed" mt="sm">
-                    총 이벤트 수, 평균 활동량, 가장 바빴던 날과 시간대 분포를 같은 기간 기준으로 묶어 보여줍니다.
+                    평일과 주말, 요일별 활동량, 시간대 분포를 함께 비교해 활동이 어디에 몰리는지 확인합니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
@@ -405,38 +444,181 @@ export default function ActivityPage() {
             <Paper radius="28px" p={28} shadow="sm" withBorder className="console-panel">
               <Stack gap="lg">
                 <div>
-                  <Title order={3}>일별 활동</Title>
+                  <Title order={3}>평일 vs 주말</Title>
                   <Text c="dimmed" size="sm" mt={6}>
-                    선택한 기간 안에서 날짜별 이벤트 수와 고유 사용자 수를 비교합니다.
+                    한국 시간 기준으로 평일과 주말의 총 이벤트, 고유 사용자 수, 일평균 이벤트를 비교합니다.
                   </Text>
                 </div>
+                <Group justify="flex-end">
+                  <SegmentedControl
+                    data={[
+                      { label: "총량", value: "total" },
+                      { label: "일평균", value: "average" },
+                    ]}
+                    radius="xl"
+                    size="sm"
+                    value={dayTypeMetric}
+                    onChange={(value) => setDayTypeMetric(value as DayTypeMetric)}
+                  />
+                </Group>
+
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                  <Paper radius="22px" p="lg" bg="blue.0" className="console-soft-panel">
+                    <Stack gap="sm">
+                      <Group justify="space-between" align="center">
+                        <Text fw={700} size="sm" c="blue.8">
+                          평일
+                        </Text>
+                        <Badge color="blue" radius="xl" variant="light">
+                          {dayTypeMetric === "total" ? "총량 기준" : "일평균 기준"}
+                        </Badge>
+                      </Group>
+                      <Stack gap={2}>
+                        <Text c="dimmed" fw={600} size="xs">
+                          {dayTypeMetric === "total" ? "총 이벤트" : "일평균 이벤트"}
+                        </Text>
+                        <Text fw={800} size="1.7rem">
+                          {dayTypeMetric === "total"
+                            ? `${formatNumber(data.activity.weekdaySummary.eventCount)}`
+                            : formatAverage(data.activity.weekdaySummary.averageEventsPerDay)}
+                        </Text>
+                        <Text c="dimmed" size="sm">
+                          {dayTypeMetric === "total"
+                            ? `고유 사용자 ${formatNumber(data.activity.weekdaySummary.uniqueUserCount)}명`
+                            : `일평균 고유 사용자 ${formatAverage(data.activity.weekdaySummary.averageUniqueUsersPerDay)}명`}
+                        </Text>
+                      </Stack>
+                      <Group gap="xs" wrap="wrap">
+                        <Badge color="gray" radius="xl" variant="light">
+                          총 이벤트 {formatNumber(data.activity.weekdaySummary.eventCount)}
+                        </Badge>
+                        <Badge color="gray" radius="xl" variant="light">
+                          고유 사용자 {formatNumber(data.activity.weekdaySummary.uniqueUserCount)}명
+                        </Badge>
+                        <Badge color="gray" radius="xl" variant="light">
+                          일평균 이벤트 {formatAverage(data.activity.weekdaySummary.averageEventsPerDay)}
+                        </Badge>
+                        <Badge color="gray" radius="xl" variant="light">
+                          일평균 고유 사용자 {formatAverage(data.activity.weekdaySummary.averageUniqueUsersPerDay)}
+                        </Badge>
+                      </Group>
+                    </Stack>
+                  </Paper>
+                  <Paper radius="22px" p="lg" bg="pink.0" className="console-soft-panel">
+                    <Stack gap="sm">
+                      <Group justify="space-between" align="center">
+                        <Text fw={700} size="sm" c="pink.8">
+                          주말
+                        </Text>
+                        <Badge color="pink" radius="xl" variant="light">
+                          {dayTypeMetric === "total" ? "총량 기준" : "일평균 기준"}
+                        </Badge>
+                      </Group>
+                      <Stack gap={2}>
+                        <Text c="dimmed" fw={600} size="xs">
+                          {dayTypeMetric === "total" ? "총 이벤트" : "일평균 이벤트"}
+                        </Text>
+                        <Text fw={800} size="1.7rem">
+                          {dayTypeMetric === "total"
+                            ? `${formatNumber(data.activity.weekendSummary.eventCount)}`
+                            : formatAverage(data.activity.weekendSummary.averageEventsPerDay)}
+                        </Text>
+                        <Text c="dimmed" size="sm">
+                          {dayTypeMetric === "total"
+                            ? `고유 사용자 ${formatNumber(data.activity.weekendSummary.uniqueUserCount)}명`
+                            : `일평균 고유 사용자 ${formatAverage(data.activity.weekendSummary.averageUniqueUsersPerDay)}명`}
+                        </Text>
+                      </Stack>
+                      <Group gap="xs" wrap="wrap">
+                        <Badge color="gray" radius="xl" variant="light">
+                          총 이벤트 {formatNumber(data.activity.weekendSummary.eventCount)}
+                        </Badge>
+                        <Badge color="gray" radius="xl" variant="light">
+                          고유 사용자 {formatNumber(data.activity.weekendSummary.uniqueUserCount)}명
+                        </Badge>
+                        <Badge color="gray" radius="xl" variant="light">
+                          일평균 이벤트 {formatAverage(data.activity.weekendSummary.averageEventsPerDay)}
+                        </Badge>
+                        <Badge color="gray" radius="xl" variant="light">
+                          일평균 고유 사용자 {formatAverage(data.activity.weekendSummary.averageUniqueUsersPerDay)}
+                        </Badge>
+                      </Group>
+                    </Stack>
+                  </Paper>
+                </SimpleGrid>
 
                 <div style={{ width: "100%", height: 280 }}>
                   <ResponsiveContainer>
-                    <LineChart data={dailyChartData}>
+                    <BarChart data={dayTypeComparisonData} barCategoryGap="22%">
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.22)" />
                       <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} />
                       <Tooltip />
                       <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="eventCount"
-                        name="이벤트"
-                        stroke="var(--mantine-color-orange-6)"
-                        strokeWidth={3}
-                        dot={false}
+                      <Bar
+                        dataKey={dayTypeMetric === "total" ? "eventCount" : "averageEventsPerDay"}
+                        name={dayTypeMetric === "total" ? "이벤트 수" : "일평균 이벤트"}
+                        fill="var(--mantine-color-orange-5)"
+                        radius={[8, 8, 0, 0]}
+                        barSize={24}
                       />
-                      <Line
-                        type="monotone"
-                        dataKey="uniqueUserCount"
-                        name="고유 사용자"
-                        stroke="var(--mantine-color-teal-6)"
-                        strokeWidth={3}
-                        dot={false}
+                      <Bar
+                        dataKey={dayTypeMetric === "total" ? "uniqueUserCount" : "averageUniqueUsersPerDay"}
+                        name={dayTypeMetric === "total" ? "고유 사용자 수" : "일평균 고유 사용자"}
+                        fill="var(--mantine-color-blue-5)"
+                        radius={[8, 8, 0, 0]}
+                        barSize={24}
                       />
-                    </LineChart>
+                    </BarChart>
                   </ResponsiveContainer>
+                </div>
+              </Stack>
+            </Paper>
+
+            <Paper radius="28px" p={28} shadow="sm" withBorder className="console-panel">
+              <Stack gap="lg">
+                <div>
+                  <Title order={3}>요일별 활동</Title>
+                  <Text c="dimmed" size="sm" mt={6}>
+                    어느 요일에 활동이 몰리는지 이벤트 수와 고유 사용자 수를 함께 보여줍니다.
+                  </Text>
+                </div>
+
+                <div style={{ width: "100%", height: 320 }}>
+                  <ResponsiveContainer>
+                    <BarChart data={dayOfWeekChartData} barCategoryGap="18%">
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.22)" />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="eventCount"
+                        name="이벤트 수"
+                        fill="var(--mantine-color-orange-5)"
+                        radius={[8, 8, 0, 0]}
+                        barSize={20}
+                      />
+                      <Bar
+                        dataKey="uniqueUserCount"
+                        name="고유 사용자 수"
+                        fill="var(--mantine-color-teal-5)"
+                        radius={[8, 8, 0, 0]}
+                        barSize={20}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Stack>
+            </Paper>
+
+            <Paper radius="28px" p={28} shadow="sm" withBorder className="console-panel">
+              <Stack gap="lg">
+                <div>
+                  <Title order={3}>일별 활동 표</Title>
+                  <Text c="dimmed" size="sm" mt={6}>
+                    추이 화면과 역할이 겹치지 않도록, 날짜별 값은 표로만 간단히 확인합니다.
+                  </Text>
                 </div>
 
                 <Table highlightOnHover withColumnBorders>
@@ -463,26 +645,37 @@ export default function ActivityPage() {
             <Paper radius="28px" p={28} shadow="sm" withBorder className="console-panel">
               <Stack gap="lg">
                 <div>
-                  <Title order={3}>시간대 분포</Title>
+                  <Title order={3}>평일/주말 시간대 비교</Title>
                   <Text c="dimmed" size="sm" mt={6}>
-                    선택한 기간 전체를 합쳐 어느 시간대에 활동이 몰렸는지 보여줍니다.
+                    같은 시간대라도 평일과 주말의 활동량이 어떻게 다른지 한국 시간 기준으로 비교합니다.
                   </Text>
                 </div>
 
                 <div style={{ width: "100%", height: 320 }}>
                   <ResponsiveContainer>
-                    <BarChart data={hourlyChartData}>
+                    <LineChart data={hourlyChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.22)" />
                       <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} />
                       <Tooltip />
-                      <Bar
-                        dataKey="eventCount"
-                        name="이벤트"
-                        fill="var(--mantine-color-orange-5)"
-                        radius={[8, 8, 0, 0]}
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="weekdayEvents"
+                        name="평일 이벤트"
+                        stroke="var(--mantine-color-blue-6)"
+                        strokeWidth={3}
+                        dot={false}
                       />
-                    </BarChart>
+                      <Line
+                        type="monotone"
+                        dataKey="weekendEvents"
+                        name="주말 이벤트"
+                        stroke="var(--mantine-color-pink-6)"
+                        strokeWidth={3}
+                        dot={false}
+                      />
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </Stack>

@@ -103,6 +103,19 @@ export type AdminActivityHourlyItemResponse = {
   eventCount: number;
 };
 
+export type AdminActivityDayTypeSummaryResponse = {
+  eventCount: number;
+  uniqueUserCount: number;
+  averageEventsPerDay: number;
+  averageUniqueUsersPerDay: number;
+};
+
+export type AdminActivityDayOfWeekItemResponse = {
+  dayOfWeek: number;
+  eventCount: number;
+  uniqueUserCount: number;
+};
+
 export type AdminActivityAnalyticsResponse = {
   organizationId: number;
   from: string;
@@ -113,8 +126,13 @@ export type AdminActivityAnalyticsResponse = {
   activeDays: number;
   peakDayBucketStart: string;
   peakDayEventCount: number;
+  weekdaySummary: AdminActivityDayTypeSummaryResponse;
+  weekendSummary: AdminActivityDayTypeSummaryResponse;
+  dayOfWeekDistribution: AdminActivityDayOfWeekItemResponse[];
   dailyActivity: AdminActivityDailyItemResponse[];
   hourlyDistribution: AdminActivityHourlyItemResponse[];
+  weekdayHourlyDistribution: AdminActivityHourlyItemResponse[];
+  weekendHourlyDistribution: AdminActivityHourlyItemResponse[];
 };
 
 export type RetentionMatrixValue = {

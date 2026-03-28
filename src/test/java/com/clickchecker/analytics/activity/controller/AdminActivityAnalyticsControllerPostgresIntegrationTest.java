@@ -58,7 +58,7 @@ class AdminActivityAnalyticsControllerPostgresIntegrationTest extends AnalyticsC
     private JwtTokenProvider jwtTokenProvider;
 
     @Test
-    void activity_returnsSummaryDailyActivityAndHourlyDistribution_whenRequesterIsViewer() throws Exception {
+    void activity_returnsSummaryAndDistributionBreakdowns_whenRequesterIsViewer() throws Exception {
         Organization organization = saveOrganization("acme");
         Account viewer = saveAccount("viewer-activity");
         saveMembership(viewer, organization, OrganizationRole.VIEWER);
@@ -80,14 +80,24 @@ class AdminActivityAnalyticsControllerPostgresIntegrationTest extends AnalyticsC
                 .andExpect(jsonPath("$.organizationId").value(organization.getId()))
                 .andExpect(jsonPath("$.totalEvents").value(3))
                 .andExpect(jsonPath("$.activeDays").value(2))
+                .andExpect(jsonPath("$.weekdaySummary.eventCount").value(3))
+                .andExpect(jsonPath("$.weekdaySummary.uniqueUserCount").value(2))
+                .andExpect(jsonPath("$.weekendSummary.eventCount").value(0))
+                .andExpect(jsonPath("$.dayOfWeekDistribution.length()").value(7))
+                .andExpect(jsonPath("$.dayOfWeekDistribution[2].eventCount").value(2))
+                .andExpect(jsonPath("$.dayOfWeekDistribution[3].eventCount").value(1))
                 .andExpect(jsonPath("$.dailyActivity.length()").value(2))
                 .andExpect(jsonPath("$.dailyActivity[0].eventCount").value(2))
                 .andExpect(jsonPath("$.dailyActivity[0].uniqueUserCount").value(2))
                 .andExpect(jsonPath("$.dailyActivity[1].eventCount").value(1))
                 .andExpect(jsonPath("$.hourlyDistribution.length()").value(24))
+                .andExpect(jsonPath("$.weekdayHourlyDistribution.length()").value(24))
+                .andExpect(jsonPath("$.weekendHourlyDistribution.length()").value(24))
                 .andExpect(jsonPath("$.hourlyDistribution[9].eventCount").value(1))
                 .andExpect(jsonPath("$.hourlyDistribution[11].eventCount").value(1))
                 .andExpect(jsonPath("$.hourlyDistribution[14].eventCount").value(1))
+                .andExpect(jsonPath("$.weekdayHourlyDistribution[9].eventCount").value(1))
+                .andExpect(jsonPath("$.weekendHourlyDistribution[9].eventCount").value(0))
                 .andExpect(jsonPath("$.peakDayEventCount").value(2));
     }
 

@@ -1,6 +1,9 @@
 package com.clickchecker.event.repository;
 
 import com.clickchecker.analytics.common.model.TimeBucket;
+import com.clickchecker.event.repository.projection.DayOfWeekCountProjection;
+import com.clickchecker.event.repository.projection.DayTypeHourlyCountProjection;
+import com.clickchecker.event.repository.projection.DayTypeSummaryProjection;
 import com.clickchecker.event.repository.projection.RawEventTypeTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.RawPathEventTypeTimeBucketCountProjection;
 import com.clickchecker.event.repository.projection.RawPathTimeBucketCountProjection;
@@ -445,8 +448,111 @@ public class EventTrendNativeQueryRepository {
                 .toList();
     }
 
+    public List<DayTypeSummaryProjection> summarizeByDayTypeOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String timezone
+    ) {
+        String localizedOccurredAt = localizedOccurredAtExpression(timezone);
+        String sql = """
+                SELECT CASE
+                           WHEN EXTRACT(DOW FROM %s) IN (0, 6) THEN 'WEEKEND'
+                           ELSE 'WEEKDAY'
+                       END AS day_type,
+                       COUNT(*) AS event_count,
+                       COUNT(DISTINCT e.event_user_id) AS unique_user_count
+                FROM events e
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                GROUP BY 1
+                ORDER BY 1
+                """.formatted(localizedOccurredAt);
+
+        Query query = createQuery(sql, from, to, organizationId, null, null, timezone);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new DayTypeSummaryProjection(
+                        (String) row[0],
+                        toLong(row[1]),
+                        toLong(row[2])
+                ))
+                .toList();
+    }
+
+    public List<DayOfWeekCountProjection> summarizeByDayOfWeekOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String timezone
+    ) {
+        String localizedOccurredAt = localizedOccurredAtExpression(timezone);
+        String sql = """
+                SELECT CAST(EXTRACT(DOW FROM %s) AS INTEGER) AS day_of_week,
+                       COUNT(*) AS event_count,
+                       COUNT(DISTINCT e.event_user_id) AS unique_user_count
+                FROM events e
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                GROUP BY 1
+                ORDER BY 1
+                """.formatted(localizedOccurredAt);
+
+        Query query = createQuery(sql, from, to, organizationId, null, null, timezone);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new DayOfWeekCountProjection(
+                        toInteger(row[0]),
+                        toLong(row[1]),
+                        toLong(row[2])
+                ))
+                .toList();
+    }
+
+    public List<DayTypeHourlyCountProjection> countByDayTypeAndHourOccurredAtBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String timezone
+    ) {
+        String localizedOccurredAt = localizedOccurredAtExpression(timezone);
+        String sql = """
+                SELECT CASE
+                           WHEN EXTRACT(DOW FROM %s) IN (0, 6) THEN 'WEEKEND'
+                           ELSE 'WEEKDAY'
+                       END AS day_type,
+                       CAST(EXTRACT(HOUR FROM %s) AS INTEGER) AS hour_of_day,
+                       COUNT(*) AS event_count
+                FROM events e
+                WHERE e.occurred_at >= :from
+                  AND e.occurred_at < :to
+                  AND e.organization_id = :organizationId
+                GROUP BY 1, 2
+                ORDER BY 1, 2
+                """.formatted(localizedOccurredAt, localizedOccurredAt);
+
+        Query query = createQuery(sql, from, to, organizationId, null, null, timezone);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new DayTypeHourlyCountProjection(
+                        (String) row[0],
+                        toInteger(row[1]),
+                        toLong(row[2])
+                ))
+                .toList();
+    }
+
     private String bucketStartExpression(TimeBucket bucket, String timezone) {
         return TimeBucketSql.epochBucketStartExpression("e.occurred_at", bucket, timezone);
+    }
+
+    private String localizedOccurredAtExpression(String timezone) {
+        return "e.occurred_at AT TIME ZONE '%s'".formatted(timezone.replace("'", "''"));
     }
 
     private void appendOptionalFilters(StringBuilder sql, String externalUserId, String eventType) {
@@ -511,5 +617,12 @@ public class EventTrendNativeQueryRepository {
             return number.longValue();
         }
         throw new IllegalArgumentException("Unsupported count type: " + value);
+    }
+
+    private int toInteger(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        throw new IllegalArgumentException("Unsupported integer type: " + value);
     }
 }

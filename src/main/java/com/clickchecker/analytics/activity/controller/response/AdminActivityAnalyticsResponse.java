@@ -13,7 +13,12 @@ public record AdminActivityAnalyticsResponse(
         long activeDays,
         Instant peakDayBucketStart,
         long peakDayEventCount,
+        AdminActivityDayTypeSummaryResponse weekdaySummary,
+        AdminActivityDayTypeSummaryResponse weekendSummary,
+        List<AdminActivityDayOfWeekItemResponse> dayOfWeekDistribution,
         List<AdminActivityDailyItemResponse> dailyActivity,
-        List<AdminActivityHourlyItemResponse> hourlyDistribution
+        List<AdminActivityHourlyItemResponse> hourlyDistribution,
+        List<AdminActivityHourlyItemResponse> weekdayHourlyDistribution,
+        List<AdminActivityHourlyItemResponse> weekendHourlyDistribution
 ) {
 }
