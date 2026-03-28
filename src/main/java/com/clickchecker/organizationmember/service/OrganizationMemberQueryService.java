@@ -5,7 +5,6 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organizationmember.entity.OrganizationMember;
-import com.clickchecker.organizationmember.entity.OrganizationRole;
 import com.clickchecker.organizationmember.repository.OrganizationMemberQueryRepository;
 import com.clickchecker.organizationmember.repository.OrganizationMemberRepository;
 import com.clickchecker.organizationmember.service.result.OrganizationMemberResult;
@@ -26,7 +25,7 @@ public class OrganizationMemberQueryService {
 
     @Transactional(readOnly = true)
     public List<OrganizationMemberResult> getMembers(Long accountId, Long organizationId) {
-        requireMemberWithAtLeastAdminRole(accountId, organizationId);
+        requireMember(accountId, organizationId);
 
         return organizationMemberQueryRepository.findMembersByOrganizationId(organizationId)
                 .stream()
@@ -40,16 +39,12 @@ public class OrganizationMemberQueryService {
                 .toList();
     }
 
-    private void requireMemberWithAtLeastAdminRole(Long accountId, Long organizationId) {
+    private void requireMember(Long accountId, Long organizationId) {
         if (!organizationRepository.existsById(organizationId)) {
             throw new ResponseStatusException(NOT_FOUND, ApiErrorMessages.ORGANIZATION_NOT_FOUND);
         }
 
-        OrganizationMember membership = organizationMemberRepository.findByAccountIdAndOrganizationId(accountId, organizationId)
+        organizationMemberRepository.findByAccountIdAndOrganizationId(accountId, organizationId)
                 .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, ApiErrorMessages.FORBIDDEN));
-
-        if (!membership.hasRoleAtLeast(OrganizationRole.ADMIN)) {
-            throw new ResponseStatusException(FORBIDDEN, ApiErrorMessages.FORBIDDEN);
-        }
     }
 }

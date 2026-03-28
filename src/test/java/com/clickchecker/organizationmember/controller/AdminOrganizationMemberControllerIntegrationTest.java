@@ -110,6 +110,43 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
+    void getMembers_returnsMembers_whenRequesterIsViewer() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account viewer = saveAccount("viewer", AccountStatus.ACTIVE);
+        Account alice = saveAccount("alice", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(viewer)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(alice)
+                .organization(organization)
+                .role(OrganizationRole.ADMIN)
+                .build());
+
+        mockMvc.perform(
+                        get("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(viewer.getId()))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.members.length()").value(3))
+                .andExpect(jsonPath("$.members[0].loginId").value("alice"))
+                .andExpect(jsonPath("$.members[1].loginId").value("owner"))
+                .andExpect(jsonPath("$.members[2].loginId").value("viewer"));
+    }
+
+    @Test
     void addMember_returnsCreated_whenRequesterIsOwner() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()
@@ -734,7 +771,7 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
-    void getMembers_returnsForbidden_whenRequesterIsViewer() throws Exception {
+    void getMembers_returnsOk_whenRequesterIsViewer() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()
                 .name("Acme")
@@ -751,7 +788,10 @@ class AdminOrganizationMemberControllerIntegrationTest {
                         get("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(viewer.getId()))
                 )
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.members.length()").value(1))
+                .andExpect(jsonPath("$.members[0].loginId").value("viewer"))
+                .andExpect(jsonPath("$.members[0].role").value("VIEWER"));
     }
 
     @Test
