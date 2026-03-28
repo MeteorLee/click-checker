@@ -198,7 +198,7 @@ export default function RetentionPage() {
 
         setErrorStatus(status ?? null);
         setErrorMessage(
-          error instanceof Error ? error.message : "retention 데이터를 불러오지 못했습니다.",
+          error instanceof Error ? error.message : "유지율 데이터를 불러오지 못했습니다.",
         );
       } finally {
         setIsLoading(false);
@@ -261,15 +261,15 @@ export default function RetentionPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Retention"
-          subtitle="선택된 organization의 재방문 유지율을 불러오는 중입니다."
+          title="유지율"
+          subtitle="선택한 조직의 재방문 유지율을 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">retention 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">유지율 데이터를 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -279,8 +279,8 @@ export default function RetentionPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Retention"
-        subtitle="선택된 organization의 코호트 유지율을 확인합니다."
+        title="유지율"
+        subtitle="선택한 조직의 코호트 유지율을 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Analytics"
         status={errorStatus}
@@ -293,8 +293,8 @@ export default function RetentionPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Retention"
-          subtitle="선택된 organization의 코호트 유지율을 확인합니다."
+          title="유지율"
+          subtitle="선택한 조직의 코호트 유지율을 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />

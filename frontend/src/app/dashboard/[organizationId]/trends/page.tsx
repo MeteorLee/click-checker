@@ -187,7 +187,7 @@ export default function TrendsPage() {
 
         setErrorStatus(status ?? null);
         setErrorMessage(
-          error instanceof Error ? error.message : "trend 데이터를 불러오지 못했습니다.",
+          error instanceof Error ? error.message : "추이 데이터를 불러오지 못했습니다.",
         );
       } finally {
         setIsLoading(false);
@@ -244,15 +244,15 @@ export default function TrendsPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Trends"
-          subtitle="선택된 organization의 시계열 추이를 불러오는 중입니다."
+          title="추이"
+          subtitle="선택한 조직의 시계열 추이를 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">trend 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">추이 데이터를 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -262,8 +262,8 @@ export default function TrendsPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Trends"
-        subtitle="선택된 organization의 시계열 추이를 확인합니다."
+        title="추이"
+        subtitle="선택한 조직의 시계열 추이를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Analytics"
         status={errorStatus}
@@ -276,8 +276,8 @@ export default function TrendsPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Trends"
-          subtitle="선택된 organization의 시계열 추이를 확인합니다."
+          title="추이"
+          subtitle="선택한 조직의 시계열 추이를 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
@@ -295,7 +295,7 @@ export default function TrendsPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Trends`}
+        title={`${data.organizationName} 추이`}
         subtitle="이벤트 수와 고유 사용자 수의 시간축 변화를 함께 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Trends"

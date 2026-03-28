@@ -99,7 +99,7 @@ export default function OrganizationsPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "organization 목록을 불러오지 못했습니다.";
+          : "조직 목록을 불러오지 못했습니다.";
 
       if ("status" in (error as object) && (error as { status?: number }).status === 401) {
         clearAccessToken();
@@ -164,7 +164,7 @@ export default function OrganizationsPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "organization 생성 중 오류가 발생했습니다.";
+          : "조직 생성 중 오류가 발생했습니다.";
       setCreateErrorMessage(message);
     } finally {
       setIsCreating(false);
@@ -209,7 +209,7 @@ export default function OrganizationsPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "organization 삭제 중 오류가 발생했습니다.";
+          : "조직 삭제 중 오류가 발생했습니다.";
 
       if (message === "Sole owner confirmation is required.") {
         setRequiresDeleteConfirmation(true);
@@ -241,7 +241,7 @@ export default function OrganizationsPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "demo organization을 추가하지 못했습니다.";
+          : "데모 조직을 추가하지 못했습니다.";
       setDemoErrorMessage(message);
     } finally {
       setIsAddingDemo(false);
@@ -252,13 +252,13 @@ export default function OrganizationsPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Organization 선택"
-          subtitle="로그인한 계정이 접근 가능한 organization 목록을 불러오는 중입니다."
+          title="조직 선택"
+          subtitle="로그인한 계정이 접근할 수 있는 조직 목록을 불러오는 중입니다."
         />
         <Container size="md" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">organization 목록을 불러오는 중입니다.</Text>
+            <Text c="dimmed">조직 목록을 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -269,8 +269,8 @@ export default function OrganizationsPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Organization 선택"
-          subtitle="로그인한 계정이 접근 가능한 organization 목록을 확인합니다."
+          title="조직 선택"
+          subtitle="로그인한 계정이 접근할 수 있는 조직 목록을 확인합니다."
         />
         <Container size="sm" py={96}>
           <Alert
@@ -608,7 +608,7 @@ export default function OrganizationsPage() {
               <Paper radius="24px" p="lg" withBorder bg="gray.0">
                 <Group justify="space-between" align="center" gap="md">
                   <Stack gap={4}>
-                    <Text fw={700}>Demo organization 추가</Text>
+                    <Text fw={700}>데모 조직 추가</Text>
                     <Text c="dimmed" size="sm">
                       실데이터가 없어도 바로 분석 화면을 볼 수 있게 demo_web_shop을 내 목록에 추가합니다.
                     </Text>
@@ -621,7 +621,7 @@ export default function OrganizationsPage() {
                     variant="light"
                     onClick={() => void handleJoinDemoOrganization()}
                   >
-                    Demo organization 추가
+                    데모 조직 추가
                   </Button>
                 </Group>
               </Paper>
@@ -678,8 +678,7 @@ export default function OrganizationsPage() {
 
                     <Paper radius="lg" p="md" bg="gray.0">
                       <Text c="dimmed" size="sm">
-                        이 organization의 overview, top routes, top event types를 조회할 수
-                        있습니다.
+                        이 조직의 개요, 상위 경로, 상위 이벤트를 바로 확인할 수 있습니다.
                       </Text>
                     </Paper>
 

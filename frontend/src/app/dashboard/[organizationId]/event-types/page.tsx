@@ -122,7 +122,7 @@ export default function EventTypesPage() {
 
         setErrorStatus(status ?? null);
         setErrorMessage(
-          error instanceof Error ? error.message : "event type 데이터를 불러오지 못했습니다.",
+          error instanceof Error ? error.message : "이벤트 집계를 불러오지 못했습니다.",
         );
       } finally {
         setIsLoading(false);
@@ -159,15 +159,15 @@ export default function EventTypesPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Event Types"
-          subtitle="선택된 organization의 event type 집계를 불러오는 중입니다."
+          title="이벤트 상세"
+          subtitle="선택한 조직의 이벤트 집계를 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">event type 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">이벤트 집계를 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -177,8 +177,8 @@ export default function EventTypesPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Event Types"
-        subtitle="선택된 organization의 canonical event type 집계를 확인합니다."
+        title="이벤트 상세"
+        subtitle="선택한 조직의 canonical event type 집계를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Analytics"
         status={errorStatus}
@@ -191,8 +191,8 @@ export default function EventTypesPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Event Types"
-          subtitle="선택된 organization의 event type 집계를 확인합니다."
+          title="이벤트 상세"
+          subtitle="선택한 조직의 이벤트 집계를 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
@@ -210,8 +210,8 @@ export default function EventTypesPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Event Types`}
-        subtitle="정규화된 event type 기준 상위 이벤트 집계를 확인합니다."
+        title={`${data.organizationName} 이벤트 상세`}
+        subtitle="정규화된 canonical event type 기준으로 상위 이벤트 집계를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Event Types"
       />

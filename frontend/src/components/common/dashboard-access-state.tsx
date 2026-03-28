@@ -38,13 +38,13 @@ export function DashboardAccessState({
             <Stack gap="sm" align="center">
               <Title order={1}>
                 {isForbidden
-                  ? "이 organization에 접근할 권한이 없습니다"
-                  : "존재하지 않는 organization입니다"}
+                  ? "이 조직에 접근할 권한이 없습니다"
+                  : "존재하지 않는 조직입니다"}
               </Title>
               <Text c="dimmed" maw={560}>
                 {isForbidden
-                  ? "현재 로그인한 계정이 이 organization의 멤버가 아니거나, 이 화면을 볼 수 있는 권한이 없습니다."
-                  : "주소가 잘못되었거나 이미 제거된 organization일 수 있습니다. organization 선택 화면으로 돌아가 다시 진입해 주세요."}
+                  ? "현재 로그인한 계정이 이 조직의 멤버가 아니거나, 이 화면을 볼 수 있는 권한이 없습니다."
+                  : "주소가 잘못되었거나 이미 제거된 조직일 수 있습니다. 조직 선택 화면으로 돌아가 다시 확인해 주세요."}
               </Text>
             </Stack>
 
@@ -61,7 +61,7 @@ export function DashboardAccessState({
                 radius="xl"
                 rightSection={<IconArrowRight size={16} />}
               >
-                Organization 선택으로 이동
+                조직 선택으로 이동
               </Button>
               <Button component={Link} href="/login" radius="xl" variant="light">
                 로그인 화면

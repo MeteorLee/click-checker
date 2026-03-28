@@ -231,7 +231,7 @@ export default function DashboardPage() {
         const message =
           error instanceof Error
             ? error.message
-            : "overview 데이터를 불러오지 못했습니다.";
+            : "개요 화면을 불러오지 못했습니다.";
         setErrorMessage(message);
       } finally {
         setIsLoading(false);
@@ -245,15 +245,15 @@ export default function DashboardPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Overview 대시보드"
-          subtitle="선택된 organization의 overview 데이터를 불러오는 중입니다."
+          title="개요 대시보드"
+          subtitle="선택한 조직의 개요 화면을 불러오는 중입니다."
           backHref="/organizations"
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">overview 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">개요 화면을 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -263,8 +263,8 @@ export default function DashboardPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Overview 대시보드"
-        subtitle="선택된 organization의 overview 데이터를 확인합니다."
+        title="개요 대시보드"
+        subtitle="선택한 조직의 개요 화면을 확인합니다."
         backHref="/organizations"
         badge="Analytics"
         status={errorStatus}
@@ -277,8 +277,8 @@ export default function DashboardPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Overview 대시보드"
-          subtitle="선택된 organization의 overview 데이터를 확인합니다."
+          title="개요 대시보드"
+          subtitle="선택한 조직의 개요 화면을 확인합니다."
           backHref="/organizations"
           badge="Analytics"
         />
@@ -328,7 +328,7 @@ export default function DashboardPage() {
     <ConsoleFrame>
       <ConsoleHeader
         title={data.organizationName}
-        subtitle={`${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : selectedRange === "custom" ? "사용자 지정 기간" : "최근 7일"} 기준 overview입니다.`}
+        subtitle={`${selectedRange === "1d" ? "오늘" : selectedRange === "30d" ? "최근 30일" : selectedRange === "custom" ? "사용자 지정 기간" : "최근 7일"} 기준 개요입니다.`}
         backHref="/organizations"
         badge="Analytics"
       />
@@ -339,11 +339,11 @@ export default function DashboardPage() {
               <Group justify="space-between" align="flex-start">
                 <div>
                   <Badge color="blue" variant="light" mb="md">
-                    Admin Overview
+                    Overview
                   </Badge>
-                  <Title order={1}>핵심 overview</Title>
+                  <Title order={1}>핵심 개요</Title>
                   <Text c="dimmed" mt="sm">
-                    현재 organization의 핵심 지표, 정규화 상태, 상위 경로와 이벤트 타입 요약을 한 화면에서 확인합니다.
+                    현재 조직의 핵심 지표, 정규화 상태, 상위 경로와 이벤트 요약을 한 화면에서 확인합니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">
@@ -474,7 +474,7 @@ export default function DashboardPage() {
 
           <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="lg">
             <SummaryCard
-              title="Top Routes"
+              title="상위 경로"
               description="정규화된 route 기준 상위 경로"
               actionHref={`/dashboard/${params.organizationId}/routes`}
               actionLabel="Route 상세"
@@ -486,7 +486,7 @@ export default function DashboardPage() {
               }))}
             />
             <SummaryCard
-              title="Top Event Types"
+              title="상위 이벤트"
               description="정규화된 event type 기준 상위 이벤트"
               actionHref={`/dashboard/${params.organizationId}/event-types`}
               actionLabel="Event Type 상세"
@@ -506,7 +506,7 @@ export default function DashboardPage() {
                   추가 분석
                 </Text>
                 <Text c="dimmed" size="sm">
-                  overview에서 본 지표를 더 깊게 확인할 수 있는 상세 분석 화면입니다.
+                  개요 화면에서 본 지표를 더 깊게 확인할 수 있는 상세 분석 화면입니다.
                 </Text>
               </div>
 

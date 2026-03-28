@@ -144,7 +144,7 @@ export default function RouteTemplatesPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Route Rules"
+        title="경로 규칙"
         subtitle="route template 규칙과 우선순위를 관리합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Settings"
@@ -253,8 +253,8 @@ export default function RouteTemplatesPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Route Template 관리"
-          subtitle="route 규칙 목록을 불러오는 중입니다."
+          title="경로 규칙 관리"
+          subtitle="경로 규칙 목록을 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}/routes`}
           badge="Settings"
         />
@@ -272,8 +272,8 @@ export default function RouteTemplatesPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Route Template 관리"
-          subtitle="route 규칙 테이블을 확인합니다."
+          title="경로 규칙 관리"
+          subtitle="경로 규칙 테이블을 확인합니다."
           backHref={`/dashboard/${params.organizationId}/routes`}
           badge="Settings"
         />
@@ -289,7 +289,7 @@ export default function RouteTemplatesPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Route Template 관리`}
+        title={`${data.organizationName} 경로 규칙 관리`}
         subtitle="raw path를 route key로 정규화하는 규칙을 조회하고 수정합니다."
         backHref={`/dashboard/${params.organizationId}/routes`}
         badge="Settings"

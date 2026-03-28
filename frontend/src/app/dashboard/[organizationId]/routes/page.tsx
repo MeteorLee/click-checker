@@ -122,7 +122,7 @@ export default function RoutesPage() {
 
         setErrorStatus(status ?? null);
         setErrorMessage(
-          error instanceof Error ? error.message : "route 데이터를 불러오지 못했습니다.",
+          error instanceof Error ? error.message : "경로 데이터를 불러오지 못했습니다.",
         );
       } finally {
         setIsLoading(false);
@@ -159,15 +159,15 @@ export default function RoutesPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Routes"
-          subtitle="선택된 organization의 route 집계를 불러오는 중입니다."
+          title="경로 상세"
+          subtitle="선택한 조직의 경로 집계를 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">route 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">경로 데이터를 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -177,8 +177,8 @@ export default function RoutesPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Routes"
-        subtitle="선택된 organization의 route 집계를 확인합니다."
+        title="경로 상세"
+        subtitle="선택한 조직의 경로 집계를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Analytics"
         status={errorStatus}
@@ -191,8 +191,8 @@ export default function RoutesPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Routes"
-          subtitle="선택된 organization의 route 집계를 확인합니다."
+          title="경로 상세"
+          subtitle="선택한 조직의 경로 집계를 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
@@ -210,8 +210,8 @@ export default function RoutesPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Routes`}
-        subtitle="정규화된 route 기준 상위 경로 집계를 확인합니다."
+        title={`${data.organizationName} 경로 상세`}
+        subtitle="정규화된 route key 기준으로 상위 경로 집계를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Routes"
       />

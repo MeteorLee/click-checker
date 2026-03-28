@@ -61,60 +61,60 @@ export function DashboardNavigation() {
 
   const sections: NavSection[] = [
     {
-      title: "Analytics",
+      title: "분석",
       items: [
         {
-          label: "Overview",
+          label: "개요",
           href: `/dashboard/${organizationId}`,
           icon: IconChartBar,
         },
         {
-          label: "Trends",
+          label: "추이",
           href: `/dashboard/${organizationId}/trends`,
           icon: IconChartLine,
         },
         {
-          label: "Users",
+          label: "사용자 현황",
           href: `/dashboard/${organizationId}/users`,
           icon: IconUsersGroup,
         },
         {
-          label: "Activity",
+          label: "활동량",
           href: `/dashboard/${organizationId}/activity`,
           icon: IconActivity,
         },
         {
-          label: "Retention",
+          label: "유지율",
           href: `/dashboard/${organizationId}/retention`,
           icon: IconGitBranch,
         },
         {
-          label: "Funnels",
+          label: "퍼널 분석",
           href: `/dashboard/${organizationId}/funnels`,
           icon: IconFilterBolt,
         },
       ],
     },
     {
-      title: "Settings",
+      title: "설정",
       items: [
         {
-          label: "Route Rules",
+          label: "경로 규칙",
           href: `/dashboard/${organizationId}/route-templates`,
           icon: IconRoute2,
         },
         {
-          label: "Event Type Rules",
+          label: "이벤트 규칙",
           href: `/dashboard/${organizationId}/event-type-mappings`,
           icon: IconTags,
         },
         {
-          label: "API Key",
+          label: "API Key 관리",
           href: `/dashboard/${organizationId}/api-key`,
           icon: IconKey,
         },
         {
-          label: "Members",
+          label: "멤버 관리",
           href: `/dashboard/${organizationId}/members`,
           icon: IconUsers,
         },
@@ -131,7 +131,7 @@ export function DashboardNavigation() {
               Click Checker
             </Text>
             <Text c="dimmed" size="sm">
-              Admin Console
+              관리자 콘솔
             </Text>
           </Stack>
 
@@ -141,9 +141,9 @@ export function DashboardNavigation() {
                 <Text c="dimmed" fw={700} size="xs" tt="uppercase">
                   {section.title}
                 </Text>
-                {section.title === "Settings" ? (
+                {section.title === "설정" ? (
                   <Badge color="dark" radius="xl" size="sm" variant="light">
-                    Organization {organizationId}
+                    조직 {organizationId}
                   </Badge>
                 ) : null}
               </Group>

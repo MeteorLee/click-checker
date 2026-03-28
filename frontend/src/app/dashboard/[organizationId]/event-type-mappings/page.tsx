@@ -115,7 +115,7 @@ export default function EventTypeMappingsPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Event Type Rules"
+        title="이벤트 규칙"
         subtitle="raw event type와 canonical event type 매핑을 관리합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Settings"
@@ -224,7 +224,7 @@ export default function EventTypeMappingsPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Event Type Mapping 관리"
+          title="이벤트 규칙 관리"
           subtitle="canonical event type 규칙 목록을 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}/event-types`}
           badge="Settings"
@@ -243,7 +243,7 @@ export default function EventTypeMappingsPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Event Type Mapping 관리"
+          title="이벤트 규칙 관리"
           subtitle="canonical event type 규칙 테이블을 확인합니다."
           backHref={`/dashboard/${params.organizationId}/event-types`}
           badge="Settings"
@@ -260,7 +260,7 @@ export default function EventTypeMappingsPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Event Type Mapping 관리`}
+        title={`${data.organizationName} 이벤트 규칙 관리`}
         subtitle="raw event type를 canonical event type으로 정규화하는 규칙을 조회하고 수정합니다."
         backHref={`/dashboard/${params.organizationId}/event-types`}
         badge="Settings"

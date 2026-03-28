@@ -235,7 +235,7 @@ export default function UsersPage() {
 
         setErrorStatus(status ?? null);
         setErrorMessage(
-          error instanceof Error ? error.message : "user 데이터를 불러오지 못했습니다.",
+          error instanceof Error ? error.message : "사용자 현황을 불러오지 못했습니다.",
         );
       } finally {
         setIsLoading(false);
@@ -272,15 +272,15 @@ export default function UsersPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Users"
-          subtitle="선택된 organization의 사용자 현황을 불러오는 중입니다."
+          title="사용자 현황"
+          subtitle="선택한 조직의 사용자 현황을 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">user 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">사용자 현황을 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -290,8 +290,8 @@ export default function UsersPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Users"
-        subtitle="선택된 organization의 사용자 현황을 확인합니다."
+        title="사용자 현황"
+        subtitle="선택한 조직의 사용자 현황을 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Analytics"
         status={errorStatus}
@@ -304,8 +304,8 @@ export default function UsersPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Users"
-          subtitle="선택된 organization의 사용자 현황을 확인합니다."
+          title="사용자 현황"
+          subtitle="선택한 조직의 사용자 현황을 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
@@ -328,7 +328,7 @@ export default function UsersPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Users`}
+        title={`${data.organizationName} 사용자 현황`}
         subtitle="선택한 기간 안에서 식별된 사용자 현황을 요약합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Users"

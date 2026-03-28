@@ -240,7 +240,7 @@ export default function FunnelPage() {
     const normalized = normalizeSteps(draftSteps);
     const hasBlank = normalized.some((step) => step.canonicalEventType.length === 0);
     if (hasBlank) {
-      setStepValidationMessage("각 단계의 canonical event type을 모두 입력하세요.");
+      setStepValidationMessage("각 단계의 canonical event type을 모두 선택하세요.");
       return;
     }
 
@@ -293,15 +293,15 @@ export default function FunnelPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Funnels"
-          subtitle="선택된 organization의 전환 흐름을 불러오는 중입니다."
+          title="퍼널 분석"
+          subtitle="선택한 조직의 전환 흐름을 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">funnel 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">퍼널 데이터를 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -311,8 +311,8 @@ export default function FunnelPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Funnels"
-        subtitle="선택된 organization의 단계별 전환율을 확인합니다."
+        title="퍼널 분석"
+        subtitle="선택한 조직의 단계별 전환율을 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Analytics"
         status={errorStatus}
@@ -325,8 +325,8 @@ export default function FunnelPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Funnels"
-          subtitle="선택된 organization의 전환 흐름을 확인합니다."
+          title="퍼널 분석"
+          subtitle="선택한 조직의 전환 흐름을 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
@@ -344,7 +344,7 @@ export default function FunnelPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Funnels`}
+        title={`${data.organizationName} 퍼널 분석`}
         subtitle="단계별 전환 흐름과 이탈 구간을 같은 기간 기준으로 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Funnels"
@@ -360,7 +360,7 @@ export default function FunnelPage() {
                   </Badge>
                   <Title order={1}>전환 퍼널</Title>
                   <Text c="dimmed" mt="sm">
-                    단계별 canonical event type을 기준으로 전환율과 이탈 구간을 계산합니다. routeKey를 같이 넣으면 특정 경로 기준 퍼널도 확인할 수 있습니다.
+                    단계별 canonical event type을 기준으로 전환율과 이탈 구간을 계산합니다. routeKey를 함께 고르면 특정 경로 기준 퍼널도 확인할 수 있습니다.
                   </Text>
                 </div>
                 <Stack gap="xs" align="flex-end">

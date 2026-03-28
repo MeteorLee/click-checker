@@ -142,7 +142,7 @@ export default function ActivityPage() {
 
         setErrorStatus(status ?? null);
         setErrorMessage(
-          error instanceof Error ? error.message : "activity 데이터를 불러오지 못했습니다.",
+          error instanceof Error ? error.message : "활동량 데이터를 불러오지 못했습니다.",
         );
       } finally {
         setIsLoading(false);
@@ -184,15 +184,15 @@ export default function ActivityPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Activity"
-          subtitle="선택된 organization의 활동량을 불러오는 중입니다."
+          title="활동량"
+          subtitle="선택한 조직의 활동량을 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">activity 데이터를 불러오는 중입니다.</Text>
+            <Text c="dimmed">활동량 데이터를 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -202,8 +202,8 @@ export default function ActivityPage() {
   if (errorMessage && (errorStatus === 403 || errorStatus === 404)) {
     return (
       <DashboardAccessState
-        title="Activity"
-        subtitle="선택된 organization의 활동량과 분포를 확인합니다."
+        title="활동량"
+        subtitle="선택한 조직의 활동량과 분포를 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Analytics"
         status={errorStatus}
@@ -216,8 +216,8 @@ export default function ActivityPage() {
     return (
       <ConsoleFrame>
         <ConsoleHeader
-          title="Activity"
-          subtitle="선택된 organization의 활동량과 분포를 확인합니다."
+          title="활동량"
+          subtitle="선택한 조직의 활동량과 분포를 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Analytics"
         />
@@ -235,7 +235,7 @@ export default function ActivityPage() {
   return (
     <ConsoleFrame>
       <ConsoleHeader
-        title={`${data.organizationName} Activity`}
+        title={`${data.organizationName} 활동량`}
         subtitle="선택한 기간 안에서 얼마나 활발했는지, 어느 날과 시간대에 몰렸는지 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Activity"

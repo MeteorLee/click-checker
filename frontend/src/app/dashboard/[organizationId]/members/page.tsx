@@ -254,7 +254,7 @@ export default function MembersPage() {
       <ConsoleFrame>
         <ConsoleHeader
           title="멤버 관리"
-          subtitle="organization 멤버 목록을 불러오는 중입니다."
+          subtitle="조직 멤버 목록을 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Settings"
         />
@@ -272,7 +272,7 @@ export default function MembersPage() {
     return (
       <DashboardAccessState
         title="멤버 관리"
-        subtitle="organization 멤버와 역할을 확인합니다."
+        subtitle="조직 멤버와 역할을 확인합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Settings"
         status={errorStatus}
@@ -286,7 +286,7 @@ export default function MembersPage() {
       <ConsoleFrame>
         <ConsoleHeader
           title="멤버 관리"
-          subtitle="organization 멤버와 역할을 확인합니다."
+          subtitle="조직 멤버와 역할을 확인합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Settings"
         />
@@ -324,7 +324,7 @@ export default function MembersPage() {
                       멤버 초대
                     </Text>
                     <Text c="dimmed" size="sm">
-                      기존 계정의 loginId를 입력하면 별도 수락 없이 바로 membership이 생성됩니다.
+                      기존 계정의 loginId를 입력하면 별도 수락 없이 바로 멤버십이 생성됩니다.
                     </Text>
                   </div>
                 </Group>
@@ -333,7 +333,7 @@ export default function MembersPage() {
                     현재 역할: {data.currentRole ?? "UNKNOWN"}
                   </Badge>
                   <Badge color="dark" radius="xl" variant="light">
-                    {data.members.length} members
+                    멤버 {data.members.length}명
                   </Badge>
                 </Stack>
               </Group>

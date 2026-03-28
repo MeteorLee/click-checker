@@ -176,14 +176,14 @@ export default function ApiKeyPage() {
       <ConsoleFrame>
         <ConsoleHeader
           title="API Key 관리"
-          subtitle="수집용 API key 상태를 불러오는 중입니다."
+          subtitle="수집용 API Key 상태를 불러오는 중입니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Settings"
         />
         <Container size="lg" py={96}>
           <Stack align="center" gap="md">
             <Loader color="blue" />
-            <Text c="dimmed">API key 정보를 불러오는 중입니다.</Text>
+            <Text c="dimmed">API Key 정보를 불러오는 중입니다.</Text>
           </Stack>
         </Container>
       </ConsoleFrame>
@@ -194,7 +194,7 @@ export default function ApiKeyPage() {
     return (
       <DashboardAccessState
         title="API Key 관리"
-        subtitle="수집용 API key 상태를 확인하고 재발급합니다."
+        subtitle="수집용 API Key 상태를 확인하고 재발급합니다."
         backHref={`/dashboard/${params.organizationId}`}
         badge="Settings"
         status={errorStatus}
@@ -208,7 +208,7 @@ export default function ApiKeyPage() {
       <ConsoleFrame>
         <ConsoleHeader
           title="API Key 관리"
-          subtitle="수집용 API key 상태를 확인하고 재발급합니다."
+          subtitle="수집용 API Key 상태를 확인하고 재발급합니다."
           backHref={`/dashboard/${params.organizationId}`}
           badge="Settings"
         />
@@ -239,7 +239,7 @@ export default function ApiKeyPage() {
               <Text component="span" fw={700} inherit>
                 {rotatedApiKey.organizationName}
               </Text>
-              의 새 수집용 API key입니다. 전체 키는 지금 한 번만 확인할 수 있습니다.
+              의 새 수집용 API Key입니다. 전체 키는 지금 한 번만 확인할 수 있습니다.
             </Text>
 
             <Paper radius="24px" p="lg" withBorder bg="gray.0">
@@ -298,7 +298,7 @@ export default function ApiKeyPage() {
 
       <ConsoleHeader
         title="API Key 관리"
-        subtitle={`${data.organizationName}의 수집용 API key 상태를 확인하고 새 키로 재발급합니다.`}
+        subtitle={`${data.organizationName}의 수집용 API Key 상태를 확인하고 새 키로 재발급합니다.`}
         backHref={`/dashboard/${params.organizationId}`}
         badge="Settings"
       />

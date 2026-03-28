@@ -31,33 +31,33 @@ import { useEffect, useState } from "react";
 
 const productHighlights = [
   {
-    title: "Overview에서 상세 분석까지",
+    title: "개요부터 상세 분석까지",
     description:
-      "overview를 시작으로 routes, event types, trends, users, activity, retention, funnel까지 같은 흐름으로 이어집니다.",
+      "개요를 시작으로 경로, 이벤트, 추이, 사용자, 활동량, 유지율, 퍼널 분석까지 같은 흐름으로 이어집니다.",
     icon: IconChartBarPopular,
     color: "blue",
   },
   {
-    title: "수집 규칙과 API key 운영",
+    title: "수집 규칙과 API Key 운영",
     description:
-      "route 규칙, canonical event type 규칙, API key rotate를 관리자 콘솔 안에서 함께 관리합니다.",
+      "경로 규칙, 이벤트 규칙, API Key 재발급을 관리자 콘솔 안에서 함께 관리합니다.",
     icon: IconKey,
     color: "teal",
   },
   {
     title: "조직 단위 운영 관리",
     description:
-      "organization 생성, membership 기반 삭제, 멤버 권한 관리까지 조직 단위로 분리해 다룹니다.",
+      "조직 생성, 멤버십 기반 삭제, 멤버 권한 관리까지 조직 단위로 분리해 다룹니다.",
     icon: IconUsersGroup,
     color: "indigo",
   },
 ] as const;
 
 const featurePills = [
-  "JWT Admin Console",
-  "Organization Analytics",
-  "Retention & Funnel",
-  "Route / Event Type Rules",
+  "JWT 관리자 콘솔",
+  "조직별 분석",
+  "유지율 · 퍼널",
+  "경로 · 이벤트 규칙",
 ] as const;
 
 export default function Home() {
@@ -116,8 +116,8 @@ export default function Home() {
                       제품 분석을 한 콘솔에서 관리합니다.
                     </Title>
                     <Text c="dimmed" maw={680} size="lg">
-                      로그인 후 organization을 선택하거나 새로 만들고, overview부터 상세 분석,
-                      규칙 관리, 멤버 운영까지 이어서 확인할 수 있는 관리자 콘솔입니다.
+                      로그인 후 조직을 선택하거나 새로 만들고, 개요부터 상세 분석, 규칙 관리,
+                      멤버 운영까지 이어서 확인할 수 있는 관리자 콘솔입니다.
                     </Text>
                   </Stack>
 
@@ -155,7 +155,7 @@ export default function Home() {
                         7+
                       </Text>
                       <Text c="dimmed" size="sm">
-                        overview에서 routes, trends, retention, funnel까지 확장됩니다.
+                        개요 화면에서 상세 분석으로 자연스럽게 확장됩니다.
                       </Text>
                     </Stack>
                   </Paper>
@@ -168,7 +168,7 @@ export default function Home() {
                         4
                       </Text>
                       <Text c="dimmed" size="sm">
-                        API key, route 규칙, event type 규칙, 멤버 관리가 함께 제공됩니다.
+                        API Key, 경로 규칙, 이벤트 규칙, 멤버 관리가 함께 제공됩니다.
                       </Text>
                     </Stack>
                   </Paper>
@@ -181,7 +181,7 @@ export default function Home() {
                         JWT
                       </Text>
                       <Text c="dimmed" size="sm">
-                        브라우저는 JWT만 사용하고 organization membership으로 접근 범위를 검증합니다.
+                        브라우저는 JWT만 사용하고 조직 멤버십으로 접근 범위를 검증합니다.
                       </Text>
                     </Stack>
                   </Paper>
