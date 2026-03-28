@@ -49,7 +49,7 @@ const productHighlights = [
     description:
       "조직 생성, 멤버십 기반 삭제, 멤버 권한 관리까지 조직 단위로 분리해 다룹니다.",
     icon: IconUsersGroup,
-    color: "indigo",
+    color: "orange",
   },
 ] as const;
 
@@ -123,7 +123,7 @@ export default function Home() {
 
                   <Group gap="sm">
                     {featurePills.map((pill) => (
-                      <Badge key={pill} color="dark" radius="xl" size="lg" variant="dot">
+                      <Badge key={pill} color="gray" radius="xl" size="lg" variant="dot">
                         {pill}
                       </Badge>
                     ))}

@@ -45,7 +45,7 @@ export default function NotFound() {
               >
                 Organization 선택으로 이동
               </Button>
-              <Button component={Link} href="/login" radius="xl" size="md" variant="light">
+              <Button component={Link} href="/login" radius="xl" size="md" variant="light" color="gray">
                 로그인 화면
               </Button>
             </Group>

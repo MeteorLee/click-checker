@@ -516,7 +516,7 @@ export default function OrganizationsPage() {
               </Paper>
             </SimpleGrid>
 
-            <Alert color="yellow" radius="lg" variant="light">
+            <Alert color="orange" radius="lg" variant="light">
               이후에는 전체 API key를 다시 조회할 수 없고, prefix 확인과 rotate만 사용할 수 있습니다.
             </Alert>
 
@@ -565,7 +565,7 @@ export default function OrganizationsPage() {
                 현재 계정의 멤버십 기준으로 접근 가능한 조직만 표시합니다.
               </Text>
             </Stack>
-            <Badge color="dark" radius="xl" size="lg" variant="light">
+            <Badge color="gray" radius="xl" size="lg" variant="light">
               {data.memberships.length}개 조직
             </Badge>
           </Group>
