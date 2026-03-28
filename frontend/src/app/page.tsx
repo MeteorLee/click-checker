@@ -142,6 +142,9 @@ export default function Home() {
                     <Button component={Link} href="/signup" radius="xl" size="lg" variant="light">
                       계정 만들기
                     </Button>
+                    <Button component={Link} href="/guide" radius="xl" size="lg" variant="subtle">
+                      서비스 소개
+                    </Button>
                   </Group>
                 </Stack>
 
@@ -272,6 +275,15 @@ export default function Home() {
                         지금 화면은 랜딩페이지보다 관리자 콘솔 입구에 가깝게 설계되어 있습니다.
                       </Text>
                     </Group>
+                    <Button
+                      component={Link}
+                      href="/guide"
+                      radius="xl"
+                      rightSection={<IconArrowRight size={16} />}
+                      variant="white"
+                    >
+                      서비스 소개 보기
+                    </Button>
                   </Stack>
                 </Paper>
               </Stack>

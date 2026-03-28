@@ -1,26 +1,13 @@
 "use client";
 
+import { Badge, Group, Paper, Stack, Text, UnstyledButton } from "@mantine/core";
 import {
-  Badge,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  UnstyledButton,
-} from "@mantine/core";
-import {
-  IconActivity,
   IconBook2,
-  IconAdjustments,
   IconChartBar,
-  IconChartLine,
-  IconFilterBolt,
-  IconGitBranch,
   IconKey,
   IconRoute2,
+  IconSparkles,
   IconTags,
-  IconUsers,
-  IconUsersGroup,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,101 +24,57 @@ type NavSection = {
   items: NavItem[];
 };
 
-function isActivePath(pathname: string, href: string) {
-  if (href === pathname) {
-    return true;
-  }
+const guideSections: NavSection[] = [
+  {
+    title: "시작하기",
+    items: [
+      {
+        label: "소개",
+        href: "/guide",
+        icon: IconBook2,
+      },
+      {
+        label: "빠른 시작",
+        href: "/quick-start",
+        icon: IconSparkles,
+      },
+      {
+        label: "API Key",
+        href: "/api-key-guide",
+        icon: IconKey,
+      },
+    ],
+  },
+  {
+    title: "제품 API",
+    items: [
+      {
+        label: "이벤트 전송",
+        href: "/send-events",
+        icon: IconRoute2,
+      },
+      {
+        label: "데이터 정규화",
+        href: "/data-mapping",
+        icon: IconTags,
+      },
+      {
+        label: "집계 API",
+        href: "/analytics-api",
+        icon: IconChartBar,
+      },
+    ],
+  },
+] as const;
 
-  const hrefSegments = href.split("/").filter(Boolean);
-  if (hrefSegments.length === 2) {
-    return false;
-  }
+const guidePaths = new Set(guideSections.flatMap((section) => section.items.map((item) => item.href)));
 
-  return href !== "/dashboard" && pathname.startsWith(`${href}/`);
-}
-
-export function DashboardNavigation() {
+export function GuideNavigation() {
   const pathname = usePathname();
-  const segments = pathname.split("/").filter(Boolean);
 
-  if (segments[0] !== "dashboard" || !segments[1]) {
+  if (!guidePaths.has(pathname)) {
     return null;
   }
-
-  const organizationId = segments[1];
-
-  const sections: NavSection[] = [
-    {
-      title: "분석",
-      items: [
-        {
-          label: "개요",
-          href: `/dashboard/${organizationId}`,
-          icon: IconChartBar,
-        },
-        {
-          label: "추이",
-          href: `/dashboard/${organizationId}/trends`,
-          icon: IconChartLine,
-        },
-        {
-          label: "사용자 현황",
-          href: `/dashboard/${organizationId}/users`,
-          icon: IconUsersGroup,
-        },
-        {
-          label: "활동량",
-          href: `/dashboard/${organizationId}/activity`,
-          icon: IconActivity,
-        },
-        {
-          label: "유지율",
-          href: `/dashboard/${organizationId}/retention`,
-          icon: IconGitBranch,
-        },
-        {
-          label: "퍼널 분석",
-          href: `/dashboard/${organizationId}/funnels`,
-          icon: IconFilterBolt,
-        },
-      ],
-    },
-    {
-      title: "설정",
-      items: [
-        {
-          label: "경로 규칙",
-          href: `/dashboard/${organizationId}/route-templates`,
-          icon: IconRoute2,
-        },
-        {
-          label: "이벤트 규칙",
-          href: `/dashboard/${organizationId}/event-type-mappings`,
-          icon: IconTags,
-        },
-        {
-          label: "API Key 관리",
-          href: `/dashboard/${organizationId}/api-key`,
-          icon: IconKey,
-        },
-        {
-          label: "멤버 관리",
-          href: `/dashboard/${organizationId}/members`,
-          icon: IconUsers,
-        },
-      ],
-    },
-    {
-      title: "가이드",
-      items: [
-        {
-          label: "서비스 소개",
-          href: "/guide",
-          icon: IconBook2,
-        },
-      ],
-    },
-  ];
 
   return (
     <aside className="dashboard-sidebar">
@@ -142,19 +85,19 @@ export function DashboardNavigation() {
               Click Checker
             </Text>
             <Text c="dimmed" size="sm">
-              관리자 콘솔
+              제품 API 가이드
             </Text>
           </Stack>
 
-          {sections.map((section) => (
-            <Stack key={section.title} gap="xs">
+          {guideSections.map((section, index) => (
+            <Stack gap="xs" key={section.title}>
               <Group justify="space-between" align="center">
                 <Text c="dimmed" fw={700} size="xs" tt="uppercase">
                   {section.title}
                 </Text>
-                {section.title === "설정" ? (
+                {index === 0 ? (
                   <Badge color="gray" radius="xl" size="sm" variant="light">
-                    조직 {organizationId}
+                    6 페이지
                   </Badge>
                 ) : null}
               </Group>
@@ -162,7 +105,7 @@ export function DashboardNavigation() {
               <Stack gap="sm">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const active = isActivePath(pathname, item.href);
+                  const active = pathname === item.href;
 
                   return (
                     <UnstyledButton

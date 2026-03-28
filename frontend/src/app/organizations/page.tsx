@@ -43,6 +43,7 @@ import {
   IconCopy,
   IconTrash,
 } from "@tabler/icons-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
@@ -604,6 +605,26 @@ export default function OrganizationsPage() {
                   {demoErrorMessage}
                 </Alert>
               ) : null}
+
+              <Paper radius="24px" p="lg" withBorder bg="blue.0">
+                <Group justify="space-between" align="center" gap="md">
+                  <Stack gap={4}>
+                    <Text fw={700}>사용 가이드 보기</Text>
+                    <Text c="dimmed" size="sm">
+                      서비스 소개, 빠른 시작, 이벤트 전송, 집계 API, 데이터 정규화 가이드를 여기서 바로 볼 수 있습니다.
+                    </Text>
+                  </Stack>
+                  <Button
+                    component={Link}
+                    href="/guide"
+                    radius="xl"
+                    rightSection={<IconArrowRight size={16} />}
+                    variant="white"
+                  >
+                    가이드 열기
+                  </Button>
+                </Group>
+              </Paper>
 
               <Paper radius="24px" p="lg" withBorder bg="gray.0">
                 <Group justify="space-between" align="center" gap="md">
