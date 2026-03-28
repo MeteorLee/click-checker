@@ -244,6 +244,21 @@ export default function ActivityPage() {
     [data],
   );
 
+  const dayOfWeekSummary = useMemo(() => {
+    if (dayOfWeekChartData.length === 0) {
+      return null;
+    }
+
+    const busiestDay = dayOfWeekChartData.reduce((max, item) =>
+      item.eventCount > max.eventCount ? item : max,
+    );
+    const quietestDay = dayOfWeekChartData.reduce((min, item) =>
+      item.eventCount < min.eventCount ? item : min,
+    );
+
+    return { busiestDay, quietestDay };
+  }, [dayOfWeekChartData]);
+
   if (isLoading) {
     return (
       <ConsoleFrame>
@@ -427,9 +442,9 @@ export default function ActivityPage() {
                     <Text fw={800} size="1.6rem">{formatNumber(data.activity.activeDays)}일</Text>
                   </Stack>
                 </Paper>
-                <Paper radius="24px" p="lg" bg="grape.0" className="console-soft-panel">
+                <Paper radius="24px" p="lg" bg="gray.0" className="console-soft-panel">
                   <Stack gap={4}>
-                    <Text fw={700} size="sm" c="grape.8">
+                    <Text fw={700} size="sm" c="dark.6">
                       가장 바빴던 날
                     </Text>
                     <Text fw={800} size="1.2rem">{formatDayLabel(data.activity.peakDayBucketStart)}</Text>
@@ -482,35 +497,21 @@ export default function ActivityPage() {
                             ? `${formatNumber(data.activity.weekdaySummary.eventCount)}`
                             : formatAverage(data.activity.weekdaySummary.averageEventsPerDay)}
                         </Text>
-                        <Text c="dimmed" size="sm">
+                        <Text c="dark.6" fw={700} size="sm">
                           {dayTypeMetric === "total"
                             ? `고유 사용자 ${formatNumber(data.activity.weekdaySummary.uniqueUserCount)}명`
                             : `일평균 고유 사용자 ${formatAverage(data.activity.weekdaySummary.averageUniqueUsersPerDay)}명`}
                         </Text>
                       </Stack>
-                      <Group gap="xs" wrap="wrap">
-                        <Badge color="gray" radius="xl" variant="light">
-                          총 이벤트 {formatNumber(data.activity.weekdaySummary.eventCount)}
-                        </Badge>
-                        <Badge color="gray" radius="xl" variant="light">
-                          고유 사용자 {formatNumber(data.activity.weekdaySummary.uniqueUserCount)}명
-                        </Badge>
-                        <Badge color="gray" radius="xl" variant="light">
-                          일평균 이벤트 {formatAverage(data.activity.weekdaySummary.averageEventsPerDay)}
-                        </Badge>
-                        <Badge color="gray" radius="xl" variant="light">
-                          일평균 고유 사용자 {formatAverage(data.activity.weekdaySummary.averageUniqueUsersPerDay)}
-                        </Badge>
-                      </Group>
                     </Stack>
                   </Paper>
-                  <Paper radius="22px" p="lg" bg="pink.0" className="console-soft-panel">
+                  <Paper radius="22px" p="lg" bg="teal.0" className="console-soft-panel">
                     <Stack gap="sm">
                       <Group justify="space-between" align="center">
-                        <Text fw={700} size="sm" c="pink.8">
+                        <Text fw={700} size="sm" c="teal.8">
                           주말
                         </Text>
-                        <Badge color="pink" radius="xl" variant="light">
+                        <Badge color="teal" radius="xl" variant="light">
                           {dayTypeMetric === "total" ? "총량 기준" : "일평균 기준"}
                         </Badge>
                       </Group>
@@ -523,26 +524,12 @@ export default function ActivityPage() {
                             ? `${formatNumber(data.activity.weekendSummary.eventCount)}`
                             : formatAverage(data.activity.weekendSummary.averageEventsPerDay)}
                         </Text>
-                        <Text c="dimmed" size="sm">
+                        <Text c="dark.6" fw={700} size="sm">
                           {dayTypeMetric === "total"
                             ? `고유 사용자 ${formatNumber(data.activity.weekendSummary.uniqueUserCount)}명`
                             : `일평균 고유 사용자 ${formatAverage(data.activity.weekendSummary.averageUniqueUsersPerDay)}명`}
                         </Text>
                       </Stack>
-                      <Group gap="xs" wrap="wrap">
-                        <Badge color="gray" radius="xl" variant="light">
-                          총 이벤트 {formatNumber(data.activity.weekendSummary.eventCount)}
-                        </Badge>
-                        <Badge color="gray" radius="xl" variant="light">
-                          고유 사용자 {formatNumber(data.activity.weekendSummary.uniqueUserCount)}명
-                        </Badge>
-                        <Badge color="gray" radius="xl" variant="light">
-                          일평균 이벤트 {formatAverage(data.activity.weekendSummary.averageEventsPerDay)}
-                        </Badge>
-                        <Badge color="gray" radius="xl" variant="light">
-                          일평균 고유 사용자 {formatAverage(data.activity.weekendSummary.averageUniqueUsersPerDay)}
-                        </Badge>
-                      </Group>
                     </Stack>
                   </Paper>
                 </SimpleGrid>
@@ -583,6 +570,37 @@ export default function ActivityPage() {
                     어느 요일에 활동이 몰리는지 이벤트 수와 고유 사용자 수를 함께 보여줍니다.
                   </Text>
                 </div>
+
+                {dayOfWeekSummary ? (
+                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                    <Paper radius="20px" p="md" bg="orange.0" className="console-soft-panel">
+                      <Stack gap={2}>
+                        <Text fw={700} size="sm" c="orange.8">
+                          가장 활발한 요일
+                        </Text>
+                        <Text fw={800} size="1.2rem">
+                          {dayOfWeekSummary.busiestDay.label}
+                        </Text>
+                        <Text c="dimmed" size="sm">
+                          {formatNumber(dayOfWeekSummary.busiestDay.eventCount)} events
+                        </Text>
+                      </Stack>
+                    </Paper>
+                    <Paper radius="20px" p="md" bg="gray.0" className="console-soft-panel">
+                      <Stack gap={2}>
+                        <Text fw={700} size="sm" c="gray.8">
+                          가장 조용한 요일
+                        </Text>
+                        <Text fw={800} size="1.2rem">
+                          {dayOfWeekSummary.quietestDay.label}
+                        </Text>
+                        <Text c="dimmed" size="sm">
+                          {formatNumber(dayOfWeekSummary.quietestDay.eventCount)} events
+                        </Text>
+                      </Stack>
+                    </Paper>
+                  </SimpleGrid>
+                ) : null}
 
                 <div style={{ width: "100%", height: 320 }}>
                   <ResponsiveContainer>
@@ -671,7 +689,7 @@ export default function ActivityPage() {
                         type="monotone"
                         dataKey="weekendEvents"
                         name="주말 이벤트"
-                        stroke="var(--mantine-color-pink-6)"
+                        stroke="var(--mantine-color-teal-6)"
                         strokeWidth={3}
                         dot={false}
                       />
