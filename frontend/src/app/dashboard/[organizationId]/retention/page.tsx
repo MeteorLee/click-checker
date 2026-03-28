@@ -34,7 +34,7 @@ import { IconAlertCircle, IconCheck, IconRepeat } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-type RangePreset = "7d" | "30d" | "custom";
+type RangePreset = "1d" | "7d" | "14d" | "custom";
 
 type AppliedRange = {
   from: string;
@@ -68,11 +68,11 @@ export default function RetentionPage() {
   const [data, setData] = useState<RetentionPageState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRange, setSelectedRange] = useState<RangePreset>("30d");
+  const [selectedRange, setSelectedRange] = useState<RangePreset>("14d");
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 7, 30]);
-  const [appliedRange, setAppliedRange] = useState<AppliedRange>(getOverviewRange(30));
-  const [customFrom, setCustomFrom] = useState<string>(getOverviewRange(30).displayFrom);
-  const [customTo, setCustomTo] = useState<string>(getOverviewRange(30).displayTo);
+  const [appliedRange, setAppliedRange] = useState<AppliedRange>(getOverviewRange(14));
+  const [customFrom, setCustomFrom] = useState<string>(getOverviewRange(14).displayFrom);
+  const [customTo, setCustomTo] = useState<string>(getOverviewRange(14).displayTo);
   const [rangeValidationMessage, setRangeValidationMessage] = useState<string | null>(null);
   const [isRangePopoverOpened, setIsRangePopoverOpened] = useState(false);
 
@@ -81,8 +81,9 @@ export default function RetentionPage() {
   }
 
   function resolveRangeDays(rangePreset: RangePreset) {
+    if (rangePreset === "1d") return 1;
     if (rangePreset === "7d") return 7;
-    return 30;
+    return 14;
   }
 
   function toggleDay(day: number) {
@@ -286,9 +287,11 @@ export default function RetentionPage() {
                       >
                         {selectedRange === "custom"
                           ? `${data.range.displayFrom} ~ ${data.range.displayTo} · ${getRangeLengthDays(data.range)}일`
+                          : selectedRange === "1d"
+                            ? "1일"
                           : selectedRange === "7d"
                             ? "최근 7일"
-                            : "최근 30일"}
+                            : "최근 14일"}
                       </Button>
                     </Popover.Target>
                     <Popover.Dropdown>
@@ -302,11 +305,12 @@ export default function RetentionPage() {
                         </div>
                         <SegmentedControl
                           data={[
+                            { label: "1일", value: "1d" },
                             { label: "7일", value: "7d" },
-                            { label: "30일", value: "30d" },
+                            { label: "14일", value: "14d" },
                           ]}
                           radius="xl"
-                          value={selectedRange === "custom" ? "30d" : selectedRange}
+                          value={selectedRange === "custom" ? "14d" : selectedRange}
                           onChange={(value) => setSelectedRange(value as RangePreset)}
                         />
                         {rangeValidationMessage ? (

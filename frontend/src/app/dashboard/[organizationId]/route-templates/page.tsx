@@ -17,6 +17,7 @@ import type {
   RouteTemplateUpdateRequest,
 } from "@/types/rules";
 import {
+  ActionIcon,
   Alert,
   Badge,
   Button,
@@ -30,9 +31,10 @@ import {
   Table,
   Text,
   TextInput,
+  Tooltip,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle, IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconAlertCircle, IconEdit, IconInfoCircle, IconPlus, IconTrash } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -53,6 +55,31 @@ const EMPTY_FORM: RouteTemplateFormState = {
   routeKey: "",
   priority: "100",
 };
+
+function PriorityLabel() {
+  return (
+    <Group gap={6} wrap="nowrap">
+      <span>Priority</span>
+      <Tooltip
+        multiline
+        radius="md"
+        w={320}
+        withArrow
+        label="값이 클수록 먼저 매칭합니다. 다만 priority는 /account/profile 과 /account/{section}처럼 둘 다 맞을 수 있는 규칙에서만 의미가 있습니다. 예: /account/{section}=100, /account/profile=110"
+      >
+        <ActionIcon aria-label="Priority 설명" color="gray" radius="xl" size="sm" variant="subtle">
+          <IconInfoCircle size={16} />
+        </ActionIcon>
+      </Tooltip>
+    </Group>
+  );
+}
+
+function sortRouteTemplates(items: RouteTemplateItem[]) {
+  return [...items].sort(
+    (a, b) => a.template.localeCompare(b.template, "en", { sensitivity: "base" }) || a.id - b.id,
+  );
+}
 
 export default function RouteTemplatesPage() {
   const router = useRouter();
@@ -91,7 +118,7 @@ export default function RouteTemplatesPage() {
         setData({
           organizationName: currentMembership?.organizationName ?? `Organization ${params.organizationId}`,
           role: currentMembership?.role ?? null,
-          items: response.items,
+          items: sortRouteTemplates(response.items),
         });
       } catch (error) {
         const status = "status" in (error as object) ? (error as { status?: number }).status : undefined;
@@ -139,7 +166,7 @@ export default function RouteTemplatesPage() {
       const created = await createRouteTemplate(accessToken, params.organizationId, parseForm(createForm));
       setData({
         ...data,
-        items: [created, ...data.items].sort((a, b) => b.priority - a.priority || a.id - b.id),
+        items: sortRouteTemplates([created, ...data.items]),
       });
       setCreateForm(EMPTY_FORM);
     } catch (error) {
@@ -164,9 +191,7 @@ export default function RouteTemplatesPage() {
       );
       setData({
         ...data,
-        items: data.items
-          .map((item) => (item.id === updated.id ? updated : item))
-          .sort((a, b) => b.priority - a.priority || a.id - b.id),
+        items: sortRouteTemplates(data.items.map((item) => (item.id === updated.id ? updated : item))),
       });
       setIsEditOpened(false);
       setEditingItem(null);
@@ -275,8 +300,8 @@ export default function RouteTemplatesPage() {
             onChange={(event) => setEditForm((current) => ({ ...current, routeKey: event.currentTarget.value }))}
           />
           <TextInput
-            description="값이 클수록 먼저 매칭합니다. 더 구체적인 규칙에 높은 우선순위를 두는 편이 안전합니다."
-            label="Priority"
+            description="겹치는 규칙이 있을 때만 조정하면 됩니다."
+            label={<PriorityLabel />}
             radius="xl"
             type="number"
             value={editForm.priority}
@@ -346,8 +371,8 @@ export default function RouteTemplatesPage() {
                     />
                     <TextInput
                       disabled={!canManage}
-                      description="값이 클수록 먼저 매칭합니다. 더 구체적인 규칙에 높은 우선순위를 두는 편이 안전합니다."
-                      label="Priority"
+                      description="겹치는 규칙이 있을 때만 조정하면 됩니다."
+                      label={<PriorityLabel />}
                       radius="xl"
                       type="number"
                       value={createForm.priority}

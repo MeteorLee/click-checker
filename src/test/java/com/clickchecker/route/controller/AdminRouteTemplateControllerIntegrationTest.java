@@ -89,7 +89,7 @@ class AdminRouteTemplateControllerIntegrationTest extends AnalyticsControllerInt
                 .andExpect(jsonPath("$.template").value("/pricing"))
                 .andExpect(jsonPath("$.active").value(true));
 
-        RouteTemplate saved = routeTemplateRepository.findByOrganizationIdOrderByPriorityDescIdAsc(organization.getId()).getFirst();
+        RouteTemplate saved = routeTemplateRepository.findByOrganizationIdOrderByTemplateAscIdAsc(organization.getId()).getFirst();
 
         String updateBody = """
                 {
