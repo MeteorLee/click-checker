@@ -12,6 +12,17 @@
   - 현재 포트폴리오 기준 주 경로는 `POST /api/v1/admin/organizations`이며, 공개 경로는 레거시로 취급한다.
   - 관리자 콘솔 경로(`/api/v1/admin/**`)는 API Key가 아니라 JWT 전용 SecurityFilterChain에서 처리한다.
 
+## 현재 제품 API 범위
+- 이벤트 적재:
+  - `POST /api/events`
+- 제품 조회 API:
+  - `GET /api/v1/events/analytics/aggregates/overview`
+  - `GET /api/v1/events/analytics/activity`
+  - `GET /api/v1/events/analytics/users/overview`
+  - `GET /api/v1/events/analytics/retention/daily`
+  - `GET /api/v1/events/analytics/retention/matrix`
+  - `POST /api/v1/events/analytics/funnels/report`
+
 ## 인증 방식
 - 헤더: `X-API-Key`
 - 검증 흐름:
@@ -30,6 +41,11 @@
 ## 응답 정책
 - 키 누락/무효: `401 Unauthorized`
 - 2단계 MVP에서는 `401` 응답 바디를 고정하지 않는다(후속 정리)
+
+## 운영 진입점 메모
+- 브라우저/외부 클라이언트는 `https://clickchecker.dev` 기준으로 제품 API를 호출한다.
+- public entrypoint는 same-origin을 유지하지만, 서버 내부에서는 여전히 `Origin`/CORS 설정을 별도로 관리한다.
+- 현재 운영 허용 origin에는 `https://clickchecker.dev`와 로컬 확인용 `http://localhost:3001`, `http://localhost:18080` 등이 포함된다.
 
 ## 데이터 저장 정책
 - API Key 평문은 DB에 저장하지 않는다.

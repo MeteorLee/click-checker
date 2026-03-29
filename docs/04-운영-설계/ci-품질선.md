@@ -8,6 +8,7 @@
 - GitHub Actions는 `ci-develop.yml`, `ci-main.yml` 2개 워크플로로 분리되어 있다.
 - `ci-develop.yml`은 `./gradlew test`를 실행한다.
 - `ci-main.yml`은 `./gradlew test` 이후 `./gradlew postgresTest`를 실행한다.
+- frontend 변경 시 로컬/수동 검증 기준으로 `frontend/npm run build`를 함께 본다.
 - 테스트 실패 시 해당 워크플로우는 실패로 처리한다.
 - 로컬/수동 회귀 기준은 `./gradlew test` + `./gradlew postgresTest` 2개를 기본으로 한다.
 
@@ -41,6 +42,7 @@
 - 핵심 시나리오 테스트가 CI에서 상시 통과한다.
 - PostgreSQL 전용 리스크를 다루는 최소 검증 경로가 1개 이상 존재한다.
 - API Key 인증 경계(누락/무효 `401`)가 회귀 테스트로 고정되어 있다.
+- frontend 빌드가 운영 배포 가능한 상태로 유지된다.
 
 ## 6.1 운영 알림 최소 기준 (초안)
 - 알림은 기본적으로 `prod` 환경에서만 활성화한다.
