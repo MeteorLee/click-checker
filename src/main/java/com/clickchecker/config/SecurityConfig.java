@@ -151,8 +151,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
+                "https://clickchecker.dev",
                 "http://localhost:3001",
-                "http://127.0.0.1:3001"
+                "http://127.0.0.1:3001",
+                "http://localhost:18080",
+                "http://127.0.0.1:18080"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
