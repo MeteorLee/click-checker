@@ -6,6 +6,7 @@ public final class ApiErrorMessages {
     public static final String FORBIDDEN = "Forbidden.";
     public static final String RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String ACCOUNT_NOT_FOUND = "Account not found.";
+    public static final String DUPLICATED_LOGIN_ID = "이미 사용 중인 로그인 ID입니다.";
     public static final String ORGANIZATION_NOT_FOUND = "Organization not found.";
     public static final String ORGANIZATION_MEMBER_NOT_FOUND = "Organization member not found.";
     public static final String ORGANIZATION_MEMBER_ALREADY_EXISTS = "Organization member already exists.";

@@ -5,6 +5,7 @@ import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.entity.RefreshToken;
 import com.clickchecker.auth.repository.RefreshTokenRepository;
 import com.clickchecker.auth.service.result.AdminTokenResult;
+import com.clickchecker.web.error.ApiErrorMessages;
 import java.time.Instant;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AdminAuthService {
 
-    private static final String DUPLICATED_LOGIN_ID_MESSAGE = "Duplicated loginId.";
     private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid credentials.";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid refresh token.";
 
@@ -33,7 +33,7 @@ public class AdminAuthService {
         String normalizedLoginId = normalizeLoginId(loginId);
 
         if (accountRepository.findByLoginId(normalizedLoginId).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, DUPLICATED_LOGIN_ID_MESSAGE);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, ApiErrorMessages.DUPLICATED_LOGIN_ID);
         }
 
         Account account = accountRepository.save(Account.builder()
