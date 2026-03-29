@@ -3,10 +3,11 @@ package com.clickchecker.analytics.funnel.controller;
 import com.clickchecker.analytics.funnel.controller.request.FunnelReportRequest;
 import com.clickchecker.analytics.funnel.controller.response.FunnelReportResponse;
 import com.clickchecker.analytics.funnel.service.FunnelAnalyticsService;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,9 +25,10 @@ public class FunnelAnalyticsController {
 
     @PostMapping("/report")
     public FunnelReportResponse report(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestBody @Valid FunnelReportRequest request
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(request.from(), request.to());
 
         return funnelAnalyticsService.report(

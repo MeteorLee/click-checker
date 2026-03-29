@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -34,13 +35,15 @@ public class UserAnalyticsService {
         );
 
         long identifiedUsers = identifiedUserEvents.size();
-        long totalEvents = identifiedUserEvents.stream()
+        long identifiedEvents = identifiedUserEvents.stream()
                 .mapToLong(IdentifiedUserEventCountProjection::eventCount)
                 .sum();
+        long totalEvents = eventQueryRepository.countBetween(from, to, organizationId, externalUserId, null);
+        long anonymousEvents = totalEvents - identifiedEvents;
 
         Double avgEventsPerIdentifiedUser = identifiedUsers == 0
                 ? null
-                : totalEvents / (double) identifiedUsers;
+                : identifiedEvents / (double) identifiedUsers;
 
         Map<Long, Instant> firstSeenByUserId = eventQueryRepository.findIdentifiedUserFirstSeen(
                         organizationId,
@@ -52,23 +55,38 @@ public class UserAnalyticsService {
                         (left, right) -> left
                 ));
 
-        long newUsers = identifiedUserEvents.stream()
-                .map(IdentifiedUserEventCountProjection::eventUserId)
-                .map(firstSeenByUserId::get)
-                .filter(firstSeen -> firstSeen != null && !firstSeen.isBefore(from) && firstSeen.isBefore(to))
-                .count();
+        List<IdentifiedUserEventCountProjection> newUserEventCounts = identifiedUserEvents.stream()
+                .filter(userEvent ->
+                        isNewUser(firstSeenByUserId.get(userEvent.eventUserId()), from, to)
+                )
+                .toList();
+
+        long newUsers = newUserEventCounts.size();
 
         long returningUsers = identifiedUsers - newUsers;
+        long newUserEvents = newUserEventCounts.stream()
+                .mapToLong(IdentifiedUserEventCountProjection::eventCount)
+                .sum();
+        long returningUserEvents = identifiedEvents - newUserEvents;
 
         return new UserAnalyticsOverviewResponse(
                 organizationId,
                 externalUserId,
                 from,
                 to,
+                totalEvents,
+                identifiedEvents,
+                anonymousEvents,
                 identifiedUsers,
                 newUsers,
                 returningUsers,
+                newUserEvents,
+                returningUserEvents,
                 avgEventsPerIdentifiedUser
         );
+    }
+
+    private boolean isNewUser(Instant firstSeen, Instant from, Instant to) {
+        return firstSeen != null && !firstSeen.isBefore(from) && firstSeen.isBefore(to);
     }
 }

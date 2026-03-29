@@ -51,27 +51,24 @@ public class TrendAnalyticsService {
             String timezone
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
+        Optional<Instant> processedCreatedAt = findProcessedCreatedAt(organizationId);
 
-        if (canUseHourlyRollup(externalUserId, from, to, bucket, zoneId)) {
-            Optional<com.clickchecker.eventrollup.entity.EventRollupWatermark> watermark =
-                    eventRollupWatermarkRepository.findById(organizationId);
-            if (watermark.isPresent()) {
-                return fillMissingTimeBuckets(
-                        readTimeBucketsWithHourlyRollup(
-                                from,
-                                to,
-                                organizationId,
-                                eventType,
-                                bucket,
-                                zoneId,
-                                watermark.orElseThrow().getProcessedCreatedAt()
-                        ),
-                        from,
-                        to,
-                        bucket,
-                        zoneId
-                );
-            }
+        if (canUseHourlyRollup(externalUserId, from, to, bucket, zoneId) && processedCreatedAt.isPresent()) {
+            return fillMissingTimeBuckets(
+                    readTimeBucketsWithHourlyRollup(
+                            from,
+                            to,
+                            organizationId,
+                            eventType,
+                            bucket,
+                            zoneId,
+                            processedCreatedAt.orElseThrow()
+                    ),
+                    from,
+                    to,
+                    bucket,
+                    zoneId
+            );
         }
 
         return fillMissingTimeBuckets(
@@ -81,6 +78,33 @@ public class TrendAnalyticsService {
                         organizationId,
                         externalUserId,
                         eventType,
+                        bucket,
+                        timezone
+                ),
+                from,
+                to,
+                bucket,
+                zoneId
+        );
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public List<TimeBucketCountProjection> countUniqueUsersByTimeBucketBetween(
+            Instant from,
+            Instant to,
+            Long organizationId,
+            String externalUserId,
+            TimeBucket bucket,
+            String timezone
+    ) {
+        ZoneId zoneId = ZoneId.of(timezone);
+
+        return fillMissingTimeBuckets(
+                eventTrendNativeQueryRepository.countDistinctEventUsersBucketedOccurredAtBetween(
+                        from,
+                        to,
+                        organizationId,
+                        externalUserId,
                         bucket,
                         timezone
                 ),

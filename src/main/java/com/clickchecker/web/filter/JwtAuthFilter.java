@@ -4,6 +4,7 @@ import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.service.JwtTokenProvider;
 import com.clickchecker.logging.LogMaskingUtil;
+import com.clickchecker.security.principal.AdminPrincipal;
 import com.clickchecker.web.sentry.SentryRequestContextSupport;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -14,37 +15,24 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Component
 @RequiredArgsConstructor
-@Order(Ordered.HIGHEST_PRECEDENCE + 3)
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
-
-    public static final String AUTH_ACCOUNT_ID = "AUTH_ACCOUNT_ID";
 
     private final JwtTokenProvider jwtTokenProvider;
     private final AccountRepository accountRepository;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        boolean protectedPath = path != null && path.startsWith("/api/v1/admin");
-        boolean authPath = path != null
-                && (path.startsWith("/api/v1/admin/auth/signup")
-                || path.startsWith("/api/v1/admin/auth/login")
-                || path.startsWith("/api/v1/admin/auth/refresh")
-                || path.startsWith("/api/v1/admin/auth/logout"));
-        boolean optionsRequest = "OPTIONS".equalsIgnoreCase(request.getMethod());
-        boolean errorPath = "/error".equals(path);
-        return !protectedPath || authPath || optionsRequest || errorPath;
+        return "OPTIONS".equalsIgnoreCase(request.getMethod());
     }
 
     @Override
@@ -97,7 +85,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        request.setAttribute(AUTH_ACCOUNT_ID, account.getId());
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(
+                        new AdminPrincipal(account.getId(), account.getLoginId()),
+                        null,
+                        AuthorityUtils.NO_AUTHORITIES
+                )
+        );
         SentryRequestContextSupport.bindJwtAuthContext(account.getId());
         log.debug(
                 "jwt auth success: method={}, path={}, accountId={}, requestId={}",

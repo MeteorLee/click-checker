@@ -61,4 +61,17 @@ class ActivityAnalyticsControllerIntegrationTest extends AnalyticsControllerInte
                 .andExpect(jsonPath("$.topEventTypes[1].eventType").value("view"))
                 .andExpect(jsonPath("$.topEventTypes[1].count").value(1));
     }
+
+    @Test
+    void activity_returnsBadRequest_whenRangeExceedsNinetyDays() throws Exception {
+        Organization organization = saveOrganization("acme");
+        String apiKey = issueApiKey(organization);
+
+        mockMvc.perform(
+                        authorizedGet(apiKey, "/api/v1/events/analytics/activity")
+                                .param("from", "2026-01-01T00:00:00Z")
+                                .param("to", "2026-04-02T00:00:00Z")
+                )
+                .andExpect(status().isBadRequest());
+    }
 }

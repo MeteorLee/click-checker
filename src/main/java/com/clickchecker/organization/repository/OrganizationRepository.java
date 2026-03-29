@@ -13,6 +13,8 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
 
     Optional<Organization> findByApiKeyKidAndApiKeyStatus(String apiKeyKid, ApiKeyStatus status);
 
+    Optional<Organization> findByName(String name);
+
     @Query("select o.id from Organization o order by o.id asc")
     List<Long> findAllIds();
 }

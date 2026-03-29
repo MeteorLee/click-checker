@@ -2,9 +2,10 @@ package com.clickchecker.analytics.user.controller;
 
 import com.clickchecker.analytics.user.controller.response.UserAnalyticsOverviewResponse;
 import com.clickchecker.analytics.user.service.UserAnalyticsService;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,11 +23,12 @@ public class UserAnalyticsController {
 
     @GetMapping("/overview")
     public UserAnalyticsOverviewResponse overview(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
 
         return userAnalyticsService.getOverview(from, to, authOrgId, externalUserId);

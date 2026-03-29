@@ -9,7 +9,7 @@ public interface RouteTemplateRepository extends JpaRepository<RouteTemplate, Lo
 
     List<RouteTemplate> findByOrganizationIdAndActiveTrueOrderByPriorityDescIdAsc(Long organizationId);
 
-    List<RouteTemplate> findByOrganizationIdOrderByPriorityDescIdAsc(Long organizationId);
+    List<RouteTemplate> findByOrganizationIdOrderByTemplateAscIdAsc(Long organizationId);
 
     Optional<RouteTemplate> findByIdAndOrganizationId(Long id, Long organizationId);
 }

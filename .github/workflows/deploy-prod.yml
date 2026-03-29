@@ -51,23 +51,38 @@ jobs:
         run: |
           set -euo pipefail
 
-          IMAGE_TAG="${GITHUB_SHA}"
-          IMAGE_URI="${ECR_REPOSITORY_URI}:${IMAGE_TAG}"
-          IMAGE_LATEST_URI="${ECR_REPOSITORY_URI}:latest"
+          APP_IMAGE_TAG="${GITHUB_SHA}-app"
+          APP_IMAGE_URI="${ECR_REPOSITORY_URI}:${APP_IMAGE_TAG}"
+          APP_IMAGE_LATEST_URI="${ECR_REPOSITORY_URI}:app-latest"
+
+          FRONTEND_IMAGE_TAG="${GITHUB_SHA}-frontend"
+          FRONTEND_IMAGE_URI="${ECR_REPOSITORY_URI}:${FRONTEND_IMAGE_TAG}"
+          FRONTEND_IMAGE_LATEST_URI="${ECR_REPOSITORY_URI}:frontend-latest"
 
           docker build \
-            -t "${IMAGE_URI}" \
-            -t "${IMAGE_LATEST_URI}" \
+            -t "${APP_IMAGE_URI}" \
+            -t "${APP_IMAGE_LATEST_URI}" \
             .
 
-          docker push "${IMAGE_URI}"
-          docker push "${IMAGE_LATEST_URI}"
+          docker push "${APP_IMAGE_URI}"
+          docker push "${APP_IMAGE_LATEST_URI}"
+
+          docker build \
+            -f frontend/Dockerfile \
+            -t "${FRONTEND_IMAGE_URI}" \
+            -t "${FRONTEND_IMAGE_LATEST_URI}" \
+            ./frontend
+
+          docker push "${FRONTEND_IMAGE_URI}"
+          docker push "${FRONTEND_IMAGE_LATEST_URI}"
 
           mkdir -p deployment
           cat > deployment/image-detail.env <<EOF
-          APP_IMAGE=${IMAGE_URI}
-          APP_IMAGE_LATEST=${IMAGE_LATEST_URI}
-          IMAGE_TAG=${IMAGE_TAG}
+          APP_IMAGE=${APP_IMAGE_URI}
+          APP_IMAGE_LATEST=${APP_IMAGE_LATEST_URI}
+          FRONTEND_IMAGE=${FRONTEND_IMAGE_URI}
+          FRONTEND_IMAGE_LATEST=${FRONTEND_IMAGE_LATEST_URI}
+          IMAGE_TAG=${GITHUB_SHA}
           EOF
 
       - name: Create deployment bundle

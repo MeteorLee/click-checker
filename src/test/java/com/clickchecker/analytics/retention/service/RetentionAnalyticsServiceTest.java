@@ -21,7 +21,7 @@ class RetentionAnalyticsServiceTest {
             new RetentionAnalyticsService(eventQueryRepository);
 
     @Test
-    void getDailyRetention_groupsByTimezoneLocalDate_andCalculatesExactDayRetention() {
+    void getDailyRetention_groupsByTimezoneLocalDate_andCalculatesWithinDayRetention() {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-08T00:00:00Z");
 
@@ -65,8 +65,8 @@ class RetentionAnalyticsServiceTest {
         assertThat(result.items().get(0).day1RetentionRate()).isEqualTo(0.5);
         assertThat(result.items().get(0).day7Users()).isEqualTo(1);
         assertThat(result.items().get(0).day7RetentionRate()).isEqualTo(0.5);
-        assertThat(result.items().get(0).day30Users()).isEqualTo(1);
-        assertThat(result.items().get(0).day30RetentionRate()).isEqualTo(0.5);
+        assertThat(result.items().get(0).day30Users()).isEqualTo(2);
+        assertThat(result.items().get(0).day30RetentionRate()).isEqualTo(1.0);
 
         assertThat(result.items().get(1).cohortDate().toString()).isEqualTo("2026-03-02");
         assertThat(result.items().get(1).cohortUsers()).isEqualTo(1);

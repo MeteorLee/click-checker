@@ -6,8 +6,20 @@ APP_DOMAIN="clickchecker.dev"
 echo "[codedeploy:validate-service] checking public health"
 
 if ! curl --max-time 5 --resolve "${APP_DOMAIN}:443:127.0.0.1" -fsS \
+  "https://${APP_DOMAIN}/healthz" | grep -q '"status":"ok"'; then
+  echo "[codedeploy:validate-service] public frontend health check failed" >&2
+  exit 1
+fi
+
+if ! curl --max-time 5 --resolve "${APP_DOMAIN}:443:127.0.0.1" -fsS \
   "https://${APP_DOMAIN}/actuator/health" | grep -q '"status":"UP"'; then
   echo "[codedeploy:validate-service] public health check failed" >&2
+  exit 1
+fi
+
+if ! curl --max-time 5 --resolve "${APP_DOMAIN}:443:127.0.0.1" -fsS \
+  "https://${APP_DOMAIN}/actuator/health/readiness" | grep -q '"status":"UP"'; then
+  echo "[codedeploy:validate-service] public readiness check failed" >&2
   exit 1
 fi
 

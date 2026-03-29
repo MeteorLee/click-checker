@@ -91,9 +91,9 @@ public class RetentionAnalyticsService {
             Map<Long, Set<LocalDate>> activeDatesByUserId
     ) {
         long cohortUsers = cohortUserIds.size();
-        long day1Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(1));
-        long day7Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(7));
-        long day30Users = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(30));
+        long day1Users = retainedUsersWithinDays(cohortUserIds, activeDatesByUserId, cohortDate, 1);
+        long day7Users = retainedUsersWithinDays(cohortUserIds, activeDatesByUserId, cohortDate, 7);
+        long day30Users = retainedUsersWithinDays(cohortUserIds, activeDatesByUserId, cohortDate, 30);
 
         return new DailyRetentionItem(
                 cohortDate,
@@ -116,7 +116,7 @@ public class RetentionAnalyticsService {
         long cohortUsers = cohortUserIds.size();
         List<RetentionMatrixValue> values = days.stream()
                 .map(day -> {
-                    long retainedUsers = retainedUsers(cohortUserIds, activeDatesByUserId, cohortDate.plusDays(day));
+                    long retainedUsers = retainedUsersWithinDays(cohortUserIds, activeDatesByUserId, cohortDate, day);
                     return new RetentionMatrixValue(
                             day,
                             retainedUsers,
@@ -176,13 +176,18 @@ public class RetentionAnalyticsService {
         return new RetentionContext(activeDatesByUserId, cohortUserIdsByDate);
     }
 
-    private long retainedUsers(
+    private long retainedUsersWithinDays(
             List<Long> cohortUserIds,
             Map<Long, Set<LocalDate>> activeDatesByUserId,
-            LocalDate targetDate
+            LocalDate cohortDate,
+            int day
     ) {
+        LocalDate startDate = cohortDate.plusDays(1);
+        LocalDate endDate = cohortDate.plusDays(day);
+
         return cohortUserIds.stream()
-                .filter(userId -> activeDatesByUserId.getOrDefault(userId, Set.of()).contains(targetDate))
+                .filter(userId -> activeDatesByUserId.getOrDefault(userId, Set.of()).stream()
+                        .anyMatch(activeDate -> !activeDate.isBefore(startDate) && !activeDate.isAfter(endDate)))
                 .count();
     }
 

@@ -3,6 +3,8 @@ set -euo pipefail
 
 APP_DIR="/home/ubuntu/click-checker"
 DEPLOY_SCRIPT="$APP_DIR/scripts/deploy/deploy-prod-orchestrator.sh"
+FRONTEND_DEPLOY_SCRIPT="$APP_DIR/scripts/deploy/deploy-frontend.sh"
+APPLY_NGINX_SCRIPT="$APP_DIR/scripts/deploy/apply-public-nginx-config.sh"
 DEPLOY_ENV_FILE="$APP_DIR/.env.codedeploy"
 
 require_file() {
@@ -34,6 +36,16 @@ if [ ! -x "$DEPLOY_SCRIPT" ]; then
   exit 1
 fi
 
+if [ ! -x "$FRONTEND_DEPLOY_SCRIPT" ]; then
+  echo "[codedeploy:application-start] frontend deploy script is not executable: $FRONTEND_DEPLOY_SCRIPT" >&2
+  exit 1
+fi
+
+if [ ! -x "$APPLY_NGINX_SCRIPT" ]; then
+  echo "[codedeploy:application-start] nginx apply script is not executable: $APPLY_NGINX_SCRIPT" >&2
+  exit 1
+fi
+
 set -a
 # shellcheck disable=SC1090
 source "$DEPLOY_ENV_FILE"
@@ -41,6 +53,11 @@ set +a
 
 if [ -z "${APP_IMAGE:-}" ]; then
   echo "[codedeploy:application-start] APP_IMAGE is empty" >&2
+  exit 1
+fi
+
+if [ -z "${FRONTEND_IMAGE:-}" ]; then
+  echo "[codedeploy:application-start] FRONTEND_IMAGE is empty" >&2
   exit 1
 fi
 
@@ -52,6 +69,11 @@ aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS
 echo "[codedeploy:application-start] pulling image $APP_IMAGE"
 docker pull "$APP_IMAGE"
 
+echo "[codedeploy:application-start] pulling image $FRONTEND_IMAGE"
+docker pull "$FRONTEND_IMAGE"
+
 "$DEPLOY_SCRIPT"
+"$FRONTEND_DEPLOY_SCRIPT"
+"$APPLY_NGINX_SCRIPT"
 
 echo "[codedeploy:application-start] completed"

@@ -5,12 +5,13 @@ import com.clickchecker.route.controller.request.RouteTemplateActiveUpdateReques
 import com.clickchecker.route.controller.request.RouteTemplateUpdateRequest;
 import com.clickchecker.route.controller.response.RouteTemplateListResponse;
 import com.clickchecker.route.entity.RouteTemplate;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import com.clickchecker.route.service.RouteTemplateService;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,15 +29,17 @@ public class RouteTemplateController {
     private final RouteTemplateService routeTemplateService;
 
     @GetMapping
-    public RouteTemplateListResponse getAll(@CurrentOrganizationId Long authOrgId) {
+    public RouteTemplateListResponse getAll(@AuthenticationPrincipal ApiKeyPrincipal principal) {
+        Long authOrgId = principal.organizationId();
         return new RouteTemplateListResponse(routeTemplateService.getAll(authOrgId));
     }
 
     @PostMapping
     public ResponseEntity<CreateResponse> create(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestBody @Valid RouteTemplateCreateRequest request
     ) {
+        Long authOrgId = principal.organizationId();
         RouteTemplate routeTemplate = routeTemplateService.create(authOrgId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -51,10 +54,11 @@ public class RouteTemplateController {
 
     @PutMapping("/{routeTemplateId}")
     public CreateResponse update(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @PathVariable Long routeTemplateId,
             @RequestBody @Valid RouteTemplateUpdateRequest request
     ) {
+        Long authOrgId = principal.organizationId();
         RouteTemplate routeTemplate = routeTemplateService.update(authOrgId, routeTemplateId, request);
 
         return new CreateResponse(
@@ -68,10 +72,11 @@ public class RouteTemplateController {
 
     @PutMapping("/{routeTemplateId}/active")
     public CreateResponse updateActive(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @PathVariable Long routeTemplateId,
             @RequestBody @Valid RouteTemplateActiveUpdateRequest request
     ) {
+        Long authOrgId = principal.organizationId();
         RouteTemplate routeTemplate = routeTemplateService.updateActive(authOrgId, routeTemplateId, request);
 
         return new CreateResponse(
@@ -85,9 +90,10 @@ public class RouteTemplateController {
 
     @DeleteMapping("/{routeTemplateId}")
     public ResponseEntity<Void> delete(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @PathVariable Long routeTemplateId
     ) {
+        Long authOrgId = principal.organizationId();
         routeTemplateService.delete(authOrgId, routeTemplateId);
         return ResponseEntity.noContent().build();
     }

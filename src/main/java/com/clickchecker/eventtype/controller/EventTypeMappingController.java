@@ -5,12 +5,13 @@ import com.clickchecker.eventtype.controller.request.EventTypeMappingActiveUpdat
 import com.clickchecker.eventtype.controller.request.EventTypeMappingUpdateRequest;
 import com.clickchecker.eventtype.controller.response.EventTypeMappingListResponse;
 import com.clickchecker.eventtype.entity.EventTypeMapping;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import com.clickchecker.eventtype.service.EventTypeMappingService;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,15 +29,17 @@ public class EventTypeMappingController {
     private final EventTypeMappingService eventTypeMappingService;
 
     @GetMapping
-    public EventTypeMappingListResponse getAll(@CurrentOrganizationId Long authOrgId) {
+    public EventTypeMappingListResponse getAll(@AuthenticationPrincipal ApiKeyPrincipal principal) {
+        Long authOrgId = principal.organizationId();
         return new EventTypeMappingListResponse(eventTypeMappingService.getAll(authOrgId));
     }
 
     @PostMapping
     public ResponseEntity<CreateResponse> create(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestBody @Valid EventTypeMappingCreateRequest request
     ) {
+        Long authOrgId = principal.organizationId();
         EventTypeMapping eventTypeMapping = eventTypeMappingService.create(authOrgId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -50,10 +53,11 @@ public class EventTypeMappingController {
 
     @PutMapping("/{eventTypeMappingId}")
     public CreateResponse update(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @PathVariable Long eventTypeMappingId,
             @RequestBody @Valid EventTypeMappingUpdateRequest request
     ) {
+        Long authOrgId = principal.organizationId();
         EventTypeMapping eventTypeMapping = eventTypeMappingService.update(authOrgId, eventTypeMappingId, request);
 
         return new CreateResponse(
@@ -66,10 +70,11 @@ public class EventTypeMappingController {
 
     @PutMapping("/{eventTypeMappingId}/active")
     public CreateResponse updateActive(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @PathVariable Long eventTypeMappingId,
             @RequestBody @Valid EventTypeMappingActiveUpdateRequest request
     ) {
+        Long authOrgId = principal.organizationId();
         EventTypeMapping eventTypeMapping = eventTypeMappingService.updateActive(authOrgId, eventTypeMappingId, request);
 
         return new CreateResponse(
@@ -82,9 +87,10 @@ public class EventTypeMappingController {
 
     @DeleteMapping("/{eventTypeMappingId}")
     public ResponseEntity<Void> delete(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @PathVariable Long eventTypeMappingId
     ) {
+        Long authOrgId = principal.organizationId();
         eventTypeMappingService.delete(authOrgId, eventTypeMappingId);
         return ResponseEntity.noContent().build();
     }

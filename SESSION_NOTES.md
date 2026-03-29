@@ -49,6 +49,27 @@
   - 앱 내부에는 `TrafficState`, `ActiveRequestTracker`, `/internal/drain/*`가 추가됐다.
   - 운영 nginx는 `/internal/` 외부 접근을 차단한다.
   - 배포 중 infra 단계와 `prometheus -> app-blue` 의존성 때문에 active app 조기 recreate가 발생할 수 있음을 확인했고, 현재는 그 수정까지 반영된 상태다.
+- 성능 개선 사이클은 현재 기준으로 종료했다.
+  - keep:
+    - `overview cache`
+    - `time-series rollup`
+  - drop:
+    - overview rollup read
+    - aggregate `routes/event-types` rollup
+- realistic mixed 검증 기준:
+  - prod-public + local run
+  - `M2 200`: `2m warm-up + 3m main` 안정 통과
+  - `M2 300`: `2m warm-up + 1m main` 안정 통과
+  - `350`: quick reset 후에도 실패
+  - 현재 public realistic mixed 안전 upper bound는 `300`
+- Grafana renderer 캡처는 public URL보다 내부 Grafana 기준이 더 적합하다.
+  - `scripts/perf/common/capture-grafana-render.sh`
+  - `GRAFANA_CAPTURE_BASE_URL` 지원
+  - `m2` profile 지원
+  - full dashboard 실패 시 panel-only fallback
+- `EventCommand`의 `externalUserId` 성공 경로 테스트는 Postgres/Testcontainers로 분리했다.
+  - H2 fast lane은 validation/auth 경계 중심
+  - Postgres success path는 `postgresTest`에서 검증
 
 ## 구현된 파일 (상위)
 - EventUser 도메인:
@@ -123,11 +144,19 @@
 - 최근 기준 검증:
   - `./gradlew test` 통과
   - `./gradlew postgresTest` 통과
+- CI 기준:
+  - `develop`: `./gradlew test`
+  - `main`: `./gradlew test` + `./gradlew postgresTest`
 
 ## 참고 사항
 - ingest `POST /api/events`는 유지하고, analytics read만 `/api/v1/events/analytics/**`로 올렸다.
 - `/api/v1/events/**`도 API key 인증 보호 범위에 포함된다.
 - `EventUser` API(`/api/event-users`)는 아직 `organizationId` 요청 방식 유지(후속 정리 대상)
+- 인증 전달은 이제 `request attribute + resolver`가 아니라 `SecurityContext + @AuthenticationPrincipal` 기준이다.
+- `SecurityConfig`는 경로별 `SecurityFilterChain`으로 분리되어 있다.
+  - `/api/v1/admin/auth/**` 공개 체인
+  - `/api/v1/admin/**` JWT 체인
+  - `/api/events/**`, `/api/v1/events/**` API key 체인
 - prod 배포는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` 기준으로 동작
 - `POSTGRES_*`는 local postgres 컨테이너 기동용으로만 본다
 - scripts 구조는 현재 역할별 디렉토리 기준이다.
@@ -137,18 +166,42 @@
   - `scripts/codedeploy`
 - analytics 응답 전면 `meta / summary / data` 표준화는 시도 후 롤백했다.
   - 포트폴리오 기준으로 변경량 대비 실익이 낮다고 판단했다.
+- legacy 공개 관리자 API가 아직 남아 있다.
+  - `POST /api/organizations`
+  - `/api/events/route-templates`
+  - `/api/events/event-type-mappings`
+  - 다만 현재 메인 우선순위는 이 정리 작업보다 JWT 기반 admin analytics API와 화면 작업 쪽이다.
 
 ## 다음 권장 작업
-1. 16단계 계획 수립
-   - 현재 후보는 분석 API를 실제로 소비하는 대시보드/리포트 UI다.
-2. 샘플 시나리오 / 문서 계약 정합화
-   - `k6`, `api-scenarios`, 오래된 예시를 현재 `/api/v1/events/analytics/**` 기준으로 맞춘다.
-3. EventUser API 정리 여부 판단
-   - `/api/event-users`를 계속 유지할지, 인증 org 기준으로 어떻게 가져갈지 결정한다.
-4. 운영 관측 고도화는 별도 후속 단계로 이관
-   - Loki S3 저장, retention/compactor, Alertmanager 고도화는 별도 슬라이스로 본다.
+1. JWT 기반 admin analytics API
+   - `/api/v1/admin/organizations/{organizationId}/analytics/**`
+   - 브라우저는 `X-API-Key` 없이 JWT로만 대시보드 데이터를 읽게 만든다.
+2. 화면 작업 1: 대시보드 화면
+   - 로그인 후 organization 선택
+   - overview / routes / event-types / time-buckets 중심으로 먼저 붙인다.
+3. 화면 작업 2: 운영/관리 화면
+   - organization 정보
+   - API key 메타 조회 / rotate
+   - member 관리
+4. 이력서/포트폴리오 실전 작성
+   - 제품 흐름, 데모 시나리오, 성능/운영 경험까지 묶어서 정리한다.
+5. 보조 backlog
+   - 관리자성 공개 API 정리
+   - `develop` CI의 `postgresTest` 정책
+   - SecurityContext 중심 인가 구조 정식화 여부
 
 ## 최근 업데이트 (추가)
+- Spring Security 인증 컨텍스트 전환 완료:
+  - `ApiKeyPrincipal`, `AdminPrincipal` 추가
+  - `ApiKeyAuthFilter`, `JwtAuthFilter`가 인증 성공 결과를 `SecurityContext`에 저장
+  - admin/event/analytics 컨트롤러를 `@AuthenticationPrincipal` 기반으로 전환
+  - `CurrentAccountId`, `CurrentOrganizationId` 계열 annotation/resolver 제거
+  - `SecurityConfig`를 경로별 `SecurityFilterChain` 구조로 정리
+  - `./gradlew test` 전체 통과
+- API/운영 문서 갱신:
+  - `docs/03-API-설계/01-api-key-인증-정책.md`
+  - `docs/03-API-설계/02-요청-흐름-api-key-auth.md`
+  - `docs/04-운영-설계/코딩-규칙.md`
 - RDS 전환 완료:
   - EC2 운영 DB -> RDS `pg_dump` / `pg_restore` 완료
   - row count(`organizations=11`, `users=16`, `events=72`) 일치 확인

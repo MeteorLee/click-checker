@@ -1,4 +1,4 @@
-# 확장 분석 API 정책 (15단계 1차)
+# 확장 분석 API 정책 (15단계 1차, admin console 반영)
 
 ## 목적
 - 14단계에서 정리한 핵심 집계 기반 위에 사용자 분석, funnel, retention API를 올린다.
@@ -6,10 +6,19 @@
 - 성능 최적화나 identity 병합보다, 해석 가능한 최소 분석 API를 만드는 것을 우선한다.
 
 ## 현재 엔드포인트
+### 공개 API 경로
+- `GET /api/v1/events/analytics/aggregates/overview`
+- `GET /api/v1/events/analytics/activity`
 - `GET /api/v1/events/analytics/users/overview`
 - `POST /api/v1/events/analytics/funnels/report`
 - `GET /api/v1/events/analytics/retention/daily`
 - `GET /api/v1/events/analytics/retention/matrix`
+
+### admin console 경로
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/users`
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/activity`
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/retention`
+- `POST /api/v1/admin/organizations/{organizationId}/analytics/funnels/report`
 
 ## 예정 엔드포인트
 - cohort 상세/확장 API
@@ -50,22 +59,44 @@
 - `externalUserId` (선택)
 
 ### 응답 항목
+- `totalEvents`
+- `identifiedEvents`
+- `anonymousEvents`
 - `identifiedUsers`
 - `newUsers`
 - `returningUsers`
+- `newUserEvents`
+- `returningUserEvents`
 - `avgEventsPerIdentifiedUser`
 
 ### 계산 규칙
 - `identifiedUsers`
   - 조회 구간 내 활동한 식별 사용자 수
+- `identifiedEvents`
+  - 조회 구간 내 `eventUser`가 있는 이벤트 수
+- `anonymousEvents`
+  - 조회 구간 내 `eventUser`가 없는 이벤트 수
 - `newUsers`
   - 조회 구간 내 활동했고, `firstSeen`도 조회 구간 내인 사용자 수
 - `returningUsers`
   - 조회 구간 내 활동했고, `firstSeen`은 조회 구간 이전인 사용자 수
+- `newUserEvents`
+  - 조회 구간 내 신규 사용자가 발생시킨 식별 이벤트 수
+- `returningUserEvents`
+  - 조회 구간 내 기존 사용자가 발생시킨 식별 이벤트 수
 - `avgEventsPerIdentifiedUser`
   - 조회 구간 내 식별 사용자 기준 평균 이벤트 수
   - `total identified events / identifiedUsers`
   - 분모가 0이면 `null`
+
+### admin console users 응답
+- admin console은 `GET /api/v1/admin/organizations/{organizationId}/analytics/users`로 같은 계산 규칙을 사용한다.
+- 브라우저 화면에서는 아래 분해값을 같이 사용한다.
+  - `totalEvents`
+  - `identifiedEvents`
+  - `anonymousEvents`
+  - `newUserEvents`
+  - `returningUserEvents`
 
 ### firstSeen 정의
 - `firstSeen`은 “조회 구간 내 첫 이벤트”가 아니다.
@@ -154,6 +185,54 @@
 - 후속 step은 이전 step과 `같거나 이후` 시각이면 인정한다.
 - 동일 timestamp에서는 step 순서 위반으로 보지 않으며, 미세 순서 재구성은 시도하지 않는다.
 
+## activity 정책
+
+### 목적
+- 기간 안에서 “언제 늘고 줄었는가”보다 “어느 요일/시간대에 몰리는가”를 보여주는 분포 중심 집계다.
+
+### 공개 API 엔드포인트
+- `GET /api/v1/events/analytics/activity`
+
+### admin console 엔드포인트
+- `GET /api/v1/admin/organizations/{organizationId}/analytics/activity`
+
+### 쿼리 파라미터
+- `from`
+- `to`
+- `timezone` (공개 API에서 선택, 기본값 `UTC`)
+
+### 응답 항목
+- `totalEvents`
+- `averageEventsPerDay`
+- `activeDays`
+- `peakDayBucketStart`
+- `peakDayEventCount`
+- `weekdaySummary`
+  - `eventCount`
+  - `uniqueUserCount`
+  - `averageEventsPerDay`
+  - `averageUniqueUsersPerDay`
+- `weekendSummary`
+  - `eventCount`
+  - `uniqueUserCount`
+  - `averageEventsPerDay`
+  - `averageUniqueUsersPerDay`
+- `dayOfWeekDistribution[]`
+  - `dayOfWeek`
+  - `eventCount`
+  - `uniqueUserCount`
+- `dailyActivity[]`
+- `hourlyDistribution[]`
+- `weekdayHourlyDistribution[]`
+- `weekendHourlyDistribution[]`
+
+### 계산 규칙
+- 공개 API는 `X-API-Key -> authOrgId` 기준으로 조직을 확정한다.
+- 날짜와 시간대 해석은 admin console 기본 timezone인 `Asia/Seoul` 기준으로 본다.
+- 공개 API는 요청 `timezone` 기준으로 해석하고, admin console은 `Asia/Seoul` 기준으로 고정한다.
+- `weekdaySummary`는 월~금, `weekendSummary`는 토~일 기준으로 계산한다.
+- `dayOfWeekDistribution`은 `0=일요일 ... 6=토요일` 기준 숫자를 반환한다.
+
 ## retention / cohort 정책
 
 ### 목적
@@ -190,9 +269,10 @@
 - `items[].values[].retentionRate`
 
 ### 최소 지원 범위
-- daily cohort만 지원
-- Day 1 / 7 / 30 retention
-- exact-day retention만 지원
+- matrix 기반 cohort만 사용
+- 기본 day 목록은 `1, 7, 30`
+- `days`로 custom day 목록 지원
+- `N일 내 재방문`만 지원
 
 ### firstSeen 정의
 - `firstSeen`은 `organization` 범위 내 해당 사용자의 전체 이벤트 중 earliest `occurredAt`
@@ -203,13 +283,14 @@
 - `firstSeen` timestamp 자체는 raw event timestamp를 기준으로 보되, cohort 분류는 timezone 적용 후 local date를 사용한다.
 
 ### Day N retention 정의
-- Day N retention은 cohort 기준일로부터 N일 후의 동일 local date bucket에 활동이 있는 사용자의 비율이다.
+- Day N retention은 cohort 기준일 다음날부터 N일째까지, 해당 구간 안에 한 번이라도 다시 활동한 사용자의 비율이다.
+- 즉 현재 구현은 `exact-day retention`이 아니라 `within-N-days retention`이다.
 - `on or after` 방식은 이번 단계에서 지원하지 않는다.
 
 ### 구현 방식
 - cohort 사용자는 `firstSeen`이 요청 구간(`from <= firstSeen < to`) 안에 있는 식별 사용자만 포함한다.
 - `cohortDate`는 `firstSeen`을 요청 `timezone`으로 변환한 local date다.
-- 활동 여부는 조회 구간 이후 최대 30일을 추가 조회해 exact-day 기준으로 판정한다.
+- 활동 여부는 조회 구간 이후 최대 요청 `days`의 최댓값까지 추가 조회하고, `1..N` 구간 안 재방문 기준으로 판정한다.
 - 각 retention 비율은 `retainedUsers / cohortUsers`로 계산한다.
 - `minCohortUsers`가 있으면 해당 값보다 작은 cohort는 응답에서 제외한다.
 - `minCohortUsers`가 없으면 기본값은 `1`이다.
@@ -219,7 +300,7 @@
 - `days`가 없으면 기본값은 `1, 7, 30`이다.
 - `days`는 중복 제거 후 오름차순으로 정규화한다.
 - 각 day 값은 `1~365` 범위만 허용하고, 최대 10개까지 지원한다.
-- `matrix`도 exact-day / timezone local date 규칙은 `daily`와 동일하다.
+- `matrix`도 `N일 내 재방문` / timezone local date 규칙은 `daily`와 동일하다.
 
 ## 응답 구조 정책
 
@@ -250,6 +331,6 @@
 - `users/overview`는 현재 `externalUserId` 필터만 지원한다.
 - funnel은 현재 `canonicalEventType + optional routeKey` step까지 지원한다.
 - funnel의 `conversionWindowDays`는 현재 `1~365` 범위만 지원한다.
-- retention은 현재 daily cohort + Day 1/7/30 exact-day만 지원한다.
-- retention `matrix`는 custom day 목록을 지원하지만, cohort 상세 drill-down이나 on-or-after 방식은 아직 지원하지 않는다.
+- activity는 현재 `요일별`, `평일/주말`, `평일/주말 시간대` 분포까지만 지원한다.
+- retention은 현재 `N일 내 재방문` matrix만 지원하고, cohort 상세 drill-down이나 on-or-after 방식은 아직 지원하지 않는다.
 - anonymous 포함 사용자 분석과 identity 병합은 이번 단계 범위 밖이다.
