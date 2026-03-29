@@ -1,17 +1,20 @@
 "use client";
 
+import { getAccessToken } from "@/lib/session/token-store";
 import { Badge, Group, Paper, Stack, Text, UnstyledButton } from "@mantine/core";
 import {
   IconBook2,
   IconChartBar,
+  IconHome2,
   IconKey,
   IconRoute2,
   IconSparkles,
   IconTags,
+  IconBuildingStore,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 
 type NavItem = {
   label: string;
@@ -71,10 +74,15 @@ const guidePaths = new Set(guideSections.flatMap((section) => section.items.map(
 
 export function GuideNavigation() {
   const pathname = usePathname();
+  const [hasAccessToken, setHasAccessToken] = useState(false);
 
   if (!guidePaths.has(pathname)) {
     return null;
   }
+
+  useEffect(() => {
+    setHasAccessToken(Boolean(getAccessToken()));
+  }, []);
 
   return (
     <aside className="dashboard-sidebar">
@@ -87,6 +95,28 @@ export function GuideNavigation() {
             <Text c="dimmed" size="sm">
               제품 API 가이드
             </Text>
+          </Stack>
+
+          <Stack gap="sm">
+            <UnstyledButton
+              component={Link}
+              href={hasAccessToken ? "/organizations" : "/"}
+              className="dashboard-nav-item"
+              style={{
+                width: "100%",
+                borderRadius: 18,
+                padding: "12px 14px",
+                background: "rgba(255,255,255,0.64)",
+                border: "1px solid rgba(148,163,184,0.18)",
+              }}
+            >
+              <Group gap="xs" wrap="nowrap">
+                {hasAccessToken ? <IconBuildingStore size={16} /> : <IconHome2 size={16} />}
+                <Text fw={600} size="sm">
+                  {hasAccessToken ? "조직 선택" : "홈"}
+                </Text>
+              </Group>
+            </UnstyledButton>
           </Stack>
 
           {guideSections.map((section, index) => (
