@@ -12,6 +12,7 @@ import com.clickchecker.account.entity.Account;
 import com.clickchecker.account.entity.AccountStatus;
 import com.clickchecker.account.repository.AccountRepository;
 import com.clickchecker.auth.service.JwtTokenProvider;
+import com.clickchecker.security.principal.AdminPrincipal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -36,6 +39,7 @@ class JwtAuthFilterTest {
     @AfterEach
     void tearDown() {
         MDC.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -94,15 +98,17 @@ class JwtAuthFilterTest {
         filter.doFilter(request, response, new MockFilterChain());
 
         assertThat(response.getStatus()).isEqualTo(MockHttpServletResponse.SC_OK);
-        assertThat(request.getAttribute(JwtAuthFilter.AUTH_ACCOUNT_ID)).isEqualTo(1L);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(authentication).isNotNull();
+        assertThat(authentication.getPrincipal()).isEqualTo(new AdminPrincipal(1L, "alice"));
         assertThat(joinedMessages(appender))
                 .contains("jwt auth success")
                 .contains("accountId=1");
     }
 
     @Test
-    void shouldNotFilterSignupPath() {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/admin/auth/signup");
+    void shouldNotFilterOptionsRequest() {
+        MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/api/v1/admin/me");
 
         assertThat(filter.shouldNotFilter(request)).isTrue();
     }

@@ -84,7 +84,7 @@ public class RouteTemplateService {
 
     @Transactional(readOnly = true)
     public List<RouteTemplateItem> getAll(Long organizationId) {
-        return routeTemplateRepository.findByOrganizationIdOrderByPriorityDescIdAsc(organizationId).stream()
+        return routeTemplateRepository.findByOrganizationIdOrderByTemplateAscIdAsc(organizationId).stream()
                 .map(routeTemplate -> new RouteTemplateItem(
                         routeTemplate.getId(),
                         routeTemplate.getTemplate(),

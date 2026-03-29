@@ -3,9 +3,10 @@ package com.clickchecker.analytics.retention.controller;
 import com.clickchecker.analytics.retention.controller.response.DailyRetentionResponse;
 import com.clickchecker.analytics.retention.controller.response.RetentionMatrixResponse;
 import com.clickchecker.analytics.retention.service.RetentionAnalyticsService;
-import com.clickchecker.web.resolver.CurrentOrganizationId;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,13 +27,14 @@ public class RetentionAnalyticsController {
 
     @GetMapping("/daily")
     public DailyRetentionResponse daily(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(defaultValue = "UTC") String timezone,
             @RequestParam(required = false) Integer minCohortUsers
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         ZoneId zoneId = parseZoneId(timezone);
         int normalizedMinCohortUsers = normalizeMinCohortUsers(minCohortUsers);
@@ -49,7 +51,7 @@ public class RetentionAnalyticsController {
 
     @GetMapping("/matrix")
     public RetentionMatrixResponse matrix(
-            @CurrentOrganizationId Long authOrgId,
+            @AuthenticationPrincipal ApiKeyPrincipal principal,
             @RequestParam(required = false) String externalUserId,
             @RequestParam Instant from,
             @RequestParam Instant to,
@@ -57,6 +59,7 @@ public class RetentionAnalyticsController {
             @RequestParam(required = false) List<Integer> days,
             @RequestParam(required = false) Integer minCohortUsers
     ) {
+        Long authOrgId = principal.organizationId();
         validateTimeRange(from, to);
         ZoneId zoneId = parseZoneId(timezone);
         int normalizedMinCohortUsers = normalizeMinCohortUsers(minCohortUsers);

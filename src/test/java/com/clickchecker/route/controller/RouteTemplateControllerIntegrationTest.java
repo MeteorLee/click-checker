@@ -105,7 +105,7 @@ class RouteTemplateControllerIntegrationTest {
     }
 
     @Test
-    void getAll_returnsOnlyAuthenticatedOrganizationTemplates_inPriorityOrder() throws Exception {
+    void getAll_returnsOnlyAuthenticatedOrganizationTemplates_inTemplateOrder() throws Exception {
         cleanup();
         Organization organizationA = saveOrganization("acme");
         Organization organizationB = saveOrganization("globex");
@@ -118,10 +118,10 @@ class RouteTemplateControllerIntegrationTest {
         mockMvc.perform(authorizedGet(apiKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
-                .andExpect(jsonPath("$.items[0].template").value("/posts/{id}"))
-                .andExpect(jsonPath("$.items[0].priority").value(100))
-                .andExpect(jsonPath("$.items[1].template").value("/landing"))
-                .andExpect(jsonPath("$.items[1].priority").value(10));
+                .andExpect(jsonPath("$.items[0].template").value("/landing"))
+                .andExpect(jsonPath("$.items[0].priority").value(10))
+                .andExpect(jsonPath("$.items[1].template").value("/posts/{id}"))
+                .andExpect(jsonPath("$.items[1].priority").value(100));
     }
 
     @Test

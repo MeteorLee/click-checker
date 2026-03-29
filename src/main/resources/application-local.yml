@@ -17,6 +17,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  devtools:
+    livereload:
+      enabled: false
+    restart:
+      enabled: true
+      additional-paths: src/main/java,src/main/resources
+      poll-interval: 1s
+      quiet-period: 400ms
 
 logging:
   level:

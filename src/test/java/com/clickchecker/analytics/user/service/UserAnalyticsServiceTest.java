@@ -29,6 +29,8 @@ class UserAnalyticsServiceTest {
                         new IdentifiedUserEventCountProjection(102L, 1),
                         new IdentifiedUserEventCountProjection(103L, 3)
                 ));
+        when(eventQueryRepository.countBetween(from, to, 1L, null, null))
+                .thenReturn(9L);
 
         when(eventQueryRepository.findIdentifiedUserFirstSeen(1L, null))
                 .thenReturn(List.of(
@@ -40,9 +42,14 @@ class UserAnalyticsServiceTest {
         UserAnalyticsOverviewResponse result =
                 userAnalyticsService.getOverview(from, to, 1L, null);
 
+        assertThat(result.totalEvents()).isEqualTo(9);
+        assertThat(result.identifiedEvents()).isEqualTo(9);
+        assertThat(result.anonymousEvents()).isEqualTo(0);
         assertThat(result.identifiedUsers()).isEqualTo(3);
         assertThat(result.newUsers()).isEqualTo(2);
         assertThat(result.returningUsers()).isEqualTo(1);
+        assertThat(result.newUserEvents()).isEqualTo(8);
+        assertThat(result.returningUserEvents()).isEqualTo(1);
         assertThat(result.avgEventsPerIdentifiedUser()).isEqualTo(3.0);
     }
 }

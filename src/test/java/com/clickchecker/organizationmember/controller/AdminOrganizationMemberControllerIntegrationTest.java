@@ -110,6 +110,43 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
+    void getMembers_returnsMembers_whenRequesterIsViewer() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account viewer = saveAccount("viewer", AccountStatus.ACTIVE);
+        Account alice = saveAccount("alice", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(viewer)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(alice)
+                .organization(organization)
+                .role(OrganizationRole.ADMIN)
+                .build());
+
+        mockMvc.perform(
+                        get("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(viewer.getId()))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.members.length()").value(3))
+                .andExpect(jsonPath("$.members[0].loginId").value("alice"))
+                .andExpect(jsonPath("$.members[1].loginId").value("owner"))
+                .andExpect(jsonPath("$.members[2].loginId").value("viewer"));
+    }
+
+    @Test
     void addMember_returnsCreated_whenRequesterIsOwner() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()
@@ -174,6 +211,87 @@ class AdminOrganizationMemberControllerIntegrationTest {
                                         """.formatted(member.getId()))
                 )
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void addMemberByLoginId_returnsCreated_whenRequesterIsOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members/by-login-id", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "member",
+                                          "role": "ADMIN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.accountId").value(member.getId()))
+                .andExpect(jsonPath("$.loginId").value("member"))
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+    }
+
+    @Test
+    void addMemberByLoginId_returnsNotFound_whenLoginIdDoesNotExist() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/{organizationId}/members/by-login-id", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "loginId": "missing",
+                                          "role": "VIEWER"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Account not found."));
+    }
+
+    @Test
+    void joinDemoOrganization_returnsNoContent_whenRequesterIsNotYetMember() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("demo_web_shop")
+                .build());
+        Account requester = saveAccount("requester", AccountStatus.ACTIVE);
+
+        mockMvc.perform(
+                        post("/api/v1/admin/organizations/demo/join")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(requester.getId()))
+                )
+                .andExpect(status().isNoContent());
+
+        OrganizationMember membership = organizationMemberRepository
+                .findByAccountIdAndOrganizationId(requester.getId(), organization.getId())
+                .orElseThrow();
+        assert membership.getRole() == OrganizationRole.VIEWER;
     }
 
     @Test
@@ -500,6 +618,112 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
+    void leaveOrganization_returnsNoContent_whenRequesterIsAdminMember() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account admin = saveAccount("admin", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        OrganizationMember adminMembership = organizationMemberRepository.save(OrganizationMember.builder()
+                .account(admin)
+                .organization(organization)
+                .role(OrganizationRole.ADMIN)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(admin.getId()))
+                )
+                .andExpect(status().isNoContent());
+
+        assert organizationMemberRepository.findById(adminMembership.getId()).isEmpty();
+    }
+
+    @Test
+    void leaveOrganization_returnsConflict_whenRequesterIsLastOwner() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Sole owner confirmation is required."));
+    }
+
+    @Test
+    void leaveOrganization_returnsConflict_whenRequesterIsLastOwnerButOtherMembersRemain() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+        Account member = saveAccount("member", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(member)
+                .organization(organization)
+                .role(OrganizationRole.VIEWER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Last owner cannot be removed."));
+    }
+
+    @Test
+    void leaveOrganization_returnsNoContent_whenRequesterIsSoleOwnerWithConfirmation() throws Exception {
+        cleanup();
+        Organization organization = organizationRepository.save(Organization.builder()
+                .name("Acme")
+                .build());
+        Account owner = saveAccount("owner", AccountStatus.ACTIVE);
+
+        organizationMemberRepository.save(OrganizationMember.builder()
+                .account(owner)
+                .organization(organization)
+                .role(OrganizationRole.OWNER)
+                .build());
+
+        mockMvc.perform(
+                        delete("/api/v1/admin/organizations/{organizationId}/members/membership", organization.getId())
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(owner.getId()))
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "confirmationText": "혼자 남은 OWNER라 삭제 후 복구할 수 없음을 이해했습니다"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void getMembers_returnsMembers_whenRequesterIsAdmin() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()
@@ -547,7 +771,7 @@ class AdminOrganizationMemberControllerIntegrationTest {
     }
 
     @Test
-    void getMembers_returnsForbidden_whenRequesterIsViewer() throws Exception {
+    void getMembers_returnsOk_whenRequesterIsViewer() throws Exception {
         cleanup();
         Organization organization = organizationRepository.save(Organization.builder()
                 .name("Acme")
@@ -564,7 +788,10 @@ class AdminOrganizationMemberControllerIntegrationTest {
                         get("/api/v1/admin/organizations/{organizationId}/members", organization.getId())
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.issueAccessToken(viewer.getId()))
                 )
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.members.length()").value(1))
+                .andExpect(jsonPath("$.members[0].loginId").value("viewer"))
+                .andExpect(jsonPath("$.members[0].role").value("VIEWER"));
     }
 
     @Test

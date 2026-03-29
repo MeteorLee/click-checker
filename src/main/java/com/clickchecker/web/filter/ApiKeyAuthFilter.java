@@ -5,6 +5,7 @@ import com.clickchecker.organization.entity.ApiKeyStatus;
 import com.clickchecker.organization.entity.Organization;
 import com.clickchecker.organization.repository.OrganizationRepository;
 import com.clickchecker.organization.service.ApiKeyIssuer;
+import com.clickchecker.security.principal.ApiKeyPrincipal;
 import com.clickchecker.web.sentry.SentryRequestContextSupport;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,33 +19,24 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Component
 @RequiredArgsConstructor
-@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(ApiKeyAuthFilter.class);
     private static final Duration API_KEY_LAST_USED_REFRESH_INTERVAL = Duration.ofMinutes(1);
 
     public static final String API_KEY_HEADER = "X-API-Key";
-    public static final String AUTH_ORG_ID = "AUTH_ORG_ID";
-
     private final OrganizationRepository organizationRepository;
     private final ApiKeyIssuer apiKeyIssuer;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        boolean protectedPath = path != null
-                && (path.startsWith("/api/events") || path.startsWith("/api/v1/events"));
-        boolean optionsRequest = "OPTIONS".equalsIgnoreCase(request.getMethod());
-        boolean errorPath = "/error".equals(path);
-        return !protectedPath || optionsRequest || errorPath;
+        return "OPTIONS".equalsIgnoreCase(request.getMethod());
     }
 
     @Override
@@ -97,7 +89,13 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             organization.markApiKeyUsed(now);
             organizationRepository.save(organization);
         }
-        request.setAttribute(AUTH_ORG_ID, organization.getId());
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(
+                        new ApiKeyPrincipal(organization.getId(), kid),
+                        null,
+                        AuthorityUtils.NO_AUTHORITIES
+                )
+        );
         SentryRequestContextSupport.bindApiKeyAuthContext(organization.getId(), kid);
         log.debug(
                 "api key auth success: method={}, path={}, orgId={}, kidMasked={}, requestId={}",
