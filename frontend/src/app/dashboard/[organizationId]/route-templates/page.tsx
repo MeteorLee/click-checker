@@ -307,14 +307,20 @@ export default function RouteTemplatesPage() {
             label="Template"
             radius="xl"
             value={editForm.template}
-            onChange={(event) => setEditForm((current) => ({ ...current, template: event.currentTarget.value }))}
+            onChange={(event) => {
+              const { value } = event.currentTarget;
+              setEditForm((current) => ({ ...current, template: value }));
+            }}
           />
           <TextInput
             description="집계에서 사용할 대표 키입니다. 언더바 형식으로 짧게 정리하면 읽기 쉽습니다."
             label="Route Key"
             radius="xl"
             value={editForm.routeKey}
-            onChange={(event) => setEditForm((current) => ({ ...current, routeKey: event.currentTarget.value }))}
+            onChange={(event) => {
+              const { value } = event.currentTarget;
+              setEditForm((current) => ({ ...current, routeKey: value }));
+            }}
           />
           <TextInput
             description="겹치는 규칙이 있을 때만 조정하면 됩니다."
@@ -322,7 +328,10 @@ export default function RouteTemplatesPage() {
             radius="xl"
             type="number"
             value={editForm.priority}
-            onChange={(event) => setEditForm((current) => ({ ...current, priority: event.currentTarget.value }))}
+            onChange={(event) => {
+              const { value } = event.currentTarget;
+              setEditForm((current) => ({ ...current, priority: value }));
+            }}
           />
           <Group justify="flex-end">
             <Button radius="xl" variant="default" onClick={() => setIsEditOpened(false)}>
@@ -375,7 +384,10 @@ export default function RouteTemplatesPage() {
                       placeholder="/posts/{id}/comments"
                       radius="xl"
                       value={createForm.template}
-                      onChange={(event) => setCreateForm((current) => ({ ...current, template: event.currentTarget.value }))}
+                      onChange={(event) => {
+                        const { value } = event.currentTarget;
+                        setCreateForm((current) => ({ ...current, template: value }));
+                      }}
                     />
                     <TextInput
                       disabled={!canManage}
@@ -384,7 +396,10 @@ export default function RouteTemplatesPage() {
                       placeholder="post_comments"
                       radius="xl"
                       value={createForm.routeKey}
-                      onChange={(event) => setCreateForm((current) => ({ ...current, routeKey: event.currentTarget.value }))}
+                      onChange={(event) => {
+                        const { value } = event.currentTarget;
+                        setCreateForm((current) => ({ ...current, routeKey: value }));
+                      }}
                     />
                     <TextInput
                       disabled={!canManage}
@@ -393,7 +408,10 @@ export default function RouteTemplatesPage() {
                       radius="xl"
                       type="number"
                       value={createForm.priority}
-                      onChange={(event) => setCreateForm((current) => ({ ...current, priority: event.currentTarget.value }))}
+                      onChange={(event) => {
+                        const { value } = event.currentTarget;
+                        setCreateForm((current) => ({ ...current, priority: value }));
+                      }}
                     />
                     <Button
                       disabled={!canManage}

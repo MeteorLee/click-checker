@@ -278,14 +278,20 @@ export default function EventTypeMappingsPage() {
             label="Raw Event Type"
             radius="xl"
             value={editForm.rawEventType}
-            onChange={(event) => setEditForm((current) => ({ ...current, rawEventType: event.currentTarget.value }))}
+            onChange={(event) => {
+              const { value } = event.currentTarget;
+              setEditForm((current) => ({ ...current, rawEventType: value }));
+            }}
           />
           <TextInput
             description="집계에서 공통으로 사용할 대표 이름입니다. 유사한 raw event type을 같은 키로 묶을 때 사용합니다."
             label="Canonical Event Type"
             radius="xl"
             value={editForm.canonicalEventType}
-            onChange={(event) => setEditForm((current) => ({ ...current, canonicalEventType: event.currentTarget.value }))}
+            onChange={(event) => {
+              const { value } = event.currentTarget;
+              setEditForm((current) => ({ ...current, canonicalEventType: value }));
+            }}
           />
           <Group justify="flex-end">
             <Button radius="xl" variant="default" onClick={() => setIsEditOpened(false)}>
@@ -338,7 +344,10 @@ export default function EventTypeMappingsPage() {
                       placeholder="button_click"
                       radius="xl"
                       value={createForm.rawEventType}
-                      onChange={(event) => setCreateForm((current) => ({ ...current, rawEventType: event.currentTarget.value }))}
+                      onChange={(event) => {
+                        const { value } = event.currentTarget;
+                        setCreateForm((current) => ({ ...current, rawEventType: value }));
+                      }}
                     />
                     <TextInput
                       disabled={!canManage}
@@ -347,7 +356,10 @@ export default function EventTypeMappingsPage() {
                       placeholder="CLICK"
                       radius="xl"
                       value={createForm.canonicalEventType}
-                      onChange={(event) => setCreateForm((current) => ({ ...current, canonicalEventType: event.currentTarget.value }))}
+                      onChange={(event) => {
+                        const { value } = event.currentTarget;
+                        setCreateForm((current) => ({ ...current, canonicalEventType: value }));
+                      }}
                     />
                     <Button
                       disabled={!canManage}
