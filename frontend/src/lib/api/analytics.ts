@@ -1,5 +1,5 @@
 import { authorizedFetch } from "@/lib/api/authorized";
-import { buildApiUrl } from "@/lib/api/config";
+import { buildApiUrl, buildApiUrlObject } from "@/lib/api/config";
 import { ApiError } from "@/lib/api/errors";
 import type {
   AdminActivityAnalyticsResponse,
@@ -35,9 +35,7 @@ export async function fetchOverview(
   from: string,
   to: string,
 ) {
-  const url = new URL(
-    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/overview`),
-  );
+  const url = buildApiUrlObject(`/api/v1/admin/organizations/${organizationId}/analytics/overview`);
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
 
@@ -57,9 +55,7 @@ export async function fetchRoutes(
   to: string,
   top = 30,
 ) {
-  const url = new URL(
-    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/routes`),
-  );
+  const url = buildApiUrlObject(`/api/v1/admin/organizations/${organizationId}/analytics/routes`);
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
   url.searchParams.set("top", String(top));
@@ -80,8 +76,8 @@ export async function fetchEventTypes(
   to: string,
   top = 30,
 ) {
-  const url = new URL(
-    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/event-types`),
+  const url = buildApiUrlObject(
+    `/api/v1/admin/organizations/${organizationId}/analytics/event-types`,
   );
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
@@ -103,9 +99,7 @@ export async function fetchTrends(
   to: string,
   bucket: "HOUR" | "DAY",
 ) {
-  const url = new URL(
-    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/trends`),
-  );
+  const url = buildApiUrlObject(`/api/v1/admin/organizations/${organizationId}/analytics/trends`);
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
   url.searchParams.set("bucket", bucket);
@@ -125,9 +119,7 @@ export async function fetchUsers(
   from: string,
   to: string,
 ) {
-  const url = new URL(
-    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/users`),
-  );
+  const url = buildApiUrlObject(`/api/v1/admin/organizations/${organizationId}/analytics/users`);
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
 
@@ -146,9 +138,7 @@ export async function fetchActivity(
   from: string,
   to: string,
 ) {
-  const url = new URL(
-    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/activity`),
-  );
+  const url = buildApiUrlObject(`/api/v1/admin/organizations/${organizationId}/analytics/activity`);
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
 
@@ -169,9 +159,7 @@ export async function fetchRetention(
   days: number[],
   minCohortUsers = 1,
 ) {
-  const url = new URL(
-    buildApiUrl(`/api/v1/admin/organizations/${organizationId}/analytics/retention`),
-  );
+  const url = buildApiUrlObject(`/api/v1/admin/organizations/${organizationId}/analytics/retention`);
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
   days.forEach((day) => url.searchParams.append("days", String(day)));
