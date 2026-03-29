@@ -4,6 +4,7 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres}"
 DEMO_ORG_NAME="${DEMO_ORG_NAME:-demo_web_shop}"
+DEMO_ORG_ID="${DEMO_ORG_ID:-99999}"
 DEMO_OWNER_LOGIN_ID="${DEMO_OWNER_LOGIN_ID:-demo_seed_owner}"
 DEMO_OWNER_PASSWORD="${DEMO_OWNER_PASSWORD:-DemoSeedPass123!}"
 OUTPUT_FILE="${OUTPUT_FILE:-/tmp/click-checker-demo-seed.json}"
@@ -295,11 +296,20 @@ ensure_demo_owner_token() {
 
 ensure_demo_org() {
   local access_token="$1"
-  local existing_id existing_prefix response_result response_status response_file response_org_id
+  local owner_account_id="$2"
+  local existing_name response_result response_status response_file created_org_id created_at temp_sql
+  local temp_api_key_hash temp_api_key_kid temp_api_key_prefix
+  local original_api_key_created_at original_api_key_hash original_api_key_kid
+  local original_api_key_last_used_at original_api_key_prefix original_api_key_rotated_at original_api_key_status
 
-  existing_id="$(query_db "select id from organizations where name = $(sql_literal "${DEMO_ORG_NAME}") limit 1;")"
-  if [[ -n "${existing_id}" ]]; then
-    printf '%s\n' "${existing_id}"
+  existing_name="$(query_db "select name from organizations where id = ${DEMO_ORG_ID} limit 1;")"
+  if [[ -n "${existing_name}" && "${existing_name}" != "${DEMO_ORG_NAME}" ]]; then
+    echo "Reserved demo organization id ${DEMO_ORG_ID} is already used by '${existing_name}'." >&2
+    exit 1
+  fi
+
+  if [[ -n "${existing_name}" ]]; then
+    printf '%s\n' "${DEMO_ORG_ID}"
     return
   fi
 
@@ -317,15 +327,89 @@ ensure_demo_org() {
     exit 1
   fi
 
-  response_org_id=$(jq -r '.organizationId // empty' "${response_file}")
+  created_org_id=$(jq -r '.organizationId // empty' "${response_file}")
   rm -f "${response_file}"
 
-  if [[ -z "${response_org_id}" ]]; then
+  if [[ -z "${created_org_id}" ]]; then
     echo "Failed to parse demo organization id" >&2
     exit 1
   fi
 
-  printf '%s\n' "${response_org_id}"
+  created_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  temp_api_key_hash="$(printf '%s' "demo-org-${created_org_id}-${created_at}" | sha256sum | awk '{print $1}')"
+  temp_api_key_kid="$(printf 'demo%016x' "${created_org_id}")"
+  temp_api_key_prefix="${temp_api_key_kid:0:8}"
+  original_api_key_created_at="$(query_db "select coalesce(to_char(api_key_created_at at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), '') from organizations where id = ${created_org_id};")"
+  original_api_key_hash="$(query_db "select api_key_hash from organizations where id = ${created_org_id};")"
+  original_api_key_kid="$(query_db "select api_key_kid from organizations where id = ${created_org_id};")"
+  original_api_key_last_used_at="$(query_db "select coalesce(to_char(api_key_last_used_at at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), '') from organizations where id = ${created_org_id};")"
+  original_api_key_prefix="$(query_db "select api_key_prefix from organizations where id = ${created_org_id};")"
+  original_api_key_rotated_at="$(query_db "select coalesce(to_char(api_key_rotated_at at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), '') from organizations where id = ${created_org_id};")"
+  original_api_key_status="$(query_db "select api_key_status from organizations where id = ${created_org_id};")"
+  temp_sql="$(mktemp)"
+
+  cat > "${temp_sql}" <<SQL
+BEGIN;
+
+INSERT INTO organizations (
+  id,
+  name,
+  api_key_created_at,
+  api_key_hash,
+  api_key_kid,
+  api_key_last_used_at,
+  api_key_prefix,
+  api_key_rotated_at,
+  api_key_status,
+  created_at,
+  updated_at
+)
+SELECT
+  ${DEMO_ORG_ID},
+  name,
+  api_key_created_at,
+  $(sql_literal "${temp_api_key_hash}"),
+  $(sql_literal "${temp_api_key_kid}"),
+  api_key_last_used_at,
+  $(sql_literal "${temp_api_key_prefix}"),
+  api_key_rotated_at,
+  api_key_status,
+  created_at,
+  TIMESTAMPTZ $(sql_literal "${created_at}")
+FROM organizations
+WHERE id = ${created_org_id};
+
+UPDATE organization_members
+SET organization_id = ${DEMO_ORG_ID}
+WHERE account_id = ${owner_account_id}
+  AND organization_id = ${created_org_id};
+
+DELETE FROM organizations
+WHERE id = ${created_org_id};
+
+UPDATE organizations AS target
+SET api_key_created_at = $( [[ -n "${original_api_key_created_at}" ]] && printf "TIMESTAMPTZ %s" "$(sql_literal "${original_api_key_created_at}")" || printf "NULL" ),
+    api_key_hash = $(sql_literal "${original_api_key_hash}"),
+    api_key_kid = $(sql_literal "${original_api_key_kid}"),
+    api_key_last_used_at = $( [[ -n "${original_api_key_last_used_at}" ]] && printf "TIMESTAMPTZ %s" "$(sql_literal "${original_api_key_last_used_at}")" || printf "NULL" ),
+    api_key_prefix = $(sql_literal "${original_api_key_prefix}"),
+    api_key_rotated_at = $( [[ -n "${original_api_key_rotated_at}" ]] && printf "TIMESTAMPTZ %s" "$(sql_literal "${original_api_key_rotated_at}")" || printf "NULL" ),
+    api_key_status = $(sql_literal "${original_api_key_status}")
+WHERE target.id = ${DEMO_ORG_ID};
+
+SELECT setval(
+  pg_get_serial_sequence('organizations', 'id'),
+  GREATEST((SELECT coalesce(max(id), 1) FROM organizations), 1),
+  true
+);
+
+COMMIT;
+SQL
+
+  apply_sql_file "${temp_sql}"
+  rm -f "${temp_sql}"
+
+  printf '%s\n' "${DEMO_ORG_ID}"
 }
 
 generate_demo_sql() {
@@ -827,13 +911,14 @@ main() {
   local access_token org_id owner_account_id created_at anchor_date_kst temp_sql summary_json
 
   access_token="$(ensure_demo_owner_token)"
-  org_id="$(ensure_demo_org "${access_token}")"
   owner_account_id="$(query_db "select id from accounts where login_id = $(sql_literal "${DEMO_OWNER_LOGIN_ID}") limit 1;")"
 
   if [[ -z "${owner_account_id}" ]]; then
     echo "Failed to resolve demo owner account id" >&2
     exit 1
   fi
+
+  org_id="$(ensure_demo_org "${access_token}" "${owner_account_id}")"
 
   created_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   anchor_date_kst="$(TZ=Asia/Seoul date +%F)"
