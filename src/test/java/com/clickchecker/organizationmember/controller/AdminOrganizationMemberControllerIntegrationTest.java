@@ -27,6 +27,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -67,6 +68,9 @@ class AdminOrganizationMemberControllerIntegrationTest {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Test
     void getMembers_returnsMembers_whenRequesterIsOwner() throws Exception {
@@ -277,9 +281,15 @@ class AdminOrganizationMemberControllerIntegrationTest {
     @Test
     void joinDemoOrganization_returnsNoContent_whenRequesterIsNotYetMember() throws Exception {
         cleanup();
-        Organization organization = organizationRepository.save(Organization.builder()
-                .name("demo_web_shop")
-                .build());
+        jdbcTemplate.update(
+                """
+                insert into organizations (id, name, api_key_status, created_at, updated_at)
+                values (?, ?, 'ACTIVE', current_timestamp, current_timestamp)
+                """,
+                99999L,
+                "demo_web_shop"
+        );
+        Organization organization = organizationRepository.findById(99999L).orElseThrow();
         Account requester = saveAccount("requester", AccountStatus.ACTIVE);
 
         mockMvc.perform(
