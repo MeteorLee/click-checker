@@ -51,6 +51,25 @@ public class TrendAnalyticsService {
             String timezone
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
+        Optional<Instant> processedCreatedAt = findProcessedCreatedAt(organizationId);
+
+        if (canUseHourlyRollup(externalUserId, from, to, bucket, zoneId) && processedCreatedAt.isPresent()) {
+            return fillMissingTimeBuckets(
+                    readTimeBucketsWithHourlyRollup(
+                            from,
+                            to,
+                            organizationId,
+                            eventType,
+                            bucket,
+                            zoneId,
+                            processedCreatedAt.orElseThrow()
+                    ),
+                    from,
+                    to,
+                    bucket,
+                    zoneId
+            );
+        }
 
         return fillMissingTimeBuckets(
                 eventTrendNativeQueryRepository.countBucketedOccurredAtBetween(

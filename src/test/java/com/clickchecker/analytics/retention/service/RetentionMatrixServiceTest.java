@@ -68,8 +68,8 @@ class RetentionMatrixServiceTest {
         assertThat(result.items().getFirst().values().get(1).retentionRate()).isEqualTo(0.5);
 
         assertThat(result.items().getFirst().values().get(2).day()).isEqualTo(7);
-        assertThat(result.items().getFirst().values().get(2).users()).isEqualTo(1);
-        assertThat(result.items().getFirst().values().get(2).retentionRate()).isEqualTo(0.5);
+        assertThat(result.items().getFirst().values().get(2).users()).isEqualTo(2);
+        assertThat(result.items().getFirst().values().get(2).retentionRate()).isEqualTo(1.0);
     }
 
     @Test

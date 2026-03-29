@@ -94,7 +94,8 @@ class RetentionMatrixControllerIntegrationTest {
                 .andExpect(jsonPath("$.items[0].values[1].day").value(3))
                 .andExpect(jsonPath("$.items[0].values[1].users").value(1))
                 .andExpect(jsonPath("$.items[0].values[2].day").value(7))
-                .andExpect(jsonPath("$.items[0].values[2].users").value(1));
+                .andExpect(jsonPath("$.items[0].values[2].users").value(2))
+                .andExpect(jsonPath("$.items[0].values[2].retentionRate").value(1.0));
     }
 
     @Test

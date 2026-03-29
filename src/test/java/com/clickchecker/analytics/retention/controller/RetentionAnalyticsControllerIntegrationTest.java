@@ -55,7 +55,7 @@ class RetentionAnalyticsControllerIntegrationTest {
     private OrganizationMemberRepository organizationMemberRepository;
 
     @Test
-    void daily_returnsExactDayRetentionByTimezoneLocalDate() throws Exception {
+    void daily_returnsWithinDayRetentionByTimezoneLocalDate() throws Exception {
         cleanup();
 
         Organization organization = saveOrganization();
@@ -89,8 +89,8 @@ class RetentionAnalyticsControllerIntegrationTest {
                 .andExpect(jsonPath("$.items[0].day1RetentionRate").value(0.5))
                 .andExpect(jsonPath("$.items[0].day7Users").value(1))
                 .andExpect(jsonPath("$.items[0].day7RetentionRate").value(0.5))
-                .andExpect(jsonPath("$.items[0].day30Users").value(1))
-                .andExpect(jsonPath("$.items[0].day30RetentionRate").value(0.5))
+                .andExpect(jsonPath("$.items[0].day30Users").value(2))
+                .andExpect(jsonPath("$.items[0].day30RetentionRate").value(1.0))
                 .andExpect(jsonPath("$.items[1].cohortDate").value("2026-03-02"))
                 .andExpect(jsonPath("$.items[1].cohortUsers").value(1))
                 .andExpect(jsonPath("$.items[1].day1Users").value(0));
