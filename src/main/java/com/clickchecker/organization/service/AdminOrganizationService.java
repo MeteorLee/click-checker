@@ -21,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 @Service
 public class AdminOrganizationService {
+    private static final long DEMO_ORGANIZATION_ID = 99999L;
 
     private final AccountRepository accountRepository;
     private final OrganizationRepository organizationRepository;
@@ -64,7 +65,7 @@ public class AdminOrganizationService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, ApiErrorMessages.UNAUTHORIZED));
 
-        Organization organization = organizationRepository.findByName("demo_web_shop")
+        Organization organization = organizationRepository.findById(DEMO_ORGANIZATION_ID)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, ApiErrorMessages.DEMO_ORGANIZATION_NOT_FOUND));
 
         if (organizationMemberRepository.existsByAccountIdAndOrganizationId(accountId, organization.getId())) {
