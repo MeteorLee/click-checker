@@ -65,7 +65,7 @@ class ActivityAnalyticsControllerPostgresIntegrationTest extends AnalyticsContro
                 .andExpect(jsonPath("$.weekdaySummary.uniqueUserCount").value(2))
                 .andExpect(jsonPath("$.weekendSummary.eventCount").value(0))
                 .andExpect(jsonPath("$.dayOfWeekDistribution.length()").value(7))
-                .andExpect(jsonPath("$.dailyActivity.length()").value(2))
+                .andExpect(jsonPath("$.dailyActivity.length()").value(3))
                 .andExpect(jsonPath("$.hourlyDistribution.length()").value(24))
                 .andExpect(jsonPath("$.weekdayHourlyDistribution.length()").value(24))
                 .andExpect(jsonPath("$.weekendHourlyDistribution.length()").value(24))
