@@ -14,6 +14,12 @@
 - `GET /api/v1/events/analytics/retention/daily`
 - `GET /api/v1/events/analytics/retention/matrix`
 
+### 제품 API 가이드 경로
+- `/analytics-api`
+- `/data-mapping`
+- `/send-events`
+- `/api-key-guide`
+
 ### admin console 경로
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/users`
 - `GET /api/v1/admin/organizations/{organizationId}/analytics/activity`
@@ -43,6 +49,11 @@
   - 기본 사용자 기준은 `organization` 범위 내 `eventUser.id`
   - `eventUser`가 없는 이벤트는 확장 분석 대상에서 제외한다.
   - anonymous 포함 분석, login 병합, alias merge는 이번 단계에서 다루지 않는다.
+
+## 현재 제품 사용 흐름 메모
+- Quick Start는 "첫 성공"을 위한 페이지다.
+- 상세 계약과 응답 해석은 제품 API 가이드 페이지에서 확인하는 구조다.
+- 즉 확장 분석 API는 Quick Start의 하위 단계가 아니라 독립적인 레퍼런스 영역으로 취급한다.
 
 ## users/overview 정책
 

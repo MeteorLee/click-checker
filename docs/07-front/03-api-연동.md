@@ -1,4 +1,4 @@
-# API 연동 (v1.6)
+# API 연동 (v1.7)
 
 ## 목표
 - 프런트에서 실제로 사용하는 API 계약을 현재 구현 상태 기준으로 정리한다.
@@ -63,6 +63,13 @@
 - dashboard 하위 화면은 좌측 사이드바를 공통 탐색으로 사용한다.
 - 제품 API 가이드 하위 화면도 별도 좌측 사이드바를 사용한다.
 
+### 운영 배포
+- 공개 진입점: `https://clickchecker.dev`
+- 브라우저는 운영에서 별도 backend host를 직접 알지 않는다.
+- nginx가 same-origin 기준으로 다음처럼 분기한다.
+  - `/api/**`, `/actuator/**` -> backend
+  - 일반 페이지, `/_next/**`, `/healthz` -> frontend
+
 ### 날짜 처리
 - analytics 요청은 `from`, `to`를 날짜 문자열로 보낸다.
 - timezone 파라미터는 보내지 않는다.
@@ -74,6 +81,8 @@
 - `403`: 권한 부족 상태 표시
 - `404`: organization 없음 상태 표시
 - `405`: local `bootRun`이 최신 코드가 아닐 수 있으므로 재기동 확인
+- frontend 직접 포트에서 `/api/**`를 보면 same-origin 분기가 없으므로 404처럼 보일 수 있다.
+- 운영 확인은 항상 `clickchecker.dev` 기준으로 수행한다.
 
 ---
 

@@ -6,6 +6,7 @@
 - 이번 문서는 현재 구현된 `login / refresh / logout / me` 계약을 고정하는 데 목적이 있다.
 
 ## 현재 엔드포인트
+- `POST /api/v1/admin/auth/signup`
 - `POST /api/v1/admin/auth/login`
 - `POST /api/v1/admin/auth/refresh`
 - `POST /api/v1/admin/auth/logout`
@@ -15,6 +16,7 @@
 - `/api/v1/admin/**`
   - 계정 기반 JWT 보호 경로다.
 - 예외 경로
+  - `POST /api/v1/admin/auth/signup`
   - `POST /api/v1/admin/auth/login`
   - `POST /api/v1/admin/auth/refresh`
   - `POST /api/v1/admin/auth/logout`
@@ -81,6 +83,28 @@
 - `BCryptPasswordEncoder`로 비밀번호를 검증한다.
 - 성공 시 access token과 refresh token을 함께 발급한다.
 - refresh token의 hash를 DB에 저장한다.
+
+## signup 정책
+
+### 엔드포인트
+- `POST /api/v1/admin/auth/signup`
+
+### 요청
+```json
+{
+  "loginId": "alice",
+  "password": "secret123!"
+}
+```
+
+### 동작 요약
+- 새 관리자 계정을 생성한다.
+- 성공 후 바로 로그인 상태를 만들지는 않는다.
+- 이후 `POST /api/v1/admin/auth/login`으로 access token과 refresh token을 발급받는다.
+
+### 검증 규칙
+- `loginId`, `password`는 둘 다 필수다.
+- 중복 `loginId`는 `400` 또는 정책상 정의된 충돌 응답으로 거부한다.
 
 ## refresh 정책
 
@@ -195,3 +219,7 @@
 - refresh token은 현재 HttpOnly cookie가 아니라 request body로 받는다.
 - logout은 현재 refresh token 단위 폐기만 지원한다.
 - JWT 필터 단계의 `401/403` 응답 바디 표준화는 후속 과제다.
+
+## 프런트 메모
+- 관리자 인증 화면은 frontend의 `/login`, `/signup` 페이지와 연결된다.
+- 운영 배포 기준 브라우저는 `https://clickchecker.dev` same-origin 경로로 admin API를 호출한다.

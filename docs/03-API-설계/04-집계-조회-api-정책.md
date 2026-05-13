@@ -1,4 +1,4 @@
-# 집계 조회 API 정책 (v1.2)
+# 집계 조회 API 정책 (v1.3)
 
 ## 목적
 - 이벤트 원본을 그대로 저장하면서, 조회 시점에 분석 가능한 기준으로 집계한다.
@@ -29,6 +29,13 @@
 - `PUT /api/events/event-type-mappings/{id}`
 - `PUT /api/events/event-type-mappings/{id}/active`
 - `DELETE /api/events/event-type-mappings/{id}`
+
+## 사용 가이드 기준 추천 읽기 순서
+1. `overview`
+2. `activity`
+3. `users/overview`
+4. `retention/daily`, `retention/matrix`
+5. `funnels/report`
 
 ## 공통 인증 / 스코프
 - 보호 대상: `/api/events/**`
@@ -84,6 +91,7 @@
 - route template는 조직 스코프에서 관리한다.
 - 현재는 `생성 / 목록 / 수정 / 활성-비활성 / 삭제`를 지원한다.
 - 일상적인 중지는 `active=false`를 우선 사용하고, 삭제는 잘못 만든 규칙 정리용으로 본다.
+- 관리자 콘솔 화면에서는 `route-templates` 규칙 테이블로 관리한다.
 
 ## overview 정책
 
@@ -152,6 +160,7 @@
 - eventType mapping도 조직 스코프에서 관리한다.
 - 현재는 `생성 / 목록 / 수정 / 활성-비활성 / 삭제`를 지원한다.
 - 일상적인 중지는 `active=false`를 우선 사용하고, 삭제는 잘못 만든 규칙 정리용으로 본다.
+- 관리자 콘솔 화면에서는 `event-type-mappings` 규칙 테이블로 관리한다.
 
 ## raw-event-types 정책
 - raw eventType 기준 상세 집계
