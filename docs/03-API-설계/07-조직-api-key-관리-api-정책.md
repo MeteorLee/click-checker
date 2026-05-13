@@ -70,7 +70,7 @@
 - 로그인된 account
 
 ### 동작 요약
-- seed로 준비된 demo organization에 현재 account를 `VIEWER`로 연결한다.
+- seed로 준비된 demo organization(`id = 99999`)에 현재 account를 `VIEWER`로 연결한다.
 - 이미 membership이 있으면 중복 생성하지 않고 그대로 성공 처리한다.
 - 브라우저에서는 `/organizations`의 `데모 조직 추가` 버튼과 연결한다.
 
@@ -166,3 +166,7 @@
 - key 이력 목록은 제공하지 않는다.
 - key disable / enable은 아직 없다.
 - admin 콘솔의 key 관리 화면은 후속 단계에서 다룬다.
+
+## 운영 메모
+- demo 조직 데이터 재생성은 `scripts/data/seed-demo-organization.sh`, `scripts/data/seed-demo-organization-prod.sh`를 사용한다.
+- demo 조직은 이름 중복이 아니라 `id=99999` 기준으로 재사용한다.

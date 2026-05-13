@@ -119,7 +119,7 @@ class AdminAuthControllerIntegrationTest {
                                         """)
                 )
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Duplicated loginId."));
+                .andExpect(jsonPath("$.message").value("이미 사용 중인 로그인 ID입니다."));
     }
 
     @Test

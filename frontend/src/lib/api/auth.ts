@@ -54,9 +54,11 @@ export async function signup(request: AdminSignupRequest) {
 
   if (!response.ok) {
     const message =
-      response.status === 400
-        ? "회원가입 규칙에 맞지 않는 입력입니다."
-        : await parseErrorMessage(response);
+      response.status === 409
+        ? "이미 사용 중인 로그인 ID입니다."
+        : response.status === 400
+          ? "회원가입 규칙에 맞지 않는 입력입니다."
+          : await parseErrorMessage(response);
     throw new ApiError(message, response.status);
   }
 
