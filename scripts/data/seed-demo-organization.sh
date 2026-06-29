@@ -231,6 +231,20 @@ extract_access_token() {
   jq -r '.accessToken // empty' "${response_file}"
 }
 
+print_redacted_response() {
+  local response_file="$1"
+
+  if [[ ! -f "${response_file}" ]]; then
+    return
+  fi
+
+  sed -E \
+    -e 's/("accessToken"[[:space:]]*:[[:space:]]*")[^"]+(")/\1[REDACTED]\2/g' \
+    -e 's/("refreshToken"[[:space:]]*:[[:space:]]*")[^"]+(")/\1[REDACTED]\2/g' \
+    -e 's/("apiKey"[[:space:]]*:[[:space:]]*")[^"]+(")/\1[REDACTED]\2/g' \
+    "${response_file}" >&2 || true
+}
+
 ensure_demo_owner_token() {
   local signup_body login_body signup_result signup_status signup_response login_result login_status login_response token
 
@@ -250,6 +264,10 @@ ensure_demo_owner_token() {
       printf '%s\n' "${token}"
       return
     fi
+
+    echo "Failed to parse demo owner access token from login response." >&2
+    print_redacted_response "${login_response}"
+    exit 1
   fi
 
   rm -f "${login_response}"
@@ -284,13 +302,15 @@ ensure_demo_owner_token() {
   fi
 
   token=$(extract_access_token "${login_response}")
-  rm -f "${login_response}"
 
   if [[ -z "${token}" ]]; then
-    echo "Failed to parse demo owner access token" >&2
+    echo "Failed to parse demo owner access token from login response." >&2
+    print_redacted_response "${login_response}"
+    rm -f "${login_response}"
     exit 1
   fi
 
+  rm -f "${login_response}"
   printf '%s\n' "${token}"
 }
 
