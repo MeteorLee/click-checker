@@ -162,7 +162,7 @@ jobs:
       - name: Show deployment result
         if: always()
         run: |
-          set -euo pipefail
+          set -uo pipefail
 
           deployment_id="${{ steps.create_deployment.outputs.deployment_id }}"
 
@@ -171,7 +171,36 @@ jobs:
             exit 0
           fi
 
+          echo "::group::CodeDeploy deployment"
           aws deploy get-deployment \
             --deployment-id "${deployment_id}" \
-            --query 'deploymentInfo.[status,errorInformation,message]' \
-            --output table
+            --query 'deploymentInfo.{status:status,errorCode:errorInformation.code,errorMessage:errorInformation.message,applicationName:applicationName,deploymentGroupName:deploymentGroupName,createTime:createTime,completeTime:completeTime}' \
+            --output json || true
+          echo "::endgroup::"
+
+          echo "::group::CodeDeploy deployment targets"
+          target_ids=$(
+            aws deploy list-deployment-targets \
+              --deployment-id "${deployment_id}" \
+              --query 'targetIds' \
+              --output text 2>/tmp/codedeploy-targets.err || true
+          )
+
+          if [ -s /tmp/codedeploy-targets.err ]; then
+            cat /tmp/codedeploy-targets.err
+          fi
+
+          if [ -z "${target_ids}" ] || [ "${target_ids}" = "None" ]; then
+            echo "No deployment targets returned."
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          echo "target_ids=${target_ids}"
+
+          aws deploy batch-get-deployment-targets \
+            --deployment-id "${deployment_id}" \
+            --target-ids ${target_ids} \
+            --query 'deploymentTargets[].instanceTarget.{targetId:targetId,status:status,lastUpdatedAt:lastUpdatedAt,lifecycleEvents:lifecycleEvents[].{name:lifecycleEventName,status:status,errorCode:diagnostics.errorCode,scriptName:diagnostics.scriptName,message:diagnostics.message,logTail:diagnostics.logTail}}' \
+            --output json || true
+          echo "::endgroup::"
